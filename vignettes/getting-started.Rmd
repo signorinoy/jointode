@@ -1,0 +1,90 @@
+---
+title: "Getting Started"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## Introduction
+
+The `JointODE` package implements joint modeling of longitudinal biomarker trajectories and survival outcomes using ordinary differential equations (ODEs). This approach captures complex biomarker dynamics while accounting for their association with event times.
+
+## Installation
+
+```{r setup}
+# Install from GitHub
+devtools::install_github("yourusername/JointODE")
+
+# Load the package
+library(JointODE)
+```
+
+## Quick Start
+
+### Data Preparation
+
+The package requires two data frames:
+
+1. **Longitudinal data**: Repeated biomarker measurements
+2. **Survival data**: Time-to-event outcomes
+
+```{r data-prep}
+# Example longitudinal data structure
+# id: subject identifier
+# time: measurement time
+# value: biomarker value
+head(long_data)
+
+# Example survival data structure
+# id: subject identifier
+# obstime: observation time
+# status: event indicator (1=event, 0=censored)
+# w1, w2: baseline covariates
+head(surv_data)
+```
+
+### Model Fitting
+
+```{r model-fit}
+# Fit joint ODE model
+fit <- JointODE(
+  long_data = long_data,
+  surv_data = surv_data,
+  long_formula = value ~ time,
+  surv_formula = Surv(obstime, status) ~ w1 + w2,
+  id_var = "id",
+  time_var = "time"
+)
+
+# View results
+summary(fit)
+```
+
+### Model Diagnostics
+
+```{r diagnostics}
+# Check convergence
+plot(fit, type = "convergence")
+
+# Residual diagnostics
+plot(fit, type = "residuals")
+
+# Fitted trajectories
+plot(fit, type = "trajectories", subjects = 1:6)
+```
+
+## Next Steps
+
+- See `vignette("technical-details")` for mathematical formulation
+- See `vignette("data-simulation")` for generating synthetic data
+- Check `?JointODE` for detailed function documentation
