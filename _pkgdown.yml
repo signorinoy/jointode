@@ -1,0 +1,53 @@
+url: http://gongziyang.com/JointODE/
+
+template:
+  bootstrap: 5
+  bootswatch: cosmo
+  math-rendering: katex
+  light-switch: true
+  
+  navbar:
+    structure:
+      left: [intro, reference, articles, tutorials, news]
+      right: [search, github, lightswitch]
+    components:
+      articles:
+        text: Vignettes
+        menu:
+        - text: Getting Started
+          href: articles/getting-started.html
+        - text: Data Simulation
+          href: articles/data-simulation.html
+        - text: Technical Details  
+          href: articles/technical-details.html
+
+# Article index configuration
+articles:
+- title: Getting Started
+  navbar: ~
+  contents:
+  - getting-started
+
+- title: Technical Documentation
+  navbar: ~
+  contents:
+  - data-simulation
+  - technical-details
+
+# Reference configuration
+reference:
+- title: "Main Functions"
+  desc: "Core functions for joint ODE modeling"
+  contents:
+  - has_concept("modeling")
+  
+- title: "Simulation"
+  desc: "Functions for data simulation"
+  contents:
+  - has_concept("simulation")
+  
+- title: "Utilities"
+  desc: "Helper functions"
+  contents:
+  - has_concept("utilities")
+
