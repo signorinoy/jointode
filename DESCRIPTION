@@ -19,6 +19,7 @@ Imports:
 Suggests: 
     deSolve,
     simsurv,
+    survival,
     ggplot2,
     graphics,
     knitr,

@@ -116,6 +116,7 @@ $$\sigma_e^2 = \frac{1}{N}\sum_{i,j} [(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 + \ha
 $$\max \sum_i \{\delta_i \log\lambda_i(T_i|\hat{b}_i) - \hat{\Lambda}_i(T_i)\}$$
 
 Gradients (with $c_i = \exp(\hat{v}_i/2)$ for variance correction):
+
 - $\nabla_{\boldsymbol{\alpha}} = \sum_i [\delta_i \mathbf{m}_i(T_i) - c_i\int_0^{T_i} \mathbf{m}_i(s)\lambda_i(s|\hat{b}_i)ds]$
 - $\nabla_{\boldsymbol{\eta}} = \sum_i [\delta_i \mathbf{B}^{(\lambda)}(T_i) - c_i\int_0^{T_i} \mathbf{B}^{(\lambda)}(s)\lambda_i(s|\hat{b}_i)ds]$
 - $\nabla_{\boldsymbol{\phi}} = \sum_i [\delta_i \mathbf{W}_i - c_i\mathbf{W}_i\Lambda_i(T_i|\hat{b}_i)]$
