@@ -5,22 +5,23 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>What the Package Does (One Line, Title Case) • jointode</title>
-<script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<title>Joint Modeling of Longitudinal and Survival Data Using ODEs • JointODE</title>
+<!-- katex math --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script><script src="katex-auto.js"></script><script src="lightswitch.js"></script><script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="What the Package Does (One Line, Title Case)">
-<meta name="description" content="What the package does (one paragraph).">
-<meta property="og:description" content="What the package does (one paragraph).">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Joint Modeling of Longitudinal and Survival Data Using ODEs">
+<meta name="description" content="Implements joint modeling of longitudinal biomarker trajectories and time-to-event outcomes using ordinary differential equations (ODEs). The package provides tools for simultaneous analysis of biomarker dynamics and survival data, capturing complex temporal patterns through ODE-based trajectory modeling while accounting for their association with event times through shared random effects.">
+<meta property="og:description" content="Implements joint modeling of longitudinal biomarker trajectories and time-to-event outcomes using ordinary differential equations (ODEs). The package provides tools for simultaneous analysis of biomarker dynamics and survival data, capturing complex temporal patterns through ODE-based trajectory modeling while accounting for their association with event times through shared random effects.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
-    <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top " aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="index.html">jointode</a>
+    <a class="navbar-brand me-2" href="index.html">JointODE</a>
 
     <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
 
@@ -35,7 +36,9 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/getting-started.html">getting-started</a></li>
+<li><a class="dropdown-item" href="articles/getting-started.html">Getting Started</a></li>
+    <li><a class="dropdown-item" href="articles/data-simulation.html">Data Simulation</a></li>
+    <li><a class="dropdown-item" href="articles/technical-details.html">Technical Details</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -44,7 +47,15 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/signorinoy/jointode/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/signorinoy/JointODE/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-lightswitch" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="Light switch"><span class="fa fa-sun"></span></button>
+  <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-lightswitch">
+<li><button class="dropdown-item" data-bs-theme-value="light"><span class="fa fa-sun"></span> Light</button></li>
+    <li><button class="dropdown-item" data-bs-theme-value="dark"><span class="fa fa-moon"></span> Dark</button></li>
+    <li><button class="dropdown-item" data-bs-theme-value="auto"><span class="fa fa-adjust"></span> Auto</button></li>
+  </ul>
+</li>
       </ul>
 </div>
 
@@ -53,27 +64,71 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="jointode">jointode<a class="anchor" aria-label="anchor" href="#jointode"></a>
+<div class="page-header"><h1 id="jointode">JointODE<a class="anchor" aria-label="anchor" href="#jointode"></a>
 </h1></div>
 <!-- badges: start -->
 
-<p>The goal of jointode is to …</p>
+<!-- badges: end -->
+<p>The <strong>JointODE</strong> package provides a unified framework for joint modeling of longitudinal biomarker measurements and time-to-event outcomes using ordinary differential equations (ODEs). This approach enables the simultaneous analysis of biomarker trajectories and their impact on survival outcomes.</p>
+<div class="section level2">
+<h2 id="model-setup">Model Setup<a class="anchor" aria-label="anchor" href="#model-setup"></a>
+</h2>
+<div class="section level3">
+<h3 id="longitudinal-model">Longitudinal Model<a class="anchor" aria-label="anchor" href="#longitudinal-model"></a>
+</h3>
+<p>The observed biomarker measurements are modeled as: <span class="math display">V_{ij}=m_i(T_{ij})+b_i+\varepsilon_{ij},\quad i=1,\ldots,n,\quad j=1,\ldots,n_i</span></p>
+<p>where:</p>
+<ul>
+<li>
+<span class="math inline">V_{ij}</span>: Observed biomarker value for subject <span class="math inline">i</span> at time <span class="math inline">T_{ij}</span>
+</li>
+<li>
+<span class="math inline">m_i(t)</span>: True underlying biomarker trajectory</li>
+<li>
+<span class="math inline">b_i\sim\mathcal{N}(0,\sigma_{b}^{2})</span>: Subject-specific random intercept</li>
+<li>
+<span class="math inline">\varepsilon_{ij}\sim\mathcal{N}(0,\sigma_{e}^{2})</span>: Measurement error</li>
+</ul>
+<p>The biomarker trajectory evolution is characterized by the following second-order differential equation: <span class="math display">\ddot{m}_i(t) = f\big(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t\big)</span></p>
+<p>where <span class="math inline">f: \mathbb{R} \times \mathbb{R} \times \mathbb{R}^p \times \mathbb{R}^+ \to \mathbb{R}</span> is a smooth function modeling the biomarker acceleration as a function of its current value <span class="math inline">m_i(t)</span>, velocity <span class="math inline">\dot{m}_i(t)</span>, time-varying covariates <span class="math inline">\mathbf{X}_i(t) \in \mathbb{R}^p</span>, and time <span class="math inline">t</span>.</p>
+</div>
+<div class="section level3">
+<h3 id="survival-model">Survival Model<a class="anchor" aria-label="anchor" href="#survival-model"></a>
+</h3>
+<p>The hazard function incorporates biomarker dynamics: <span class="math display">\lambda_i(t) = \lambda_{0}(t)\exp\left[\mathbf{m}_i(t)^{\top}\boldsymbol{\alpha}+\mathbf{W}_i^{\top}\boldsymbol{\phi}+b_{i}\right]</span></p>
+<p>where:</p>
+<ul>
+<li>
+<span class="math inline">\lambda_{0}(t)</span>: Baseline hazard (e.g., Weibull, piecewise constant)</li>
+<li>
+<span class="math inline">\mathbf{m}_i(t)=\left(m_i(t), \dot{m}_i(t), \ddot{m}_i(t)\right)^{\top}</span>: Biomarker value and derivatives</li>
+<li>
+<span class="math inline">\boldsymbol{\alpha}=(\alpha_0, \alpha_1, \alpha_2)^{\top}</span>: Association parameters for value, velocity, and acceleration</li>
+<li>
+<span class="math inline">\mathbf{W}_i</span>: Baseline covariates with coefficients <span class="math inline">\boldsymbol{\phi}</span>
+</li>
+<li>
+<span class="math inline">b_i</span>: Subject-specific random intercept</li>
+</ul>
+<p>For detailed mathematical derivations including ODE formulation, likelihood construction, and EM algorithm specifics, see the <a href="vignettes/technical-details.html">technical documentation</a>.</p>
+</div>
+</div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>You can install the development version of jointode from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
+<p>You can install the development version of JointODE from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"signorinoy/jointode"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"signorinoy/JointODE"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
 </h2>
-<p>This is a basic example which shows you how to solve a common problem:</p>
+<p>Here’s a basic example demonstrating typical usage:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/signorinoy/jointode" class="external-link">jointode</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/signorinoy/JointODE" class="external-link">JointODE</a></span><span class="op">)</span></span>
 <span><span class="co">## basic example code</span></span></code></pre></div>
-<p>What is special about using <code>README.Rmd</code> instead of just <code>README.md</code>? You can include R chunks like so:</p>
+<p>Using <code>README.Rmd</code> instead of <code>README.md</code> allows you to include executable R chunks:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">cars</span><span class="op">)</span></span>
 <span><span class="co">#&gt;      speed           dist       </span></span>
@@ -83,22 +138,22 @@
 <span><span class="co">#&gt;  Mean   :15.4   Mean   : 42.98  </span></span>
 <span><span class="co">#&gt;  3rd Qu.:19.0   3rd Qu.: 56.00  </span></span>
 <span><span class="co">#&gt;  Max.   :25.0   Max.   :120.00</span></span></code></pre></div>
-<p>You’ll still need to render <code>README.Rmd</code> regularly, to keep <code>README.md</code> up-to-date. <code>devtools::build_readme()</code> is handy for this.</p>
-<p>You can also embed plots, for example:</p>
+<p>Remember to render <code>README.Rmd</code> regularly to keep <code>README.md</code> up-to-date. Use <code>devtools::build_readme()</code> for this task.</p>
+<p>You can also embed plots:</p>
 <p><img src="reference/figures/README-pressure-1.png" width="100%"></p>
-<p>In that case, don’t forget to commit and push the resulting figure files, so they display on GitHub and CRAN.</p>
+<p>Remember to commit and push the resulting figure files to ensure they display on GitHub and CRAN.</p>
 </div>
 <div class="section level2">
 <h2 id="code-of-conduct">Code of Conduct<a class="anchor" aria-label="anchor" href="#code-of-conduct"></a>
 </h2>
-<p>Please note that the jointode project is released with a <a href="http://gongziyang.com/jointode/CODE_OF_CONDUCT.html">Contributor Code of Conduct</a>. By contributing to this project, you agree to abide by its terms.</p>
+<p>Please note that the JointODE project is released with a <a href="http://gongziyang.com/JointODE/CODE_OF_CONDUCT.html">Contributor Code of Conduct</a>. By contributing to this project, you agree to abide by its terms.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">
-<li><a href="https://github.com/signorinoy/jointode/" class="external-link">Browse source code</a></li>
-<li><a href="https://github.com/signorinoy/jointode/issues" class="external-link">Report a bug</a></li>
+<li><a href="https://github.com/signorinoy/JointODE/" class="external-link">Browse source code</a></li>
+<li><a href="https://github.com/signorinoy/JointODE/issues" class="external-link">Report a bug</a></li>
 </ul>
 </div>
 
@@ -120,7 +175,7 @@
 <div class="citation">
 <h2 data-toc-skip>Citation</h2>
 <ul class="list-unstyled">
-<li><a href="authors.html#citation">Citing jointode</a></li>
+<li><a href="authors.html#citation">Citing JointODE</a></li>
 </ul>
 </div>
 
@@ -135,8 +190,8 @@
 <h2 data-toc-skip>Dev status</h2>
 <ul class="list-unstyled">
 <li><a href="https://lifecycle.r-lib.org/articles/stages.html#experimental" class="external-link"><img src="https://img.shields.io/badge/lifecycle-experimental-orange.svg" alt="Lifecycle: experimental"></a></li>
-<li><a href="https://github.com/signorinoy/jointode/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/signorinoy/jointode/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
-<li><a href="https://app.codecov.io/gh/signorinoy/jointode" class="external-link"><img src="https://codecov.io/gh/signorinoy/jointode/graph/badge.svg" alt="Codecov test coverage"></a></li>
+<li><a href="https://github.com/signorinoy/JointODE/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/signorinoy/JointODE/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
+<li><a href="https://app.codecov.io/gh/signorinoy/JointODE" class="external-link"><img src="https://codecov.io/gh/signorinoy/JointODE/graph/badge.svg" alt="Codecov test coverage"></a></li>
 </ul>
 </div>
 

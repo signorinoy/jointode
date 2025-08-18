@@ -1,13 +1,16 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
-<url><loc>http://gongziyang.com/jointode/404.html</loc></url>
-<url><loc>http://gongziyang.com/jointode/CODE_OF_CONDUCT.html</loc></url>
-<url><loc>http://gongziyang.com/jointode/LICENSE-text.html</loc></url>
-<url><loc>http://gongziyang.com/jointode/LICENSE.html</loc></url>
-<url><loc>http://gongziyang.com/jointode/articles/getting-started.html</loc></url>
-<url><loc>http://gongziyang.com/jointode/articles/index.html</loc></url>
-<url><loc>http://gongziyang.com/jointode/authors.html</loc></url>
-<url><loc>http://gongziyang.com/jointode/index.html</loc></url>
-<url><loc>http://gongziyang.com/jointode/news/index.html</loc></url>
-<url><loc>http://gongziyang.com/jointode/reference/index.html</loc></url>
+<url><loc>http://gongziyang.com/JointODE/404.html</loc></url>
+<url><loc>http://gongziyang.com/JointODE/CODE_OF_CONDUCT.html</loc></url>
+<url><loc>http://gongziyang.com/JointODE/LICENSE-text.html</loc></url>
+<url><loc>http://gongziyang.com/JointODE/LICENSE.html</loc></url>
+<url><loc>http://gongziyang.com/JointODE/articles/data-simulation.html</loc></url>
+<url><loc>http://gongziyang.com/JointODE/articles/getting-started.html</loc></url>
+<url><loc>http://gongziyang.com/JointODE/articles/index.html</loc></url>
+<url><loc>http://gongziyang.com/JointODE/articles/technical-details.html</loc></url>
+<url><loc>http://gongziyang.com/JointODE/authors.html</loc></url>
+<url><loc>http://gongziyang.com/JointODE/index.html</loc></url>
+<url><loc>http://gongziyang.com/JointODE/news/index.html</loc></url>
+<url><loc>http://gongziyang.com/JointODE/reference/JointODE-package.html</loc></url>
+<url><loc>http://gongziyang.com/JointODE/reference/index.html</loc></url>
 </urlset>
 
