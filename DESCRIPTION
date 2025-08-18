@@ -1,0 +1,28 @@
+Package: JointODE
+Title: Joint Modeling of Longitudinal and Survival Data Using ODEs
+Version: 0.0.0.9000
+Authors@R: 
+    person("Ziyang", "Gong", , "meetziyang@gmail.com", role = c("aut", "cre"))
+Description: Implements joint modeling of longitudinal biomarker trajectories and
+    time-to-event outcomes using ordinary differential equations (ODEs). The package
+    provides tools for simultaneous analysis of biomarker dynamics and survival data,
+    capturing complex temporal patterns through ODE-based trajectory modeling while
+    accounting for their association with event times through shared random effects.
+License: MIT + file LICENSE
+URL: https://github.com/signorinoy/JointODE, http://gongziyang.com/JointODE/
+BugReports: https://github.com/signorinoy/JointODE/issues
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Imports: 
+    stats
+Suggests: 
+    deSolve,
+    simsurv,
+    ggplot2,
+    graphics,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+VignetteBuilder: knitr
