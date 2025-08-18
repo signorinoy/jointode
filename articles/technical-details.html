@@ -225,12 +225,18 @@ m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i]</span></p>
 \{\delta_i \log\lambda_i(T_i|\hat{b}_i) -
 \hat{\Lambda}_i(T_i)\}</span></p>
 <p>Gradients (with <span class="math inline">c_i =
-\exp(\hat{v}_i/2)</span> for variance correction): - <span class="math inline">\nabla_{\boldsymbol{\alpha}} = \sum_i [\delta_i
-\mathbf{m}_i(T_i) - c_i\int_0^{T_i}
-\mathbf{m}_i(s)\lambda_i(s|\hat{b}_i)ds]</span> - <span class="math inline">\nabla_{\boldsymbol{\eta}} = \sum_i [\delta_i
-\mathbf{B}^{(\lambda)}(T_i) - c_i\int_0^{T_i}
-\mathbf{B}^{(\lambda)}(s)\lambda_i(s|\hat{b}_i)ds]</span> - <span class="math inline">\nabla_{\boldsymbol{\phi}} = \sum_i [\delta_i
-\mathbf{W}_i - c_i\mathbf{W}_i\Lambda_i(T_i|\hat{b}_i)]</span></p>
+\exp(\hat{v}_i/2)</span> for variance correction):</p>
+<ul>
+<li><span class="math inline">\nabla_{\boldsymbol{\alpha}} = \sum_i
+[\delta_i \mathbf{m}_i(T_i) - c_i\int_0^{T_i}
+\mathbf{m}_i(s)\lambda_i(s|\hat{b}_i)ds]</span></li>
+<li><span class="math inline">\nabla_{\boldsymbol{\eta}} = \sum_i
+[\delta_i \mathbf{B}^{(\lambda)}(T_i) - c_i\int_0^{T_i}
+\mathbf{B}^{(\lambda)}(s)\lambda_i(s|\hat{b}_i)ds]</span></li>
+<li><span class="math inline">\nabla_{\boldsymbol{\phi}} = \sum_i
+[\delta_i \mathbf{W}_i -
+c_i\mathbf{W}_i\Lambda_i(T_i|\hat{b}_i)]</span></li>
+</ul>
 <p><strong>4. Random effect variance</strong>: <span class="math display">\sigma_b^2 = \frac{1}{n}\sum_i (\hat{b}_i^2 +
 \hat{v}_i)</span></p>
 </div>
