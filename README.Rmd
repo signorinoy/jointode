@@ -62,7 +62,7 @@ where:
 -   $\mathbf{W}_i$: Baseline covariates with coefficients $\boldsymbol{\phi}$
 -   $b_i$: Subject-specific random intercept
 
-For detailed mathematical derivations including ODE formulation, likelihood construction, and EM algorithm specifics, see the [technical documentation](vignettes/technical-details.md).
+For detailed mathematical derivations including ODE formulation, likelihood construction, and EM algorithm specifics, see the [technical documentation](http://gongziyang.com/JointODE/articles/technical-details.html).
 
 ## Installation
 

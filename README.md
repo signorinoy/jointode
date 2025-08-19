@@ -64,7 +64,7 @@ where:
 
 For detailed mathematical derivations including ODE formulation,
 likelihood construction, and EM algorithm specifics, see the [technical
-documentation](vignettes/technical-details.md).
+documentation](http://gongziyang.com/JointODE/articles/technical-details.html).
 
 ## Installation
 
