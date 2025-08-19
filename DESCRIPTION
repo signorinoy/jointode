@@ -17,9 +17,9 @@ RoxygenNote: 7.3.2
 Imports: 
     stats,
     deSolve,
-    simsurv
+    simsurv,
+    survival
 Suggests: 
-    survival,
     ggplot2,
     graphics,
     knitr,

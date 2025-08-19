@@ -1,6 +1,3 @@
-# Load required packages
-library(survival)
-
 test_that("validate() checks input types correctly", {
   # Create valid test data
   data.long <- create_test_longitudinal_data(

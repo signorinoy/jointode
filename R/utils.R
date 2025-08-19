@@ -75,6 +75,7 @@
 #'
 #' @seealso \code{\link{process}} for data processing after validation
 #'
+#' @importFrom survival Surv
 #' @export
 validate <- function(
     formula.long, formula.surv, data.long, data.surv, id, time) {

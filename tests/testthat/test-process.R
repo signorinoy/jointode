@@ -1,6 +1,3 @@
-# Test process function
-library(survival)
-
 test_that("process() correctly structures basic data", {
   data.long <- create_test_longitudinal_data(
     n_subjects = 3, n_times = 4, seed = 123
