@@ -36,6 +36,7 @@ where:
 
 The biomarker trajectory evolution is characterized by the following
 second-order differential equation:
+
 $$\ddot{m}_i(t) = f\big(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t\big)$$
 
 where
@@ -47,6 +48,7 @@ covariates $\mathbf{X}_i(t) \in \mathbb{R}^p$, and time $t$.
 ### Survival Model
 
 The hazard function incorporates biomarker dynamics:
+
 $$\lambda_i(t) = \lambda_{0}(t)\exp\left[\mathbf{m}_i(t)^{\top}\boldsymbol{\alpha}+\mathbf{W}_i^{\top}\boldsymbol{\phi}+b_{i}\right]$$
 
 where:

@@ -16,8 +16,6 @@ template:
         menu:
         - text: Getting Started
           href: articles/getting-started.html
-        - text: Data Simulation
-          href: articles/data-simulation.html
         - text: Technical Details  
           href: articles/technical-details.html
 
@@ -31,7 +29,6 @@ articles:
 - title: Technical Documentation
   navbar: ~
   contents:
-  - data-simulation
   - technical-details
 
 # Reference configuration
@@ -40,11 +37,6 @@ reference:
   desc: "Core functions for joint ODE modeling"
   contents:
   - has_concept("modeling")
-  
-- title: "Simulation"
-  desc: "Functions for data simulation"
-  contents:
-  - has_concept("simulation")
   
 - title: "Utilities"
   desc: "Helper functions"
