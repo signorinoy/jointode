@@ -35,7 +35,6 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started</a></li>
-    <li><a class="dropdown-item" href="../articles/data-simulation.html">Data Simulation</a></li>
     <li><a class="dropdown-item" href="../articles/technical-details.html">Technical Details</a></li>
   </ul>
 </li>
@@ -89,7 +88,7 @@ dynamics while accounting for their association with event times.</p>
 </h2>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Install from GitHub</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"yourusername/JointODE"</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"signorinoy/JointODE"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load the package</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/signorinoy/JointODE" class="external-link">JointODE</a></span><span class="op">)</span></span></code></pre></div>
@@ -112,12 +111,12 @@ measurements</li>
 <code class="sourceCode R"><span><span class="co"># Example longitudinal data structure</span></span>
 <span><span class="co"># id: subject identifier</span></span>
 <span><span class="co"># time: measurement time</span></span>
-<span><span class="co"># value: biomarker value</span></span>
+<span><span class="co"># v: biomarker value</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data.long</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Example survival data structure</span></span>
 <span><span class="co"># id: subject identifier</span></span>
-<span><span class="co"># obstime: observation time</span></span>
+<span><span class="co"># time: observation time</span></span>
 <span><span class="co"># status: event indicator (1=event, 0=censored)</span></span>
 <span><span class="co"># w1, w2: baseline covariates</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data.surv</span><span class="op">)</span></span></code></pre></div>
@@ -130,8 +129,8 @@ measurements</li>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/JointODE.html">JointODE</a></span><span class="op">(</span></span>
 <span>  data.long <span class="op">=</span> <span class="va">data.long</span>,</span>
 <span>  data.surv <span class="op">=</span> <span class="va">data.surv</span>,</span>
-<span>  formula.long <span class="op">=</span> <span class="va">value</span> <span class="op">~</span> <span class="va">time</span>,</span>
-<span>  formula.surv <span class="op">=</span> <span class="fu">Surv</span><span class="op">(</span><span class="va">obstime</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span>,</span>
+<span>  formula.long <span class="op">=</span> <span class="va">v</span> <span class="op">~</span> <span class="fl">1</span>,</span>
+<span>  formula.surv <span class="op">=</span> <span class="fu">Surv</span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span>,</span>
 <span>  id <span class="op">=</span> <span class="st">"id"</span>,</span>
 <span>  time <span class="op">=</span> <span class="st">"time"</span></span>
 <span><span class="op">)</span></span>
@@ -159,7 +158,7 @@ measurements</li>
 <ul>
 <li>See <code><a href="../articles/technical-details.html">vignette("technical-details")</a></code> for mathematical
 formulation</li>
-<li>See <code><a href="../articles/data-simulation.html">vignette("data-simulation")</a></code> for generating
+<li>See <code>vignette("data-simulation")</code> for generating
 synthetic data</li>
 <li>Check <code><a href="../reference/JointODE.html">?JointODE</a></code> for detailed function
 documentation</li>

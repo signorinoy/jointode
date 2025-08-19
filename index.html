@@ -37,7 +37,6 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="articles/getting-started.html">Getting Started</a></li>
-    <li><a class="dropdown-item" href="articles/data-simulation.html">Data Simulation</a></li>
     <li><a class="dropdown-item" href="articles/technical-details.html">Technical Details</a></li>
   </ul>
 </li>
@@ -89,13 +88,15 @@
 <li>
 <span class="math inline">\varepsilon_{ij}\sim\mathcal{N}(0,\sigma_{e}^{2})</span>: Measurement error</li>
 </ul>
-<p>The biomarker trajectory evolution is characterized by the following second-order differential equation: <span class="math display">\ddot{m}_i(t) = f\big(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t\big)</span></p>
+<p>The biomarker trajectory evolution is characterized by the following second-order differential equation:</p>
+<p><span class="math display">\ddot{m}_i(t) = f\big(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t\big)</span></p>
 <p>where <span class="math inline">f: \mathbb{R} \times \mathbb{R} \times \mathbb{R}^p \times \mathbb{R}^+ \to \mathbb{R}</span> is a smooth function modeling the biomarker acceleration as a function of its current value <span class="math inline">m_i(t)</span>, velocity <span class="math inline">\dot{m}_i(t)</span>, time-varying covariates <span class="math inline">\mathbf{X}_i(t) \in \mathbb{R}^p</span>, and time <span class="math inline">t</span>.</p>
 </div>
 <div class="section level3">
 <h3 id="survival-model">Survival Model<a class="anchor" aria-label="anchor" href="#survival-model"></a>
 </h3>
-<p>The hazard function incorporates biomarker dynamics: <span class="math display">\lambda_i(t) = \lambda_{0}(t)\exp\left[\mathbf{m}_i(t)^{\top}\boldsymbol{\alpha}+\mathbf{W}_i^{\top}\boldsymbol{\phi}+b_{i}\right]</span></p>
+<p>The hazard function incorporates biomarker dynamics:</p>
+<p><span class="math display">\lambda_i(t) = \lambda_{0}(t)\exp\left[\mathbf{m}_i(t)^{\top}\boldsymbol{\alpha}+\mathbf{W}_i^{\top}\boldsymbol{\phi}+b_{i}\right]</span></p>
 <p>where:</p>
 <ul>
 <li>

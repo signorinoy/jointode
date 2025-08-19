@@ -27,7 +27,6 @@ through shared parameters."></head><body>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started</a></li>
-    <li><a class="dropdown-item" href="../articles/data-simulation.html">Data Simulation</a></li>
     <li><a class="dropdown-item" href="../articles/technical-details.html">Technical Details</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -93,7 +92,7 @@ Must have exactly one row per subject with event time and status.</p></dd>
 <dt id="arg-formula-long">formula.long<a class="anchor" aria-label="anchor" href="#arg-formula-long"></a></dt>
 <dd><p>Formula for the longitudinal submodel.
 Left side specifies the response; right side includes time and
-covariates (e.g., <code>y ~ time + x1</code>).</p></dd>
+covariates (e.g., <code>v ~ x1</code>).</p></dd>
 
 
 <dt id="arg-formula-surv">formula.surv<a class="anchor" aria-label="anchor" href="#arg-formula-surv"></a></dt>
@@ -189,23 +188,12 @@ parameters to improve convergence.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="co"># Basic joint model</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">JointODE</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  data.long <span class="op">=</span> <span class="va">longitudinal_data</span>,</span></span>
-<span class="r-in"><span>  data.surv <span class="op">=</span> <span class="va">survival_data</span>,</span></span>
-<span class="r-in"><span>  formula.long <span class="op">=</span> <span class="va">value</span> <span class="op">~</span> <span class="va">time</span>,</span></span>
-<span class="r-in"><span>  formula.surv <span class="op">=</span> <span class="fu">Surv</span><span class="op">(</span><span class="va">obstime</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span></span></span>
+<span class="r-in"><span>  data.long <span class="op">=</span> <span class="va">data.long</span>,</span></span>
+<span class="r-in"><span>  data.surv <span class="op">=</span> <span class="va">data.surv</span>,</span></span>
+<span class="r-in"><span>  formula.long <span class="op">=</span> <span class="va">v</span> <span class="op">~</span> <span class="fl">1</span>,</span></span>
+<span class="r-in"><span>  formula.surv <span class="op">=</span> <span class="fu">Surv</span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># With custom optimization settings</span></span></span>
-<span class="r-in"><span><span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu">JointODE</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  data.long <span class="op">=</span> <span class="va">longitudinal_data</span>,</span></span>
-<span class="r-in"><span>  data.surv <span class="op">=</span> <span class="va">survival_data</span>,</span></span>
-<span class="r-in"><span>  formula.long <span class="op">=</span> <span class="va">value</span> <span class="op">~</span> <span class="va">time</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/AsIs.html" class="external-link">I</a></span><span class="op">(</span><span class="va">time</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  formula.surv <span class="op">=</span> <span class="fu">Surv</span><span class="op">(</span><span class="va">obstime</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">age</span> <span class="op">+</span> <span class="va">treatment</span>,</span></span>
-<span class="r-in"><span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>maxit <span class="op">=</span> <span class="fl">2000</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
