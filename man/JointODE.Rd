@@ -25,7 +25,7 @@ Must have exactly one row per subject with event time and status.}
 
 \item{formula.long}{Formula for the longitudinal submodel.
 Left side specifies the response; right side includes time and
-covariates (e.g., \code{y ~ x1}).}
+covariates (e.g., \code{v ~ x1}).}
 
 \item{formula.surv}{Formula for the survival submodel.
 Must use \code{Surv(time, status)} on the left side;
@@ -86,10 +86,10 @@ parameters to improve convergence.
 \examples{
 \dontrun{
 fit <- JointODE(
-  data.long = longitudinal_data,
-  data.surv = survival_data,
-  formula.long = value ~ 1,
-  formula.surv = Surv(obstime, status) ~ w1 + w2
+  data.long = data.long,
+  data.surv = data.surv,
+  formula.long = v ~ 1,
+  formula.surv = Surv(time, status) ~ w1 + w2
 )
 summary(fit)
 }

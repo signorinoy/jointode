@@ -5,14 +5,14 @@ test_that("process() correctly structures basic data", {
   data.long <- create_test_longitudinal_data(
     n_subjects = 3, n_times = 4, seed = 123
   )
-  data.long$y <- data.long$y + 10 # Adjust mean
+  data.long$v <- data.long$v + 10 # Adjust mean
 
   data.surv <- create_test_survival_data(n_subjects = 3, seed = 123)
   names(data.surv)[2] <- "obstime" # Rename time column
 
   result <- process(
-    formula.long = y ~ x1 + x2,
-    formula.surv = Surv(obstime, status) ~ z1 + z2,
+    formula.long = v ~ x1 + x2,
+    formula.surv = Surv(obstime, status) ~ w1 + w2,
     data.long = data.long,
     data.surv = data.surv,
     id = "id",
@@ -49,7 +49,7 @@ test_that("process() handles missing longitudinal data", {
   names(data.surv)[2] <- "obstime"
 
   result <- process(
-    formula.long = y ~ 1,
+    formula.long = v ~ 1,
     formula.surv = Surv(obstime, status) ~ 1,
     data.long = data.long,
     data.surv = data.surv,
@@ -71,7 +71,7 @@ test_that("process() handles formula transformations", {
   data.long <- data.frame(
     id = rep(1:10, each = 3),
     time = rep(1:3, 10),
-    y = exp(rnorm(30)),
+    v = exp(rnorm(30)),
     x = runif(30, 1, 10)
   )
 
@@ -83,7 +83,7 @@ test_that("process() handles formula transformations", {
   )
 
   result <- process(
-    formula.long = log(y) ~ log(x) + I(x^2),
+    formula.long = log(v) ~ log(x) + I(x^2),
     formula.surv = Surv(surv_time, status) ~ log(z),
     data.long = data.long,
     data.surv = data.surv,
@@ -94,7 +94,7 @@ test_that("process() handles formula transformations", {
   # Check transformations applied
   expect_equal(
     unname(result[[1]]$longitudinal$measurements[1]),
-    log(data.long$y[data.long$id == 1][1])
+    log(data.long$v[data.long$id == 1][1])
   )
   expect_equal(ncol(result[[1]]$longitudinal$covariates), 2)
 })
@@ -103,7 +103,7 @@ test_that("process() handles interaction terms", {
   data.long <- data.frame(
     id = rep(1:5, each = 3),
     time = rep(0:2, 5),
-    y = rnorm(15),
+    v = rnorm(15),
     x1 = rnorm(15),
     x2 = rnorm(15)
   )
@@ -112,13 +112,13 @@ test_that("process() handles interaction terms", {
     id = 1:5,
     surv_time = rexp(5),
     status = rbinom(5, 1, 0.5),
-    z1 = rnorm(5),
-    z2 = rnorm(5)
+    w1 = rnorm(5),
+    w2 = rnorm(5)
   )
 
   result <- process(
-    formula.long = y ~ x1 * x2,
-    formula.surv = Surv(surv_time, status) ~ z1 * z2,
+    formula.long = v ~ x1 * x2,
+    formula.surv = Surv(surv_time, status) ~ w1 * w2,
     data.long = data.long,
     data.surv = data.surv,
     id = "id",
@@ -134,7 +134,7 @@ test_that("process() preserves time ordering", {
   data.long <- data.frame(
     id = c(1, 1, 1, 2, 2, 2),
     time = c(2, 0, 1, 1, 2, 0),
-    y = c(6, 4, 5, 8, 9, 7),
+    v = c(6, 4, 5, 8, 9, 7),
     x = c(3, 1, 2, 5, 6, 4)
   )
 
@@ -145,7 +145,7 @@ test_that("process() preserves time ordering", {
   )
 
   result <- process(
-    formula.long = y ~ x,
+    formula.long = v ~ x,
     formula.surv = Surv(surv_time, status) ~ 1,
     data.long = data.long,
     data.surv = data.surv,
@@ -167,7 +167,7 @@ test_that("process() calculates summary statistics correctly", {
   data.long <- data.frame(
     id = rep(1:n_subjects, each = 3),
     time = rep(0:2, n_subjects),
-    y = rnorm(n_subjects * 3)
+    v = rnorm(n_subjects * 3)
   )
 
   data.surv <- data.frame(
@@ -177,7 +177,7 @@ test_that("process() calculates summary statistics correctly", {
   )
 
   result <- process(
-    formula.long = y ~ 1,
+    formula.long = v ~ 1,
     formula.surv = Surv(surv_time, status) ~ 1,
     data.long = data.long,
     data.surv = data.surv,
@@ -194,7 +194,7 @@ test_that("process() handles polynomial terms", {
   data.long <- data.frame(
     id = rep(1:10, each = 3),
     time = rep(0:2, 10),
-    y = rnorm(30),
+    v = rnorm(30),
     x = runif(30)
   )
 
@@ -206,7 +206,7 @@ test_that("process() handles polynomial terms", {
   )
 
   result <- process(
-    formula.long = y ~ poly(x, 2),
+    formula.long = v ~ poly(x, 2),
     formula.surv = Surv(surv_time, status) ~ poly(z, 3),
     data.long = data.long,
     data.surv = data.surv,
@@ -226,7 +226,7 @@ test_that("process() handles large datasets efficiently", {
   data.long <- data.frame(
     id = rep(1:n_subjects, each = n_times),
     time = rep(0:(n_times - 1), n_subjects),
-    y = rnorm(n_subjects * n_times),
+    v = rnorm(n_subjects * n_times),
     x1 = rnorm(n_subjects * n_times),
     x2 = rbinom(n_subjects * n_times, 1, 0.5)
   )
@@ -240,7 +240,7 @@ test_that("process() handles large datasets efficiently", {
 
   # Should complete without error
   result <- process(
-    formula.long = y ~ x1 + x2,
+    formula.long = v ~ x1 + x2,
     formula.surv = Surv(surv_time, status) ~ z,
     data.long = data.long,
     data.surv = data.surv,
@@ -260,7 +260,7 @@ test_that("process() handles subjects with no longitudinal data correctly", {
   data.long <- data.frame(
     id = c(1, 1, 3, 3), # No data for subject 2
     time = c(0, 1, 0, 1),
-    y = c(1, 2, 3, 4)
+    v = c(1, 2, 3, 4)
   )
 
   data.surv <- data.frame(
@@ -271,7 +271,7 @@ test_that("process() handles subjects with no longitudinal data correctly", {
 
   suppressWarnings({
     result <- process(
-      y ~ 1,
+      v ~ 1,
       Surv(time, status) ~ 1,
       data.long,
       data.surv,
@@ -296,7 +296,7 @@ test_that("process() handles formulas with no covariates", {
 
   # Both formulas with only intercepts
   result <- process(
-    y ~ 1, # No longitudinal covariates
+    v ~ 1, # No longitudinal covariates
     Surv(time, status) ~ 1, # No survival covariates
     data.long,
     data.surv,
@@ -318,7 +318,7 @@ test_that("process() computes event rate with all censored", {
   data.surv$status <- 0 # All censored
 
   result <- process(
-    y ~ 1,
+    v ~ 1,
     Surv(time, status) ~ 1,
     data.long,
     data.surv,
@@ -336,7 +336,7 @@ test_that("process() computes event rate with all events", {
   data.surv$status <- 1 # All events
 
   result <- process(
-    y ~ 1,
+    v ~ 1,
     Surv(time, status) ~ 1,
     data.long,
     data.surv,
@@ -351,11 +351,11 @@ test_that("process() handles edge cases in data structure", {
   # Minimum data
   test_data <- create_minimal_test_data(n_subjects = 2, n_times = 2)
   data.long.min <- test_data$longitudinal
-  data.long.min$y <- c(1, 2, 3, 4) # Use specific values
+  data.long.min$v <- c(1, 2, 3, 4) # Use specific values
   data.surv.min <- test_data$survival
 
   result <- process(
-    y ~ 1,
+    v ~ 1,
     Surv(time, status) ~ 1,
     data.long.min,
     data.surv.min,
@@ -376,7 +376,7 @@ test_that("process() handles large datasets efficiently", {
   data.long.large <- data.frame(
     id = rep(1:n_subjects, each = n_times),
     time = rep(seq(0, 10, length.out = n_times), n_subjects),
-    y = rnorm(n_subjects * n_times),
+    v = rnorm(n_subjects * n_times),
     x1 = rnorm(n_subjects * n_times),
     x2 = rbinom(n_subjects * n_times, 1, 0.5)
   )
@@ -385,15 +385,15 @@ test_that("process() handles large datasets efficiently", {
     id = 1:n_subjects,
     time = rexp(n_subjects, 0.05) + 0.1,
     status = rbinom(n_subjects, 1, 0.6),
-    z1 = rnorm(n_subjects),
-    z2 = rbinom(n_subjects, 1, 0.4)
+    w1 = rnorm(n_subjects),
+    w2 = rbinom(n_subjects, 1, 0.4)
   )
 
   # Measure processing time
   time_taken <- system.time({
     result <- process(
-      y ~ x1 + x2,
-      Surv(time, status) ~ z1 + z2,
+      v ~ x1 + x2,
+      Surv(time, status) ~ w1 + w2,
       data.long.large,
       data.surv.large,
       "id",

@@ -11,7 +11,7 @@ create_test_longitudinal_data <- function(n_subjects = 3, n_times = 3,
   data.frame(
     id = rep(seq_len(n_subjects), each = n_times),
     time = rep(seq(0, n_times - 1), n_subjects),
-    y = rnorm(n_subjects * n_times),
+    v = rnorm(n_subjects * n_times),
     x1 = rnorm(n_subjects * n_times),
     x2 = factor(rep(seq_len(n_subjects), each = n_times))
   )
@@ -29,8 +29,8 @@ create_test_survival_data <- function(n_subjects = 3, event_rate = 0.67,
     id = seq_len(n_subjects),
     time = rexp(n_subjects, rate = 0.3) + 2,
     status = rbinom(n_subjects, 1, event_rate),
-    z1 = rnorm(n_subjects),
-    z2 = factor(sample(c("low", "medium", "high"), n_subjects, replace = TRUE))
+    w1 = rnorm(n_subjects),
+    w2 = factor(sample(c("low", "medium", "high"), n_subjects, replace = TRUE))
   )
 }
 
@@ -43,7 +43,7 @@ create_minimal_test_data <- function(n_subjects = 2, n_times = 2,
   data.long <- data.frame(
     id = rep(seq_len(n_subjects), each = n_times),
     time = rep(seq(0, n_times - 1), n_subjects),
-    y = rnorm(n_subjects * n_times)
+    v = rnorm(n_subjects * n_times)
   )
 
   data.surv <- data.frame(
@@ -53,8 +53,8 @@ create_minimal_test_data <- function(n_subjects = 2, n_times = 2,
   )
 
   if (with_covariates) {
-    data.long$x <- rnorm(nrow(data.long))
-    data.surv$z <- rnorm(nrow(data.surv))
+    data.long$x1 <- rnorm(nrow(data.long))
+    data.surv$w1 <- rnorm(nrow(data.surv))
   }
 
   list(longitudinal = data.long, survival = data.surv)
@@ -70,10 +70,10 @@ create_mismatched_test_data <- function(n_subjects_long, n_subjects_surv,
     data.frame(
       id = rep(seq_len(n_subjects_long), each = n_times),
       time = rep(seq(0, n_times - 1), n_subjects_long),
-      y = rnorm(n_subjects_long * n_times)
+      v = rnorm(n_subjects_long * n_times)
     )
   } else {
-    data.frame(id = numeric(0), time = numeric(0), y = numeric(0))
+    data.frame(id = numeric(0), time = numeric(0), v = numeric(0))
   }
 
   data.surv <- if (n_subjects_surv > 0) {

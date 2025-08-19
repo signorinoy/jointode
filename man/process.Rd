@@ -82,45 +82,34 @@ data integrity. Invalid data may cause unexpected behavior or errors.
 \examples{
 \dontrun{
 # Prepare example data
-long_data <- data.frame(
+data.long <- data.frame(
   id = rep(1:100, each = 5),
   time = rep(0:4, 100),
-  y = rnorm(500) + rep(rnorm(100), each = 5),
+  v = rnorm(500) + rep(rnorm(100), each = 5),
   x1 = rnorm(500),
   x2 = rep(rbinom(100, 1, 0.5), each = 5)
 )
 
-surv_data <- data.frame(
+data.surv <- data.frame(
   id = 1:100,
   time = rexp(100, 0.1),
   status = rbinom(100, 1, 0.7),
-  z1 = rnorm(100),
-  z2 = rbinom(100, 1, 0.4)
+  w1 = rnorm(100),
+  w2 = rbinom(100, 1, 0.4)
 )
 
-# First validate the data
-validate(
-  formula.long = y ~ x1 + x2,
-  formula.surv = Surv(time, status) ~ z1 + z2,
-  data.long = long_data,
-  data.surv = surv_data,
-  id = "id",
-  time = "time"
-)
-
-# Then process it
-processed_data <- process(
-  formula.long = y ~ x1 + x2,
-  formula.surv = Surv(time, status) ~ z1 + z2,
-  data.long = long_data,
-  data.surv = surv_data,
+data.process <- process(
+  formula.long = v ~ x1 + x2,
+  formula.surv = Surv(time, status) ~ w1 + w2,
+  data.long = data.long,
+  data.surv = data.surv,
   id = "id",
   time = "time"
 )
 
 # Examine the structure
-str(processed_data[[1]]) # First subject's data
-attributes(processed_data) # Summary statistics
+str(data.process[[1]]) # First subject's data
+attributes(data.process) # Summary statistics
 }
 
 }

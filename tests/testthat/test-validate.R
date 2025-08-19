@@ -5,14 +5,14 @@ test_that("validate() checks input types correctly", {
   # Create valid test data
   data.long <- create_test_longitudinal_data(
     n_subjects = 3, n_times = 3, seed = 123
-  )[, c("id", "time", "y", "x1")]
+  )[, c("id", "time", "v", "x1")]
   data.surv <- create_test_survival_data(
     n_subjects = 3, seed = 123
   )[, c("id", "time", "status")]
-  data.surv$x2 <- rnorm(3)
+  data.surv$w1 <- rnorm(3)
 
-  formula.long <- y ~ x1
-  formula.surv <- Surv(time, status) ~ x2
+  formula.long <- v ~ x1
+  formula.surv <- Surv(time, status) ~ w1
 
   # Test invalid formula types
   expect_error(
@@ -58,7 +58,7 @@ test_that("validate() checks variable existence", {
   data.long <- test_data$longitudinal
   data.surv <- test_data$survival
 
-  formula.long <- y ~ 1
+  formula.long <- v ~ 1
   formula.surv <- Surv(time, status) ~ 1
 
   # Test missing ID variable
@@ -95,7 +95,7 @@ test_that("validate() checks formula variables", {
   # Test missing longitudinal formula variable
   expect_error(
     validate(
-      y ~ x1, Surv(time, status) ~ 1,
+      v ~ x1, Surv(time, status) ~ 1,
       data.long, data.surv, "id", "time"
     ),
     "Variables in longitudinal formula not found in data: x1"
@@ -104,10 +104,10 @@ test_that("validate() checks formula variables", {
   # Test missing survival formula variable
   expect_error(
     validate(
-      y ~ 1, Surv(time, status) ~ x2,
+      v ~ 1, Surv(time, status) ~ w1,
       data.long, data.surv, "id", "time"
     ),
-    "Variables in survival formula not found in data: x2"
+    "Variables in survival formula not found in data: w1"
   )
 })
 
@@ -120,14 +120,14 @@ test_that("validate() checks survival formula structure", {
 
   # Test invalid survival formula (no Surv())
   expect_error(
-    validate(y ~ 1, time ~ 1, data.long, data.surv, "id", "time"),
+    validate(v ~ 1, time ~ 1, data.long, data.surv, "id", "time"),
     "Survival formula must have Surv\\(\\) on the left-hand side"
   )
 
   # Test Surv() with missing variables
   expect_error(
     validate(
-      y ~ 1, Surv(time2, event) ~ 1, data.long, data.surv,
+      v ~ 1, Surv(time2, event) ~ 1, data.long, data.surv,
       "id", "time"
     ),
     "Variables in survival formula not found in data: time2, event"
@@ -144,7 +144,7 @@ test_that("validate() checks ID consistency", {
   # Test orphaned longitudinal data
   expect_error(
     validate(
-      y ~ 1, Surv(time, status) ~ 1,
+      v ~ 1, Surv(time, status) ~ 1,
       data.long, data.surv, "id", "time"
     ),
     "Subjects in longitudinal data not found in survival data: 4"
@@ -154,12 +154,12 @@ test_that("validate() checks ID consistency", {
   data.long2 <- data.frame(
     id = rep(1:2, each = 3), # Only IDs 1-2
     time = rep(0:2, 2),
-    y = rnorm(6)
+    v = rnorm(6)
   )
 
   expect_warning(
     validate(
-      y ~ 1, Surv(time, status) ~ 1,
+      v ~ 1, Surv(time, status) ~ 1,
       data.long2, data.surv, "id", "time"
     ),
     "Subjects in survival data without longitudinal data: 3"
@@ -175,7 +175,7 @@ test_that("validate() checks time values", {
 
   expect_error(
     validate(
-      y ~ 1, Surv(time, status) ~ 1,
+      v ~ 1, Surv(time, status) ~ 1,
       data.long, data.surv, "id", "time"
     ),
     "Negative time values found in longitudinal data"
@@ -185,7 +185,7 @@ test_that("validate() checks time values", {
   data.long2 <- data.frame(
     id = rep(1:3, each = 3),
     time = rep(0:2, 3),
-    y = rnorm(9)
+    v = rnorm(9)
   )
 
   data.surv2 <- data.frame(
@@ -196,7 +196,7 @@ test_that("validate() checks time values", {
 
   expect_error(
     validate(
-      y ~ 1, Surv(time, status) ~ 1,
+      v ~ 1, Surv(time, status) ~ 1,
       data.long2, data.surv2, "id", "time"
     ),
     "Invalid observation times in survival data"
@@ -213,7 +213,7 @@ test_that("validate() checks status values", {
 
   expect_error(
     validate(
-      y ~ 1, Surv(time, status) ~ 1,
+      v ~ 1, Surv(time, status) ~ 1,
       data.long, data.surv, "id", "time"
     ),
     "Invalid status values found: 2"
@@ -228,7 +228,7 @@ test_that("validate() checks status values", {
 
   expect_error(
     validate(
-      y ~ 1, Surv(time, status) ~ 1,
+      v ~ 1, Surv(time, status) ~ 1,
       data.long, data.surv2, "id", "time"
     ),
     "Missing values in status variable"
@@ -240,7 +240,7 @@ test_that("validate() checks for NA values in critical columns", {
   data.long <- data.frame(
     id = c(1, NA, 1, 2, 2, 2),
     time = c(0, 1, 2, 0, 1, 2),
-    y = rnorm(6)
+    v = rnorm(6)
   )
 
   data.surv <- data.frame(
@@ -251,7 +251,7 @@ test_that("validate() checks for NA values in critical columns", {
 
   expect_error(
     validate(
-      y ~ 1, Surv(time, status) ~ 1,
+      v ~ 1, Surv(time, status) ~ 1,
       data.long, data.surv, "id", "time"
     ),
     "Missing values found in ID in longitudinal data"
@@ -261,12 +261,12 @@ test_that("validate() checks for NA values in critical columns", {
   data.long2 <- data.frame(
     id = rep(1:2, each = 3),
     time = c(0, NA, 2, 0, 1, 2),
-    y = rnorm(6)
+    v = rnorm(6)
   )
 
   expect_error(
     validate(
-      y ~ 1, Surv(time, status) ~ 1,
+      v ~ 1, Surv(time, status) ~ 1,
       data.long2, data.surv, "id", "time"
     ),
     "Missing values found in Time in longitudinal data"
@@ -277,7 +277,7 @@ test_that("validate() checks for duplicate survival records", {
   data.long <- data.frame(
     id = rep(1:3, each = 3),
     time = rep(0:2, 3),
-    y = rnorm(9)
+    v = rnorm(9)
   )
 
   data.surv <- data.frame(
@@ -288,7 +288,7 @@ test_that("validate() checks for duplicate survival records", {
 
   expect_error(
     validate(
-      y ~ 1, Surv(time, status) ~ 1,
+      v ~ 1, Surv(time, status) ~ 1,
       data.long, data.surv, "id", "time"
     ),
     "Duplicate IDs found in survival data"
@@ -300,7 +300,7 @@ test_that("validate() checks data dimensions", {
   data_long_empty <- data.frame(
     id = numeric(0),
     time = numeric(0),
-    y = numeric(0)
+    v = numeric(0)
   )
 
   data.surv <- data.frame(
@@ -311,7 +311,7 @@ test_that("validate() checks data dimensions", {
 
   expect_error(
     validate(
-      y ~ 1, Surv(time, status) ~ 1,
+      v ~ 1, Surv(time, status) ~ 1,
       data_long_empty, data.surv, "id", "time"
     ),
     "Longitudinal data has no rows"
@@ -321,7 +321,7 @@ test_that("validate() checks data dimensions", {
   data.long <- data.frame(
     id = rep(1:3, each = 3),
     time = rep(0:2, 3),
-    y = rnorm(9)
+    v = rnorm(9)
   )
 
   data_surv_empty <- data.frame(
@@ -332,7 +332,7 @@ test_that("validate() checks data dimensions", {
 
   expect_error(
     validate(
-      y ~ 1, Surv(time, status) ~ 1,
+      v ~ 1, Surv(time, status) ~ 1,
       data.long, data_surv_empty, "id", "time"
     ),
     "Survival data has no rows"
@@ -347,7 +347,7 @@ test_that("validate() warns about single observations per subject", {
 
   expect_warning(
     validate(
-      y ~ 1, Surv(time, status) ~ 1,
+      v ~ 1, Surv(time, status) ~ 1,
       data.long, data.surv, "id", "time"
     ),
     "Each subject has only one longitudinal observation"
@@ -358,15 +358,15 @@ test_that("validate() works with valid data", {
   # Create completely valid data
   data.long <- create_test_longitudinal_data(
     n_subjects = 5, n_times = 4, seed = 123
-  )[, c("id", "time", "y", "x1")]
+  )[, c("id", "time", "v", "x1")]
   data.surv <- create_test_survival_data(n_subjects = 5, seed = 123)
   data.surv$time <- c(3.5, 4.0, 3.8, 4.2, 3.9) # Ensure times > max(long times)
-  data.surv$x2 <- rnorm(5)
+  data.surv$w1 <- rnorm(5)
 
   # Should run without errors or warnings
   expect_silent(
     validate(
-      y ~ x1, Surv(time, status) ~ x2,
+      v ~ x1, Surv(time, status) ~ w1,
       data.long, data.surv, "id", "time"
     )
   )
@@ -380,7 +380,7 @@ test_that("validate() handles more than 5 orphaned IDs in error message", {
   data.long.many <- data.frame(
     id = rep(1:10, each = 2),
     time = rep(0:1, 10),
-    y = rnorm(20)
+    v = rnorm(20)
   )
 
   data.surv.few <- data.frame(
@@ -391,7 +391,7 @@ test_that("validate() handles more than 5 orphaned IDs in error message", {
 
   expect_error(
     validate(
-      y ~ 1,
+      v ~ 1,
       Surv(time, status) ~ 1,
       data.long.many,
       data.surv.few,
@@ -406,7 +406,7 @@ test_that("validate() warns about more than 5 missing longitudinal subjects", {
   data.long.few <- data.frame(
     id = rep(1:2, each = 2),
     time = rep(0:1, 2),
-    y = rnorm(4)
+    v = rnorm(4)
   )
 
   data.surv.many <- data.frame(
@@ -417,7 +417,7 @@ test_that("validate() warns about more than 5 missing longitudinal subjects", {
 
   expect_warning(
     validate(
-      y ~ 1,
+      v ~ 1,
       Surv(time, status) ~ 1,
       data.long.few,
       data.surv.many,
@@ -433,7 +433,7 @@ test_that("validate() handles boundary conditions", {
   data.long.min <- data.frame(
     id = c(1, 1, 2, 2),
     time = c(0, 1, 0, 1),
-    y = c(1, 2, 3, 4)
+    v = c(1, 2, 3, 4)
   )
 
   data.surv.min <- data.frame(
@@ -444,7 +444,7 @@ test_that("validate() handles boundary conditions", {
 
   expect_silent(
     validate(
-      y ~ 1,
+      v ~ 1,
       Surv(time, status) ~ 1,
       data.long.min,
       data.surv.min,
@@ -491,7 +491,7 @@ test_that("validate() handles large datasets efficiently", {
   data.long.large <- data.frame(
     id = rep(1:n_subjects, each = n_times),
     time = rep(0:(n_times - 1), n_subjects),
-    y = rnorm(n_subjects * n_times),
+    v = rnorm(n_subjects * n_times),
     x1 = rnorm(n_subjects * n_times),
     x2 = rnorm(n_subjects * n_times)
   )
@@ -501,16 +501,16 @@ test_that("validate() handles large datasets efficiently", {
     id = 1:n_subjects,
     time = rexp(n_subjects, rate = 0.1) + 0.1,
     status = rbinom(n_subjects, 1, 0.7),
-    z1 = rnorm(n_subjects),
-    z2 = rbinom(n_subjects, 1, 0.5)
+    w1 = rnorm(n_subjects),
+    w2 = rbinom(n_subjects, 1, 0.5)
   )
 
   # Should complete within reasonable time
   time_taken <- system.time({
     suppressWarnings(
       validate(
-        y ~ x1 + x2,
-        Surv(time, status) ~ z1 + z2,
+        v ~ x1 + x2,
+        Surv(time, status) ~ w1 + w2,
         data.long.large,
         data.surv.large,
         "id",
@@ -527,7 +527,7 @@ test_that("validate() handles different data types", {
   data.long.int <- data.frame(
     id = as.integer(rep(1:3, each = 3)),
     time = rep(0:2, 3),
-    y = rnorm(9)
+    v = rnorm(9)
   )
 
   data.surv.int <- data.frame(
@@ -538,7 +538,7 @@ test_that("validate() handles different data types", {
 
   expect_silent(
     validate(
-      y ~ 1,
+      v ~ 1,
       Surv(time, status) ~ 1,
       data.long.int,
       data.surv.int,
@@ -551,7 +551,7 @@ test_that("validate() handles different data types", {
   data.long.char <- data.frame(
     id = rep(c("A", "B", "C"), each = 3),
     time = rep(0:2, 3),
-    y = rnorm(9)
+    v = rnorm(9)
   )
 
   data.surv.char <- data.frame(
@@ -562,7 +562,7 @@ test_that("validate() handles different data types", {
 
   expect_silent(
     validate(
-      y ~ 1,
+      v ~ 1,
       Surv(time, status) ~ 1,
       data.long.char,
       data.surv.char,

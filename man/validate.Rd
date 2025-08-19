@@ -59,26 +59,26 @@ event/censoring time)
 \examples{
 \dontrun{
 # Example with simulated data
-long_data <- data.frame(
+data.long <- data.frame(
   id = rep(1:100, each = 5),
   time = rep(0:4, 100),
-  y = rnorm(500),
+  v = rnorm(500),
   x1 = rnorm(500)
 )
 
-surv_data <- data.frame(
+data.surv <- data.frame(
   id = 1:100,
   time = rexp(100, 0.1),
   status = rbinom(100, 1, 0.7),
-  z1 = rnorm(100)
+  w1 = rnorm(100)
 )
 
 # Validate the data
 validate(
-  formula.long = y ~ x1,
-  formula.surv = Surv(time, status) ~ z1,
-  data.long = long_data,
-  data.surv = surv_data,
+  formula.long = v ~ x1,
+  formula.surv = Surv(time, status) ~ w1,
+  data.long = data.long,
+  data.surv = data.surv,
   id = "id",
   time = "time"
 )
