@@ -36,9 +36,9 @@ represents one subject
 and contains:
 \describe{
 \item{id}{Subject identifier}
-\item{event_time}{Time to event or censoring}
+\item{time}{Time to event or censoring}
 \item{status}{Event indicator (0 = censored, 1 = event)}
-\item{surv_covariates}{List of baseline covariates from survival model}
+\item{covariates}{Data frame of baseline covariates from survival model}
 \item{longitudinal}{List containing:
 \describe{
 \item{times}{Vector of measurement times}
@@ -92,7 +92,7 @@ long_data <- data.frame(
 
 surv_data <- data.frame(
   id = 1:100,
-  event_time = rexp(100, 0.1),
+  time = rexp(100, 0.1),
   status = rbinom(100, 1, 0.7),
   z1 = rnorm(100),
   z2 = rbinom(100, 1, 0.4)
@@ -101,7 +101,7 @@ surv_data <- data.frame(
 # First validate the data
 validate(
   formula.long = y ~ x1 + x2,
-  formula.surv = Surv(event_time, status) ~ z1 + z2,
+  formula.surv = Surv(time, status) ~ z1 + z2,
   data.long = long_data,
   data.surv = surv_data,
   id = "id",
@@ -111,7 +111,7 @@ validate(
 # Then process it
 processed_data <- process(
   formula.long = y ~ x1 + x2,
-  formula.surv = Surv(event_time, status) ~ z1 + z2,
+  formula.surv = Surv(time, status) ~ z1 + z2,
   data.long = long_data,
   data.surv = surv_data,
   id = "id",

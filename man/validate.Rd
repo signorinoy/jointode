@@ -68,7 +68,7 @@ long_data <- data.frame(
 
 surv_data <- data.frame(
   id = 1:100,
-  event_time = rexp(100, 0.1),
+  time = rexp(100, 0.1),
   status = rbinom(100, 1, 0.7),
   z1 = rnorm(100)
 )
@@ -76,7 +76,7 @@ surv_data <- data.frame(
 # Validate the data
 validate(
   formula.long = y ~ x1,
-  formula.surv = Surv(event_time, status) ~ z1,
+  formula.surv = Surv(time, status) ~ z1,
   data.long = long_data,
   data.surv = surv_data,
   id = "id",

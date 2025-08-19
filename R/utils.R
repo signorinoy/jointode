@@ -55,7 +55,7 @@
 #'
 #' surv_data <- data.frame(
 #'   id = 1:100,
-#'   event_time = rexp(100, 0.1),
+#'   time = rexp(100, 0.1),
 #'   status = rbinom(100, 1, 0.7),
 #'   z1 = rnorm(100)
 #' )
@@ -63,7 +63,7 @@
 #' # Validate the data
 #' validate(
 #'   formula.long = y ~ x1,
-#'   formula.surv = Surv(event_time, status) ~ z1,
+#'   formula.surv = Surv(time, status) ~ z1,
 #'   data.long = long_data,
 #'   data.surv = surv_data,
 #'   id = "id",
@@ -282,9 +282,9 @@ validate <- function(
 #'   and contains:
 #'   \describe{
 #'     \item{id}{Subject identifier}
-#'     \item{event_time}{Time to event or censoring}
+#'     \item{time}{Time to event or censoring}
 #'     \item{status}{Event indicator (0 = censored, 1 = event)}
-#'     \item{surv_covariates}{List of baseline covariates from survival model}
+#'     \item{covariates}{Data frame of baseline covariates from survival model}
 #'     \item{longitudinal}{List containing:
 #'       \describe{
 #'         \item{times}{Vector of measurement times}
@@ -332,7 +332,7 @@ validate <- function(
 #'
 #' surv_data <- data.frame(
 #'   id = 1:100,
-#'   event_time = rexp(100, 0.1),
+#'   time = rexp(100, 0.1),
 #'   status = rbinom(100, 1, 0.7),
 #'   z1 = rnorm(100),
 #'   z2 = rbinom(100, 1, 0.4)
@@ -341,7 +341,7 @@ validate <- function(
 #' # First validate the data
 #' validate(
 #'   formula.long = y ~ x1 + x2,
-#'   formula.surv = Surv(event_time, status) ~ z1 + z2,
+#'   formula.surv = Surv(time, status) ~ z1 + z2,
 #'   data.long = long_data,
 #'   data.surv = surv_data,
 #'   id = "id",
@@ -351,7 +351,7 @@ validate <- function(
 #' # Then process it
 #' processed_data <- process(
 #'   formula.long = y ~ x1 + x2,
-#'   formula.surv = Surv(event_time, status) ~ z1 + z2,
+#'   formula.surv = Surv(time, status) ~ z1 + z2,
 #'   data.long = long_data,
 #'   data.surv = surv_data,
 #'   id = "id",
@@ -432,18 +432,18 @@ process <- function(
     surv_row <- surv_idx_map[i]
     event_time <- surv_response_matrix[surv_row, 1]
     event_status <- surv_response_matrix[surv_row, 2]
-    surv_covariates <- if (!is.null(surv_design)) {
-      as.list(surv_design[surv_row, , drop = FALSE])
+    covariates <- if (!is.null(surv_design)) {
+      surv_design[surv_row, , drop = FALSE]
     } else {
-      list()
+      data.frame()
     }
 
     # Build subject data structure
     data.process[[i]] <- list(
       id = unique_ids[i],
-      event_time = event_time,
+      time = event_time,
       status = event_status,
-      surv_covariates = surv_covariates,
+      covariates = covariates,
       longitudinal = list(
         times = long_times,
         measurements = long_measurements,
