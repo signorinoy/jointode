@@ -190,7 +190,32 @@ simulate <- function(
     n = 50, alpha = c(0.3, 0.1, -0.05), beta = c(-0.3, -0.5, 0.2, 0.1, 0.05),
     phi = c(0.2, -0.15), weibull_shape = 1.5, weibull_scale = 8,
     sigma_b = 0.5, sigma_e = 0.1, seed = 42, verbose = TRUE) {
-  # Validate inputs and load dependencies
+  # Validate inputs
+  if (!is.numeric(n) || n <= 0 || n != as.integer(n)) {
+    stop("n must be a positive integer")
+  }
+  if (!is.numeric(alpha) || length(alpha) != 3) {
+    stop("alpha must be a numeric vector of length 3")
+  }
+  if (!is.numeric(beta) || length(beta) != 5) {
+    stop("beta must be a numeric vector of length 5")
+  }
+  if (!is.numeric(phi) || length(phi) != 2) {
+    stop("phi must be a numeric vector of length 2")
+  }
+  if (!is.numeric(weibull_shape) || weibull_shape <= 0) {
+    stop("weibull_shape must be positive")
+  }
+  if (!is.numeric(weibull_scale) || weibull_scale <= 0) {
+    stop("weibull_scale must be positive")
+  }
+  if (!is.numeric(sigma_b) || sigma_b <= 0) {
+    stop("sigma_b must be positive")
+  }
+  if (!is.numeric(sigma_e) || sigma_e <= 0) {
+    stop("sigma_e must be positive")
+  }
+
   set.seed(seed)
 
   # Prepare parameters
