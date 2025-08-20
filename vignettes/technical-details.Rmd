@@ -18,108 +18,86 @@ knitr::opts_chunk$set(
 
 This vignette provides mathematical and computational details of the joint ODE model implementation.
 
-## Model Formulation
+## ODE System
 
-### State Space Representation
+State vector: $\mathbf{s}_i(t)=(\Lambda_i(t), m_i(t), \dot{m}_i(t))^{\top}$ where $\Lambda_i(t)$ is cumulative hazard, $m_i(t)$ is biomarker level, and $\dot{m}_i(t)$ is biomarker velocity.
 
-The joint model is formulated as a first-order ODE system:
-$$\frac{\mathrm{d}\mathbf{s}_i}{\mathrm{d}t}=F(t,\mathbf{s}_i(t),\boldsymbol{\Theta})$$
+The system evolves as:
 
-State vector: $\mathbf{s}_i(t)=(\Lambda_i(t), m_i(t), \dot{m}_i(t))^{\top}$
-
-### Dynamics
-
-The biomarker acceleration follows a single index model:
-$$\ddot{m}_i(t) = g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t))$$
-
-where:
-
-- $\mathbf{Z}_i(t) = (m_i(t), \dot{m}_i(t), \mathbf{X}_i(t)^{\top}, t)^{\top} \in \mathbb{R}^{p+3}$
-- $g(u) = \boldsymbol{\theta}^{\top} \mathbf{B}^{(g)}(u)$ (B-spline basis)
-
-The ODE system:
-$$\frac{d\mathbf{s}_i}{dt} = \begin{pmatrix}
+$$
+\frac{d\mathbf{s}_i}{dt} = \begin{pmatrix}
 \lambda_i(t|b_i) \\
 \dot{m}_i(t) \\
 g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t))
-\end{pmatrix}$$
+\end{pmatrix}, \quad \mathbf{s}_i(0) = (0, m_{i0}, \dot{m}_{i0})^{\top}
+$$
 
-Hazard function:
-$$\lambda_i(t|b_i) = \exp[\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i}+\mathbf{W}_i^{\top}\boldsymbol{\phi}]$$
-where $\mathbf{m}_i(t) = (m_i(t), \dot{m}_i(t), \ddot{m}_i(t))^{\top}$.
+where:
 
-Initial conditions: $\mathbf{s}_i(0) = (0, m_{i0}, \dot{m}_{i0})^{\top}$
+- Hazard: $\lambda_i(t|b_i) = \exp[\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i}+\mathbf{W}_i^{\top}\boldsymbol{\phi}]$
+- Acceleration: $g(u) = \boldsymbol{\theta}^{\top} \mathbf{B}^{(g)}(u)$ with $u = \boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)$
+- Features: $\mathbf{m}_i(t) = (m_i(t), \dot{m}_i(t), \ddot{m}_i(t))^{\top}$, $\mathbf{Z}_i(t) = (m_i(t), \dot{m}_i(t), \mathbf{X}_i(t)^{\top}, t)^{\top}$
 
 ## Likelihood
 
-### Data and Parameters
+Parameters: $\boldsymbol{\Theta} = (\boldsymbol{\theta}, \boldsymbol{\beta}, \boldsymbol{\eta}, \boldsymbol{\alpha}, \boldsymbol{\phi}, \sigma_e^2, \sigma_b^2)$
 
-- Observed: $\mathcal{O}_i = (\mathbf{V}_i, \mathbf{X}_i, \mathbf{W}_i, T_i, \delta_i)$
-- Random effect: $b_i \sim N(0, \sigma_b^2)$
-- Parameters: $\boldsymbol{\Theta} = (\boldsymbol{\theta}, \boldsymbol{\beta}, \boldsymbol{\eta}, \boldsymbol{\alpha}, \boldsymbol{\phi}, \sigma_e^2, \sigma_b^2)$
+The joint likelihood integrates over random effects:
 
-### Likelihood Components
+$$L_i(\boldsymbol{\Theta}) = \int f(\mathbf{V}_i | b_i) \cdot f(T_i, \delta_i | b_i) \cdot f(b_i) \, db_i$$
 
-**Longitudinal**:
-$$f(\mathbf{V}_i | b_i) = \prod_{j=1}^{n_i} \phi(V_{ij}; m_i(T_{ij}) + b_i, \sigma_e^2)$$
+Components:
 
-**Survival**:
-$$f(T_i, \delta_i | b_i) = [\lambda_i(T_i|b_i)]^{\delta_i} \exp[-\Lambda_i(T_i|b_i)]$$
-where $\Lambda_i(t|b_i) = \int_0^t \lambda_i(s|b_i)ds$.
+- Longitudinal: $f(\mathbf{V}_i | b_i) = \prod_{j=1}^{n_i} \phi(V_{ij}; m_i(T_{ij}) + b_i, \sigma_e^2)$
+- Survival: $f(T_i, \delta_i | b_i) = [\lambda_i(T_i|b_i)]^{\delta_i} \exp[-\Lambda_i(T_i|b_i)]$
+- Random effect: $f(b_i) = \phi(b_i; 0, \sigma_b^2)$
 
-**Random effect**: $f(b_i) = \phi(b_i; 0, \sigma_b^2)$
+## EM Algorithm
 
-## Estimation
+### E-Step
 
-### EM Algorithm
+Compute posterior expectations $\hat{b}_i = E[b_i|\mathcal{O}_i]$ and $\hat{v}_i = \text{Var}[b_i|\mathcal{O}_i]$.
 
-#### E-Step
+The Q-function decomposes as $Q(\boldsymbol{\Theta}|\boldsymbol{\Theta}^{(k)}) = Q_L + Q_S + Q_R$:
 
-Q-function: $Q(\boldsymbol{\Theta}|\boldsymbol{\Theta}^{(k)}) = Q_L + Q_S + Q_R$
+- $Q_L = -\frac{N}{2}\log(2\pi\sigma_e^2) - \frac{1}{2\sigma_e^2}\sum_{i,j}[(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i]$
+- $Q_S = \sum_{i} \{\delta_i[\log\lambda_i(T_i|0) + \hat{b}_i] - \Lambda_i(T_i|0) \cdot E[e^{b_i}|\mathcal{O}_i]\}$
+- $Q_R = -\frac{n}{2}\log(2\pi\sigma_b^2) - \frac{1}{2\sigma_b^2}\sum_{i}(\hat{b}_i^2 + \hat{v}_i)$
 
-$$Q_L = -\frac{N}{2}\log(2\pi\sigma_e^2) - \frac{1}{2\sigma_e^2}\sum_{i,j}[(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i]$$
+Key simplification: $\log\lambda_i(T_i|b) = \log\lambda_i(T_i|0) + b$ and $\Lambda_i(T_i|b) = e^b\Lambda_i(T_i|0)$
 
-$$Q_S = \sum_{i} \{\delta_i[\log\lambda_i(T_i|\hat{b}_i)] - \hat{\Lambda}_i(T_i)\}$$
+**Implementation** (for each subject $i$):
 
-$$Q_R = -\frac{n}{2}\log(2\pi\sigma_b^2) - \frac{1}{2\sigma_b^2}\sum_{i}(\hat{b}_i^2 + \hat{v}_i)$$
+1. Solve ODE with $b_i = 0$ to get $m_i(t)$, $\Lambda_i(T_i|0)$, $\log\lambda_i(T_i|0)$
 
-**Algorithm**
-
-For each subject $i$:
-
-1. **Solve ODE**: Integrate from $t=0$ to $T_i$ to obtain $m_i(t), \dot{m}_i(t), \ddot{m}_i(t)$
-
-2. **Find posterior mode** $\tilde{b}_i$: Maximize
-   $$\ell_i(b) = -\frac{1}{2\sigma_e^2}\sum_j(V_{ij} - m_i(T_{ij}) - b)^2 + \delta_i\log\lambda_i(T_i|b) - \Lambda_i(T_i|b) - \frac{b^2}{2\sigma_b^2}$$
-
-   Newton update: $b \leftarrow b - \nabla_b/H_b$ where:
+2. Find posterior mode $\tilde{b}_i$ by maximizing:
+   $$\ell_i(b) \propto b\left[\frac{S_i}{\sigma_e^2} + \delta_i\right] - \frac{b^2}{2}\left[\frac{n_i}{\sigma_e^2} + \frac{1}{\sigma_b^2}\right] - e^b\Lambda_i(T_i|0)$$
    
-   - $\nabla_b = \frac{1}{\sigma_e^2}\sum_j(V_{ij} - m_i(T_{ij}) - b) + \delta_i - \Lambda_i(T_i|b)e^b - \frac{b}{\sigma_b^2}$
-   - $H_b = -\frac{n_i}{\sigma_e^2} - \Lambda_i(T_i|b)e^b - \frac{1}{\sigma_b^2}$
+   where $S_i = \sum_j(V_{ij} - m_i(T_{ij}))$. Newton-Raphson: $b \leftarrow b - \nabla_b/H_b$ with
 
-3. **Compute posterior moments** via Gauss-Hermite quadrature:
+   - $\nabla_b = \frac{S_i - n_i b}{\sigma_e^2} + \delta_i - e^b\Lambda_i(T_i|0) - \frac{b}{\sigma_b^2}$
+   - $H_b = -\frac{n_i}{\sigma_e^2} - e^b\Lambda_i(T_i|0) - \frac{1}{\sigma_b^2}$
+
+3. Compute posterior moments via Gauss-Hermite quadrature:
 
    - Points: $b_q = \tilde{b}_i + \sqrt{2\tilde{v}_i} x_q$ where $\tilde{v}_i = -1/H_b|_{\tilde{b}_i}$
-   - Weights: $w_{iq} \propto w_q \cdot p(\mathcal{O}_i|b_q) \cdot p(b_q)$
-   - Moments: $\hat{b}_i = \sum_q w_{iq} b_q$, $\hat{v}_i = \sum_q w_{iq}(b_q - \hat{b}_i)^2$
+   - Weights: $w_{iq} \propto w_q \exp[\ell_i(b_q)]$ (normalized)
+   - $\hat{b}_i = \sum_q w_{iq} b_q$, $\hat{v}_i = \sum_q w_{iq}(b_q - \hat{b}_i)^2$, $E[e^{b_i}|\mathcal{O}_i] = \sum_q w_{iq} e^{b_q}$
 
-#### M-Step
+### M-Step
 
-**1. Longitudinal parameters** $(\boldsymbol{\theta}, \boldsymbol{\beta})$:
-$$\min_{\boldsymbol{\theta}, \boldsymbol{\beta}} \sum_{i,j} [V_{ij} - m_i(T_{ij}; \boldsymbol{\theta}, \boldsymbol{\beta}) - \hat{b}_i]^2$$
-Use L-BFGS with sensitivity equations for gradients.
+Update parameters by maximizing $Q(\boldsymbol{\Theta}|\boldsymbol{\Theta}^{(k)})$:
 
-**2. Measurement variance**:
-$$\sigma_e^2 = \frac{1}{N}\sum_{i,j} [(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i]$$
+1. **Longitudinal** $(\boldsymbol{\theta}, \boldsymbol{\beta})$: Minimize $\sum_{i,j} [V_{ij} - m_i(T_{ij}) - \hat{b}_i]^2$ via L-BFGS
 
-**3. Survival parameters** $(\boldsymbol{\eta}, \boldsymbol{\alpha}, \boldsymbol{\phi})$:
-$$\max \sum_i \{\delta_i \log\lambda_i(T_i|\hat{b}_i) - \hat{\Lambda}_i(T_i)\}$$
+2. **Measurement variance**: $\sigma_e^2 = \frac{1}{N}\sum_{i,j} [(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i]$
 
-Gradients (with $c_i = \exp(\hat{v}_i/2)$ for variance correction):
+3. **Survival** $(\boldsymbol{\eta}, \boldsymbol{\alpha}, \boldsymbol{\phi})$: Maximize with gradients
 
-- $\nabla_{\boldsymbol{\alpha}} = \sum_i [\delta_i \mathbf{m}_i(T_i) - c_i\int_0^{T_i} \mathbf{m}_i(s)\lambda_i(s|\hat{b}_i)ds]$
-- $\nabla_{\boldsymbol{\eta}} = \sum_i [\delta_i \mathbf{B}^{(\lambda)}(T_i) - c_i\int_0^{T_i} \mathbf{B}^{(\lambda)}(s)\lambda_i(s|\hat{b}_i)ds]$
-- $\nabla_{\boldsymbol{\phi}} = \sum_i [\delta_i \mathbf{W}_i - c_i\mathbf{W}_i\Lambda_i(T_i|\hat{b}_i)]$
+   - $\nabla_{\boldsymbol{\alpha}} = \sum_i [\delta_i \mathbf{m}_i(T_i) - E[e^{b_i}|\mathcal{O}_i] \int_0^{T_i} \mathbf{m}_i(s)\lambda_i(s|0)ds]$
+   - $\nabla_{\boldsymbol{\eta}} = \sum_i [\delta_i \mathbf{B}^{(\lambda)}(T_i) - E[e^{b_i}|\mathcal{O}_i] \int_0^{T_i} \mathbf{B}^{(\lambda)}(s)\lambda_i(s|0)ds]$
+   - $\nabla_{\boldsymbol{\phi}} = \sum_i [\delta_i \mathbf{W}_i - E[e^{b_i}|\mathcal{O}_i] \cdot \mathbf{W}_i\Lambda_i(T_i|0)]$
 
-**4. Random effect variance**:
-$$\sigma_b^2 = \frac{1}{n}\sum_i (\hat{b}_i^2 + \hat{v}_i)$$
+4. **Random effect variance**: $\sigma_b^2 = \frac{1}{n}\sum_i (\hat{b}_i^2 + \hat{v}_i)$
+
+Iterate until $|\mathcal{L}^{(k+1)} - \mathcal{L}^{(k)}|/|\mathcal{L}^{(k)}| < \epsilon$.
