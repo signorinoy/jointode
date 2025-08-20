@@ -1047,3 +1047,208 @@
     exp_b = exp_b
   )
 }
+
+#' Compute Q Function for M-Step
+#'
+#' @description
+#' Computes the expected complete-data log-likelihood Q(Θ|Θ^(k)) for the M-step
+#' optimization in the EM algorithm. This function evaluates the objective
+#' function that needs to be maximized during parameter updates.
+#'
+#' @param theta Vector of parameters to optimize:
+#'   - baseline_spline_coefficients
+#'   - hazard_coefficients
+#'   - index_spline_coefficients
+#'   - index_coefficients
+#' @param data_list List of preprocessed subject data
+#' @param posterior_list List of posterior distributions from E-step
+#' @param config List containing spline configurations
+#' @param sigma_e Measurement error standard deviation
+#' @param sigma_b Random effect standard deviation
+#' @param compute_gradient Logical, whether to compute gradient (default: FALSE)
+#'
+#' @return If compute_gradient = FALSE: scalar Q value
+#'         If compute_gradient = TRUE: list with Q value and gradient vector
+#'
+#' @details
+#' The Q function is decomposed as:
+#' Q(Θ|Θ^(k)) = Q_long + Q_surv + Q_RE
+#'
+#' where:
+#' - Q_long: Longitudinal component measuring fit to observations
+#' - Q_surv: Survival component measuring hazard/event prediction
+#' - Q_RE: Random effects component (only depends on sigma_b, not theta)
+#'
+#' @concept utilities
+.compute_q_function <- function(
+    theta, data_list, posterior_list, config,
+    sigma_e, sigma_b, compute_gradient = FALSE) {
+
+  # Parse parameter vector
+  n_baseline <- config$baseline$df
+  n_hazard <- length(theta) - n_baseline -
+    config$index$df -
+    (ncol(data_list[[1]]$longitudinal$covariates) + 3)
+  n_index_g <- config$index$df
+
+  idx <- 1
+  baseline_coef <- theta[idx:(idx + n_baseline - 1)]
+  idx <- idx + n_baseline
+  hazard_coef <- theta[idx:(idx + n_hazard - 1)]
+  idx <- idx + n_hazard
+  index_g_coef <- theta[idx:(idx + n_index_g - 1)]
+  idx <- idx + n_index_g
+  index_beta_coef <- theta[idx:length(theta)]
+
+  parameters <- list(
+    coef = list(
+      baseline = baseline_coef,
+      hazard = hazard_coef,
+      index_g = index_g_coef,
+      index_beta = index_beta_coef
+    ),
+    config = config
+  )
+
+  # Initialize Q components
+  q_long <- 0
+  q_surv <- 0
+  n_total_obs <- 0
+
+  # Initialize gradient if needed
+  if (compute_gradient) {
+    grad <- numeric(length(theta))
+    grad_baseline <- numeric(n_baseline)
+    grad_hazard <- numeric(n_hazard)
+    grad_index_g <- numeric(n_index_g)
+    grad_index_beta <- numeric(length(index_beta_coef))
+  }
+
+  # Loop over subjects
+  for (i in seq_along(data_list)) {
+    subject_data <- data_list[[i]]
+    posterior <- posterior_list[[i]]
+
+    # Solve ODE for current parameters
+    ode_solution <- .solve_joint_ode(subject_data, parameters)
+
+    # Extract posterior moments
+    b_hat <- posterior$b_hat
+    v_hat <- posterior$v_hat
+    exp_b <- posterior$exp_b
+
+    # Longitudinal component
+    if (subject_data$longitudinal$n_obs > 0) {
+      residuals <- subject_data$longitudinal$measurements -
+        ode_solution$biomarker - b_hat
+      q_long <- q_long -
+        sum(residuals^2 + v_hat) / (2 * sigma_e^2) -
+        subject_data$longitudinal$n_obs * log(2 * pi * sigma_e^2) / 2
+      n_total_obs <- n_total_obs + subject_data$longitudinal$n_obs
+
+      if (compute_gradient) {
+        # Gradient computation for longitudinal parameters
+        # This requires computing dm_i/dtheta via sensitivity ODEs
+        # Placeholder: implement sensitivity analysis
+      }
+    }
+
+    # Survival component
+    if (subject_data$status == 1) {
+      # Event occurred
+      q_surv <- q_surv +
+        ode_solution$log_hazard + b_hat -
+        exp_b * ode_solution$cum_hazard
+    } else {
+      # Censored
+      q_surv <- q_surv - exp_b * ode_solution$cum_hazard
+    }
+
+    if (compute_gradient) {
+      # Gradient computation for survival parameters
+      # This requires computing dlog_hazard/dtheta and dcum_hazard/dtheta
+      # Placeholder: implement gradient computation
+    }
+  }
+
+  # Random effects component (doesn't depend on theta, only on sigma_b)
+  q_re <- 0
+  for (i in seq_along(posterior_list)) {
+    posterior <- posterior_list[[i]]
+    q_re <- q_re -
+      (posterior$b_hat^2 + posterior$v_hat) / (2 * sigma_b^2) -
+      log(2 * pi * sigma_b^2) / 2
+  }
+
+  # Total Q function
+  q_total <- q_long + q_surv + q_re
+
+  if (compute_gradient) {
+    # Combine gradients
+    grad[1:n_baseline] <- grad_baseline
+    grad[(n_baseline + 1):(n_baseline + n_hazard)] <- grad_hazard
+    grad[(n_baseline + n_hazard + 1):
+         (n_baseline + n_hazard + n_index_g)] <- grad_index_g
+    grad[(n_baseline + n_hazard + n_index_g + 1):length(grad)] <-
+      grad_index_beta
+
+    return(list(value = q_total, gradient = grad))
+  } else {
+    return(q_total)
+  }
+}
+
+#' Update Variance Components in M-Step
+#'
+#' @description
+#' Computes closed-form updates for measurement error and random effect
+#' variances in the M-step of the EM algorithm.
+#'
+#' @param data_list List of preprocessed subject data
+#' @param posterior_list List of posterior distributions from E-step
+#' @param ode_solutions List of ODE solutions for each subject
+#'
+#' @return List with updated variance components:
+#'   \describe{
+#'     \item{sigma_e}{Updated measurement error standard deviation}
+#'     \item{sigma_b}{Updated random effect standard deviation}
+#'   }
+#'
+#' @concept utilities
+.update_variance_components <- function(
+    data_list, posterior_list, ode_solutions) {
+
+  n_subjects <- length(data_list)
+  n_total_obs <- 0
+  sum_squared_residuals <- 0
+  sum_squared_random_effects <- 0
+
+  for (i in seq_len(n_subjects)) {
+    subject_data <- data_list[[i]]
+    posterior <- posterior_list[[i]]
+    ode_solution <- ode_solutions[[i]]
+
+    # Measurement error variance update
+    if (subject_data$longitudinal$n_obs > 0) {
+      residuals <- subject_data$longitudinal$measurements -
+        ode_solution$biomarker - posterior$b_hat
+      sum_squared_residuals <- sum_squared_residuals +
+        sum(residuals^2) +
+        subject_data$longitudinal$n_obs * posterior$v_hat
+      n_total_obs <- n_total_obs + subject_data$longitudinal$n_obs
+    }
+
+    # Random effect variance update
+    sum_squared_random_effects <- sum_squared_random_effects +
+      posterior$b_hat^2 + posterior$v_hat
+  }
+
+  # Compute updated standard deviations
+  sigma_e <- sqrt(sum_squared_residuals / n_total_obs)
+  sigma_b <- sqrt(sum_squared_random_effects / n_subjects)
+
+  list(
+    sigma_e = sigma_e,
+    sigma_b = sigma_b
+  )
+}
