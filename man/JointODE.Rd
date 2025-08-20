@@ -5,37 +5,61 @@
 \title{Fit Joint Model for Longitudinal and Survival Data Using ODEs}
 \usage{
 JointODE(
-  data.long,
-  data.surv,
-  formula.long,
-  formula.surv,
+  longitudinal_formula,
+  longitudinal_data,
+  survival_formula,
+  survival_data,
   id = "id",
   time = "time",
+  spline_baseline = list(degree = 3, n_knots = 5, knot_placement = "quantile",
+    boundary_knots = NULL),
+  spline_index = list(degree = 3, n_knots = 4, knot_placement = "quantile",
+    boundary_knots = NULL),
   control = list(),
   ...
 )
 }
 \arguments{
-\item{data.long}{Data frame containing longitudinal measurements.
-Must include multiple observations per subject with columns for
-subject ID, measurement times, and response values.}
-
-\item{data.surv}{Data frame containing survival/event data.
-Must have exactly one row per subject with event time and status.}
-
-\item{formula.long}{Formula for the longitudinal submodel.
+\item{longitudinal_formula}{Formula for the longitudinal submodel.
 Left side specifies the response; right side includes time and
 covariates (e.g., \code{v ~ x1}).}
 
-\item{formula.surv}{Formula for the survival submodel.
+\item{longitudinal_data}{Data frame containing longitudinal measurements.
+Must include multiple observations per subject with columns for
+subject ID, measurement times, and response values.}
+
+\item{survival_formula}{Formula for the survival submodel.
 Must use \code{Surv(time, status)} on the left side;
 right side specifies baseline covariates.}
+
+\item{survival_data}{Data frame containing survival/event data.
+Must have exactly one row per subject with event time and status.}
 
 \item{id}{Character string naming the subject ID variable.
 Must exist in both datasets (default: \code{"id"}).}
 
 \item{time}{Character string naming the time variable in
 longitudinal data (default: \code{"time"}).}
+
+\item{spline_baseline}{List of B-spline configuration for baseline hazard:
+\describe{
+\item{\code{degree}}{Degree of B-spline basis (default: 3)}
+\item{\code{n_knots}}{Number of interior knots (default: 5)}
+\item{\code{knot_placement}}{Method for knot placement: "quantile"
+(based on event times) or "equal" (default: "quantile")}
+\item{\code{boundary_knots}}{Boundary knots, if NULL uses event range
+(default: NULL)}
+}}
+
+\item{spline_index}{List of B-spline configuration for single index model:
+\describe{
+\item{\code{degree}}{Degree of B-spline basis (default: 3)}
+\item{\code{n_knots}}{Number of interior knots (default: 4)}
+\item{\code{knot_placement}}{Method for knot placement: "quantile"
+(based on index values) or "equal" (default: "quantile")}
+\item{\code{boundary_knots}}{Boundary knots, if NULL uses index range
+(default: NULL)}
+}}
 
 \item{control}{List of optimization control parameters:
 \describe{
@@ -85,18 +109,19 @@ parameters to improve convergence.
 }
 \examples{
 \dontrun{
+sim <- simulate()
 fit <- JointODE(
-  data.long = data.long,
-  data.surv = data.surv,
-  formula.long = v ~ 1,
-  formula.surv = Surv(time, status) ~ w1 + w2
+  longitudinal_formula = v ~ x1 + x2,
+  longitudinal_data = sim$longitudinal_data,
+  survival_formula = Surv(time, status) ~ w1 + w2,
+  survival_data = sim$survival_data
 )
 summary(fit)
 }
 
 }
 \seealso{
-\code{\link{validate}} for data validation,
-\code{\link{process}} for data preprocessing
+\code{\link{.validate}} for data validation,
+\code{\link{.process}} for data preprocessing
 }
 \concept{modeling}
