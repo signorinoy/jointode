@@ -134,7 +134,7 @@ longitudinal observations (default: 0.1).</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list of containing:</p><dl><dt>data.long</dt>
+    <p>A list of containing:</p><dl><dt>longitudinal_data</dt>
 <dd><p>Data frame with longitudinal measurements:</p><ul><li><p><code>id</code>: Subject identifier</p></li>
 <li><p><code>time</code>: Measurement time</p></li>
 <li><p><code>v</code>: Observed biomarker value (latent + random effect
@@ -145,7 +145,7 @@ longitudinal observations (default: 0.1).</p></dd>
 \(0.2\sin(2\pi t)\))</p></li>
 </ul></dd>
 
-<dt>data.surv</dt>
+<dt>survival_data</dt>
 <dd><p>Data frame with survival outcomes:</p><ul><li><p><code>id</code>: Subject identifier</p></li>
 <li><p><code>time</code>: Observed event/censoring time</p></li>
 <li><p><code>status</code>: Event indicator (1 = event, 0 = censored)</p></li>
@@ -228,13 +228,13 @@ model identifiability</p></li>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Step 3/3: Generating longitudinal data...</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sim</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> List of 2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ data.long:'data.frame':	666 obs. of  5 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ longitudinal_data:'data.frame':	666 obs. of  5 variables:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id  : int [1:666] 1 1 1 1 1 1 1 1 1 1 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time: num [1:666] 0 0.25 0.5 0.75 1 1.25 1.5 1.75 2 2.5 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ v   : num [1:666] 0.767 0.572 0.643 0.669 0.724 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x1  : num [1:666] 1 0.951 0.905 0.861 0.819 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x2  : num [1:666] 0.00 2.00e-01 2.45e-17 -2.00e-01 -4.90e-17 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ data.surv:'data.frame':	50 obs. of  5 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ survival_data    :'data.frame':	50 obs. of  5 variables:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id    : int [1:50] 1 2 3 4 5 6 7 8 9 10 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time  : num [1:50] 5.26 0.85 9.01 7.96 1.19 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ status: int [1:50] 1 1 1 0 1 1 1 0 0 1 ...</span>
@@ -242,11 +242,11 @@ model identifiability</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ w2    : num [1:50] 1 1 0 1 0 1 0 1 0 1 ...</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Check data characteristics</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Event rate:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data.surv</span><span class="op">$</span><span class="va">status</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Event rate:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">survival_data</span><span class="op">$</span><span class="va">status</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Event rate: 0.72 </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="st">"Observations per subject:"</span>,</span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data.long</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data.surv</span><span class="op">)</span>, <span class="st">"\n"</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">survival_data</span><span class="op">)</span>, <span class="st">"\n"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Observations per subject: 13.32 </span>
 <span class="r-in"><span></span></span>
@@ -263,8 +263,8 @@ model identifiability</p></li>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>     intersect, setdiff, setequal, union</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Select subjects with different outcomes</span></span></span>
-<span class="r-in"><span><span class="va">plot_data</span> <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">data.long</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data.surv</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id"</span>, <span class="st">"time"</span>, <span class="st">"status"</span><span class="op">)</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span><span class="va">plot_data</span> <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">longitudinal_data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">survival_data</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"id"</span>, <span class="st">"time"</span>, <span class="st">"status"</span><span class="op">)</span><span class="op">]</span>,</span></span>
 <span class="r-in"><span>    by <span class="op">=</span> <span class="st">"id"</span>, suffix <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">""</span>, <span class="st">"_event"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">id</span><span class="op">)</span>, <span class="fl">9</span><span class="op">)</span><span class="op">)</span></span></span>

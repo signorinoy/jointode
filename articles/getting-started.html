@@ -112,14 +112,14 @@ measurements</li>
 <span><span class="co"># id: subject identifier</span></span>
 <span><span class="co"># time: measurement time</span></span>
 <span><span class="co"># v: biomarker value</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data.long</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">longitudinal_data</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Example survival data structure</span></span>
 <span><span class="co"># id: subject identifier</span></span>
 <span><span class="co"># time: observation time</span></span>
 <span><span class="co"># status: event indicator (1=event, 0=censored)</span></span>
 <span><span class="co"># w1, w2: baseline covariates</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data.surv</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">survival_data</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="model-fitting">Model Fitting<a class="anchor" aria-label="anchor" href="#model-fitting"></a>
@@ -127,10 +127,10 @@ measurements</li>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Fit joint ODE model</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/JointODE.html">JointODE</a></span><span class="op">(</span></span>
-<span>  data.long <span class="op">=</span> <span class="va">data.long</span>,</span>
-<span>  data.surv <span class="op">=</span> <span class="va">data.surv</span>,</span>
-<span>  formula.long <span class="op">=</span> <span class="va">v</span> <span class="op">~</span> <span class="fl">1</span>,</span>
-<span>  formula.surv <span class="op">=</span> <span class="fu">Surv</span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span>,</span>
+<span>  longitudinal_data <span class="op">=</span> <span class="va">longitudinal_data</span>,</span>
+<span>  survival_data <span class="op">=</span> <span class="va">survival_data</span>,</span>
+<span>  longitudinal_formula <span class="op">=</span> <span class="va">v</span> <span class="op">~</span> <span class="fl">1</span>,</span>
+<span>  survival_formula <span class="op">=</span> <span class="fu">Surv</span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span>,</span>
 <span>  id <span class="op">=</span> <span class="st">"id"</span>,</span>
 <span>  time <span class="op">=</span> <span class="st">"time"</span></span>
 <span><span class="op">)</span></span>

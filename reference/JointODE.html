@@ -63,12 +63,16 @@ through shared parameters.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">JointODE</span><span class="op">(</span></span>
-<span>  <span class="va">data.long</span>,</span>
-<span>  <span class="va">data.surv</span>,</span>
-<span>  <span class="va">formula.long</span>,</span>
-<span>  <span class="va">formula.surv</span>,</span>
+<span>  <span class="va">longitudinal_formula</span>,</span>
+<span>  <span class="va">longitudinal_data</span>,</span>
+<span>  <span class="va">survival_formula</span>,</span>
+<span>  <span class="va">survival_data</span>,</span>
 <span>  id <span class="op">=</span> <span class="st">"id"</span>,</span>
 <span>  time <span class="op">=</span> <span class="st">"time"</span>,</span>
+<span>  spline_baseline <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>degree <span class="op">=</span> <span class="fl">3</span>, n_knots <span class="op">=</span> <span class="fl">5</span>, knot_placement <span class="op">=</span> <span class="st">"quantile"</span>,</span>
+<span>    boundary_knots <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
+<span>  spline_index <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>degree <span class="op">=</span> <span class="fl">3</span>, n_knots <span class="op">=</span> <span class="fl">4</span>, knot_placement <span class="op">=</span> <span class="st">"quantile"</span>,</span>
+<span>    boundary_knots <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -78,27 +82,27 @@ through shared parameters.</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-data-long">data.long<a class="anchor" aria-label="anchor" href="#arg-data-long"></a></dt>
-<dd><p>Data frame containing longitudinal measurements.
-Must include multiple observations per subject with columns for
-subject ID, measurement times, and response values.</p></dd>
-
-
-<dt id="arg-data-surv">data.surv<a class="anchor" aria-label="anchor" href="#arg-data-surv"></a></dt>
-<dd><p>Data frame containing survival/event data.
-Must have exactly one row per subject with event time and status.</p></dd>
-
-
-<dt id="arg-formula-long">formula.long<a class="anchor" aria-label="anchor" href="#arg-formula-long"></a></dt>
+<dl><dt id="arg-longitudinal-formula">longitudinal_formula<a class="anchor" aria-label="anchor" href="#arg-longitudinal-formula"></a></dt>
 <dd><p>Formula for the longitudinal submodel.
 Left side specifies the response; right side includes time and
 covariates (e.g., <code>v ~ x1</code>).</p></dd>
 
 
-<dt id="arg-formula-surv">formula.surv<a class="anchor" aria-label="anchor" href="#arg-formula-surv"></a></dt>
+<dt id="arg-longitudinal-data">longitudinal_data<a class="anchor" aria-label="anchor" href="#arg-longitudinal-data"></a></dt>
+<dd><p>Data frame containing longitudinal measurements.
+Must include multiple observations per subject with columns for
+subject ID, measurement times, and response values.</p></dd>
+
+
+<dt id="arg-survival-formula">survival_formula<a class="anchor" aria-label="anchor" href="#arg-survival-formula"></a></dt>
 <dd><p>Formula for the survival submodel.
 Must use <code>Surv(time, status)</code> on the left side;
 right side specifies baseline covariates.</p></dd>
+
+
+<dt id="arg-survival-data">survival_data<a class="anchor" aria-label="anchor" href="#arg-survival-data"></a></dt>
+<dd><p>Data frame containing survival/event data.
+Must have exactly one row per subject with event time and status.</p></dd>
 
 
 <dt id="arg-id">id<a class="anchor" aria-label="anchor" href="#arg-id"></a></dt>
@@ -109,6 +113,44 @@ Must exist in both datasets (default: <code>"id"</code>).</p></dd>
 <dt id="arg-time">time<a class="anchor" aria-label="anchor" href="#arg-time"></a></dt>
 <dd><p>Character string naming the time variable in
 longitudinal data (default: <code>"time"</code>).</p></dd>
+
+
+<dt id="arg-spline-baseline">spline_baseline<a class="anchor" aria-label="anchor" href="#arg-spline-baseline"></a></dt>
+<dd><p>List of B-spline configuration for baseline hazard:</p><dl><dt><code>degree</code></dt>
+<dd><p>Degree of B-spline basis (default: 3)</p></dd>
+
+<dt><code>n_knots</code></dt>
+<dd><p>Number of interior knots (default: 5)</p></dd>
+
+<dt><code>knot_placement</code></dt>
+<dd><p>Method for knot placement: "quantile"
+(based on event times) or "equal" (default: "quantile")</p></dd>
+
+<dt><code>boundary_knots</code></dt>
+<dd><p>Boundary knots, if NULL uses event range
+(default: NULL)</p></dd>
+
+
+</dl></dd>
+
+
+<dt id="arg-spline-index">spline_index<a class="anchor" aria-label="anchor" href="#arg-spline-index"></a></dt>
+<dd><p>List of B-spline configuration for single index model:</p><dl><dt><code>degree</code></dt>
+<dd><p>Degree of B-spline basis (default: 3)</p></dd>
+
+<dt><code>n_knots</code></dt>
+<dd><p>Number of interior knots (default: 4)</p></dd>
+
+<dt><code>knot_placement</code></dt>
+<dd><p>Method for knot placement: "quantile"
+(based on index values) or "equal" (default: "quantile")</p></dd>
+
+<dt><code>boundary_knots</code></dt>
+<dd><p>Boundary knots, if NULL uses index range
+(default: NULL)</p></dd>
+
+
+</dl></dd>
 
 
 <dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
@@ -181,18 +223,19 @@ parameters to improve convergence.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="validate.html">validate</a></code> for data validation,
-<code><a href="process.html">process</a></code> for data preprocessing</p></div>
+    <div class="dont-index"><p><code><a href="dot-validate.html">.validate</a></code> for data validation,
+<code><a href="dot-process.html">.process</a></code> for data preprocessing</p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+<span class="r-in"><span><span class="va">sim</span> <span class="op">&lt;-</span> <span class="fu"><a href="simulate.html">simulate</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu">JointODE</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  data.long <span class="op">=</span> <span class="va">data.long</span>,</span></span>
-<span class="r-in"><span>  data.surv <span class="op">=</span> <span class="va">data.surv</span>,</span></span>
-<span class="r-in"><span>  formula.long <span class="op">=</span> <span class="va">v</span> <span class="op">~</span> <span class="fl">1</span>,</span></span>
-<span class="r-in"><span>  formula.surv <span class="op">=</span> <span class="fu">Surv</span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span></span></span>
+<span class="r-in"><span>  longitudinal_formula <span class="op">=</span> <span class="va">v</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>,</span></span>
+<span class="r-in"><span>  longitudinal_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">longitudinal_data</span>,</span></span>
+<span class="r-in"><span>  survival_formula <span class="op">=</span> <span class="fu">Surv</span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span>,</span></span>
+<span class="r-in"><span>  survival_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">survival_data</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
