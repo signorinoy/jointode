@@ -688,16 +688,15 @@
 #' in joint models. Computes dynamics without random effects for efficiency,
 #' which are added post-computation.
 #'
-#' @param params A list containing all necessary model components:
+#' @param data A list containing subject-specific data:
 #'   \describe{
-#'     \item{data}{Subject-specific data with components:
-#'       \itemize{
-#'         \item \code{time}: Event/censoring time
-#'         \item \code{status}: Event indicator (0/1)
-#'         \item \code{covariates}: Baseline covariates for survival model
-#'         \item \code{longitudinal}: List with times, measurements, covariates
-#'       }
-#'     }
+#'     \item{time}{Event/censoring time}
+#'     \item{status}{Event indicator (0/1)}
+#'     \item{covariates}{Baseline covariates for survival model}
+#'     \item{longitudinal}{List with times, measurements, covariates}
+#'   }
+#' @param parameters A list containing all necessary model components:
+#'   \describe{
 #'     \item{coef}{Model coefficients:
 #'       \itemize{
 #'         \item \code{baseline}: B-spline coefficients for baseline hazard
@@ -773,12 +772,11 @@
 #' @examples
 #' \dontrun{
 #' # Example: Solve ODE for a subject
-#' params <- list(
-#'   data = subject_data,  # Subject-specific data
+#' parameters <- list(
 #'   coef = list(
-#'     baseline = c(0.1, 0.2, 0.15),     # Baseline hazard spline coefficients
-#'     hazard = c(0.3, 0.1, 0.05, 0.2),  # Hazard coefficients
-#'     index_g = c(0.5, 0.3, 0.2),       # Acceleration function coefficients
+#'     baseline = c(0.1, 0.2, 0.15), # Baseline hazard spline coefficients
+#'     hazard = c(0.3, 0.1, 0.05, 0.2), # Hazard coefficients
+#'     index_g = c(0.5, 0.3, 0.2), # Acceleration function coefficients
 #'     index_beta = c(0.4, 0.2, 0.1, 0.15) # Single index coefficients
 #'   ),
 #'   config = list(
@@ -788,20 +786,20 @@
 #' )
 #'
 #' # Solve the ODE system
-#' sol <- .solve_joint_ode(params)
+#' sol <- .solve_joint_ode(subject_data, parameters)
 #'
 #' # Incorporate random effect b_i = 0.5
 #' b <- 0.5
 #' actual_log_hazard <- sol$log_hazard + b
 #' actual_cum_hazard <- sol$cum_hazard * exp(b)
-#' predicted_biomarker <- sol$biomarker + b  # Add b to biomarker values
+#' predicted_biomarker <- sol$biomarker + b # Add b to biomarker values
 #' }
 #'
 #' @seealso
 #' \code{\link{JointODE}} for the main model fitting function
 #'
 #' @concept utilities
-.solve_joint_ode <- function(params, initial = c(0, 0, 0)) {
+.solve_joint_ode <- function(data, parameters, initial = c(0, 0, 0)) {
   # Helper function to compute spline basis
   .compute_spline_basis <- function(x, config) {
     splines::bs(
@@ -891,14 +889,19 @@
   }
 
   # Solve ODE System
-  event_time <- params$data$time
-  time_points <- sort(unique(c(0, params$data$longitudinal$times, event_time)))
+  ode_parameters <- list(
+    data = data,
+    coef = parameters$coef,
+    config = parameters$config
+  )
+  event_time <- data$time
+  time_points <- sort(unique(c(0, data$longitudinal$times, event_time)))
 
   solution <- deSolve::ode(
     y = initial,
     times = time_points,
     func = ode_derivatives,
-    parms = params,
+    parms = ode_parameters,
     method = "lsoda",
     rtol = 1e-8,
     atol = 1e-10
@@ -910,23 +913,23 @@
   # Compute final quantities
   biomarker_final <- final_state[2]
   biomarker_velocity_final <- final_state[3]
-  longitudinal_covariates_final <- .get_longitudinal_covariates(params$data)
+  longitudinal_covariates_final <- .get_longitudinal_covariates(data)
 
   biomarker_acceleration_final <- .compute_acceleration(
     biomarker_final, biomarker_velocity_final, longitudinal_covariates_final,
-    event_time, params$coef, params$config
+    event_time, parameters$coef, parameters$config
   )
 
   # Compute log-hazard without random effect
   log_hazard_final <- .compute_log_hazard(
     event_time, biomarker_final, biomarker_velocity_final,
-    biomarker_acceleration_final, params$data, params$coef, params$config
+    biomarker_acceleration_final, data, parameters$coef, parameters$config
   )
 
   # Extract biomarker values at observation times
-  biomarker_values <- if (length(params$data$longitudinal$times) > 0) {
-    observation_indices <- match(params$data$longitudinal$times, solution[, 1])
-    observed_values <- solution[observation_indices, 3]  # Column 3 is m(t)
+  biomarker_values <- if (length(data$longitudinal$times) > 0) {
+    observation_indices <- match(data$longitudinal$times, solution[, 1])
+    observed_values <- solution[observation_indices, 3] # Column 3 is m(t)
     observed_values
   } else {
     NULL
@@ -937,5 +940,110 @@
     cum_hazard = final_state[1],
     log_hazard = log_hazard_final,
     biomarker = biomarker_values
+  )
+}
+
+#' Compute Posterior Moments Using AGHQ
+#'
+#' @description
+#' Computes posterior mean, variance, and other moments of the random effect
+#' using adaptive Gauss-Hermite quadrature via the aghq package.
+#'
+#' @param ode_solution List containing ODE solution with components:
+#'   \describe{
+#'     \item{cum_hazard}{Cumulative hazard at event time without random effect}
+#'     \item{log_hazard}{Log-hazard at event time without random effect}
+#'     \item{biomarker}{Biomarker values at observation times without random
+#'                      effect}
+#'   }
+#' @param data A list containing subject-specific data:
+#'   \describe{
+#'     \item{time}{Event/censoring time}
+#'     \item{status}{Event indicator (0/1)}
+#'     \item{covariates}{Baseline covariates for survival model}
+#'     \item{longitudinal}{List with times, measurements, covariates}
+#'   }
+#' @param b_hat_init Initial guess for posterior mean \eqn{E[b_i|\mathcal{O}_i]}
+#' @param measurement_error_sd Measurement error standard deviation
+#' @param random_effect_sd Random effect standard deviation
+#' @param k Number of quadrature points (default: 7)
+#'
+#' @return List containing:
+#'   \describe{
+#'     \item{b_hat}{Posterior mean \eqn{E[b_i|\mathcal{O}_i]}}
+#'     \item{v_hat}{Posterior variance \eqn{Var[b_i|\mathcal{O}_i]}}
+#'     \item{exp_b}{\eqn{E[exp(b_i)|\mathcal{O}_i]} for survival component}
+#'   }
+#'
+#' @importFrom aghq aghq compute_moment
+#'
+#' @concept utilities
+.compute_posterior_aghq <- function(
+    ode_solution, data, b_hat_init, measurement_error_sd, random_effect_sd,
+    k = 7) {
+  # Extract components
+  cum_hazard_0 <- ode_solution$cum_hazard
+  biomarker_0 <- ode_solution$biomarker
+
+  status <- data$status
+  measurements <- data$longitudinal$measurements
+  n_obs <- data$longitudinal$n_obs
+
+  # Compute residual sum
+  s_i <- sum(measurements - biomarker_0)
+
+  # Define log-posterior function (up to normalizing constant)
+  logpost <- function(b) {
+    ll_long <- -(n_obs * b^2 - 2 * b * s_i) / (2 * measurement_error_sd^2)
+    ll_surv <- status * b - exp(b) * cum_hazard_0
+    ll_prior <- -b^2 / (2 * random_effect_sd^2)
+    ll_long + ll_surv + ll_prior
+  }
+  logpost_grad <- function(b) {
+    grad_long <- (s_i - n_obs * b) / measurement_error_sd^2
+    grad_surv <- status - exp(b) * cum_hazard_0
+    grad_prior <- -b / random_effect_sd^2
+
+    grad_long + grad_surv + grad_prior
+  }
+  logpost_hess <- function(b) {
+    hess_long <- -n_obs / measurement_error_sd^2
+    hess_surv <- -exp(b) * cum_hazard_0
+    hess_prior <- -1 / random_effect_sd^2
+
+    matrix(hess_long + hess_surv + hess_prior, 1, 1)
+  }
+
+  # Build adaptive quadrature
+  fit_aghq <- aghq::aghq(
+    ff = list(
+      fn = logpost,
+      gr = logpost_grad,
+      he = logpost_hess
+    ),
+    k = k,
+    startingvalue = b_hat_init,
+  )
+
+  # Compute posterior moments
+  b_hat <- aghq::compute_moment(
+    fit_aghq$normalized_posterior,
+    ff = function(x) x
+  )
+  b2_hat <- aghq::compute_moment(
+    fit_aghq$normalized_posterior,
+    ff = function(x) x^2
+  )
+  v_hat <- b2_hat - b_hat^2
+  # Compute E[exp(b)] for survival component
+  exp_b <- aghq::compute_moment(
+    fit_aghq$normalized_posterior,
+    ff = function(x) exp(x)
+  )
+
+  list(
+    b_hat = b_hat,
+    v_hat = v_hat,
+    exp_b = exp_b
   )
 }

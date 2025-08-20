@@ -115,7 +115,8 @@ JointODE <- function(
   # Store call
   cl <- match.call()
 
-  # Validate inputs
+  # 1. Preprocessing
+  # 1.1 Validate inputs
   .validate(
     longitudinal_formula = longitudinal_formula,
     longitudinal_data = longitudinal_data,
@@ -127,7 +128,7 @@ JointODE <- function(
     spline_index = spline_index
   )
 
-  # Process data
+  # 1.2 Process data
   data_process <- .process(
     longitudinal_formula = longitudinal_formula,
     longitudinal_data = longitudinal_data,
@@ -137,7 +138,21 @@ JointODE <- function(
     time = time
   )
 
+  # 1.3 Extract properties
   event_times <- vapply(data_process, `[[`, numeric(1), "time")
+  ids <- vapply(data_process, `[[`, numeric(1), "id")
+  n_subjects <- attr(data_process, "n_subjects")
+  subjects_with_long <- Filter(
+    function(s) s$longitudinal$n_obs > 0,
+    data_process
+  )
+  n_longitudinal_covariates <- ncol(
+    subjects_with_long[[1]]$longitudinal$covariates
+  )
+  n_survival_covariates <- ncol(data_process[[1]]$covariates)
+
+  # 2. Initialize parameters
+  # 2.1 Configure splines
   spline_baseline_config <- .get_spline_config(
     x = event_times,
     degree = spline_baseline$degree,
@@ -156,45 +171,16 @@ JointODE <- function(
     boundary_knots = spline_index$boundary_knots
   )
 
-  # Find first subject with longitudinal data
-  subjects_with_long <- Filter(
-    function(s) s$longitudinal$n_obs > 0,
-    data_process
-  )
-  num_longitudinal_covariates <- ncol(
-    subjects_with_long[[1]]$longitudinal$covariates
-  )
-  num_survival_covariates <- ncol(data_process[[1]]$covariates)
+  # 2.2 Initialize coefficients
+  baseline_spline_coefficients <- numeric(spline_baseline_config$df)
+  hazard_coefficients <- numeric(n_survival_covariates + 3)
+  index_spline_coefficients <- numeric(spline_index_config$df)
+  index_coefficients <- rnorm(n_longitudinal_covariates + 3)
+  index_coefficients <- index_coefficients / sqrt(sum(index_coefficients^2))
+  measurement_error_sd <- 1
+  random_effect_sd <- 1
 
-  baseline_spline_coefficients <- rnorm(spline_baseline_config$df)
-  hazard_coefficients <- rnorm(3 + num_survival_covariates)
-  index_spline_coefficients <- rnorm(spline_index_config$df)
-  index_coefficients <- rep(0.01, 2 + num_longitudinal_covariates + 1)
-  measurement_error_sd <- numeric(1)
-  random_effect_sd <- numeric(1)
-
-
-  ode_results <- list()
-  for (subject in data_process) {
-    parameters <- list(
-      data = subject,
-      coef = list(
-        baseline = baseline_spline_coefficients,
-        hazard = hazard_coefficients,
-        index_g = index_spline_coefficients,
-        index_beta = index_coefficients
-      ),
-      config = list(
-        baseline = spline_baseline_config,
-        index = spline_index_config
-      )
-    )
-    ode_result <- .solve_joint_ode(parameters)
-    ode_results[[as.character(subject$id)]] <- ode_result
-  }
-
-  measurement_error_sd <- measurement_error_sd + 0.1
-  random_effect_sd <- random_effect_sd + 0.1
+  b_hat <- rnorm(n_subjects)
 
   # Set control defaults
   control_settings <- list(
@@ -205,26 +191,85 @@ JointODE <- function(
   )
   control_settings[names(control)] <- control
 
-  # TODO: Implement fitting algorithm
+  # TODO: Implement EM algorithm for parameter estimation
+  # The following is a placeholder implementation that demonstrates the
+  # structure but does not perform actual parameter optimization
 
-  # Return structure
+  # Placeholder E-Step (currently only runs once)
+  parameters <- list(
+    coef = list(
+      baseline = baseline_spline_coefficients,
+      hazard = hazard_coefficients,
+      index_g = index_spline_coefficients,
+      index_beta = index_coefficients
+    ),
+    config = list(
+      baseline = spline_baseline_config,
+      index = spline_index_config
+    )
+  )
+
+  posterior <- vector("list", n_subjects)
+  for (i in seq_len(n_subjects)) {
+    id <- ids[i]
+    ode_solution <- .solve_joint_ode(data_process[[id]], parameters)
+    posterior[[i]] <- .compute_posterior_aghq(
+      ode_solution = ode_solution,
+      data = data_process[[id]],
+      b_hat_init = b_hat[i],
+      measurement_error_sd = measurement_error_sd,
+      random_effect_sd = random_effect_sd
+    )
+  }
+
+  # Placeholder M-Step (currently just adds small increments)
+  # TODO: Replace with proper optimization
+  measurement_error_sd <- measurement_error_sd + 0.1
+  random_effect_sd <- random_effect_sd + 0.1
+
+
+  # TODO: Add EM iteration loop here
+  # TODO: Add convergence checking
+  # TODO: Calculate final log-likelihood, AIC, BIC
+
+  # Return structure with placeholder values
+  # TODO: Populate with actual fitted values after EM convergence
   structure(
     list(
-      coefficients = list(),
-      logLik = NA_real_,
-      AIC = NA_real_,
-      BIC = NA_real_,
-      convergence = list(),
-      fitted = list(),
-      residuals = list(),
+      coefficients = list(
+        baseline = baseline_spline_coefficients,
+        hazard = hazard_coefficients,
+        index_g = index_spline_coefficients,
+        index_beta = index_coefficients,
+        measurement_error_sd = measurement_error_sd,
+        random_effect_sd = random_effect_sd
+      ),
       spline_config = list(
         baseline = spline_baseline_config,
         index = spline_index_config
       ),
-      data = list(
-        longitudinal = longitudinal_data,
-        survival = survival_data
+      logLik = NA_real_,  # TODO: Calculate final log-likelihood
+      AIC = NA_real_,     # TODO: Calculate AIC = -2*logLik + 2*n_params
+      BIC = NA_real_,     # TODO: Calculate BIC = -2*logLik + log(n)*n_params
+      convergence = list(
+        converged = FALSE,  # TODO: Set based on convergence criteria
+        iterations = 0,     # TODO: Track actual iterations
+        message = "EM algorithm not yet implemented"  # TODO: Update message
       ),
+      fitted = list(
+        longitudinal = NULL,  # TODO: Store fitted longitudinal trajectories
+        survival = NULL       # TODO: Store fitted survival probabilities
+      ),
+      residuals = list(
+        longitudinal = NULL,  # TODO: Calculate longitudinal residuals
+        martingale = NULL     # TODO: Calculate martingale residuals
+      ),
+      random_effects = list(
+        estimates = vapply(posterior, `[[`, numeric(1), "b_hat"),
+        variances = vapply(posterior, `[[`, numeric(1), "v_hat")
+      ),
+      data = data_process,
+      control = control_settings,
       call = cl
     ),
     class = "JointODE"
