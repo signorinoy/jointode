@@ -11,3 +11,7 @@
 ^Meta$
 ^\.claude$
 ^\.lintr$
+^\.DS_Store$
+^\.Rhistory$
+^vignettes/\.gitignore$
+^vignettes/.*\.html$

@@ -18,7 +18,8 @@ Imports:
     stats,
     deSolve,
     simsurv,
-    survival
+    survival,
+    aghq
 Suggests: 
     ggplot2,
     graphics,

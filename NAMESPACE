@@ -2,6 +2,8 @@
 
 export(JointODE)
 export(simulate)
+importFrom(aghq,aghq)
+importFrom(aghq,compute_moment)
 importFrom(deSolve,ode)
 importFrom(simsurv,simsurv)
 importFrom(stats,approxfun)
