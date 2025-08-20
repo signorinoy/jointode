@@ -56,22 +56,32 @@ which are added post-computation.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">.solve_joint_ode</span><span class="op">(</span><span class="va">params</span>, initial <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">.solve_joint_ode</span><span class="op">(</span><span class="va">data</span>, <span class="va">parameters</span>, initial <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-params">params<a class="anchor" aria-label="anchor" href="#arg-params"></a></dt>
-<dd><p>A list containing all necessary model components:</p><dl><dt>data</dt>
-<dd><p>Subject-specific data with components:</p><ul><li><p><code>time</code>: Event/censoring time</p></li>
-<li><p><code>status</code>: Event indicator (0/1)</p></li>
-<li><p><code>covariates</code>: Baseline covariates for survival model</p></li>
-<li><p><code>longitudinal</code>: List with times, measurements, covariates</p></li>
-</ul></dd>
+<dl><dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
+<dd><p>A list containing subject-specific data:</p><dl><dt>time</dt>
+<dd><p>Event/censoring time</p></dd>
 
-<dt>coef</dt>
+<dt>status</dt>
+<dd><p>Event indicator (0/1)</p></dd>
+
+<dt>covariates</dt>
+<dd><p>Baseline covariates for survival model</p></dd>
+
+<dt>longitudinal</dt>
+<dd><p>List with times, measurements, covariates</p></dd>
+
+
+</dl></dd>
+
+
+<dt id="arg-parameters">parameters<a class="anchor" aria-label="anchor" href="#arg-parameters"></a></dt>
+<dd><p>A list containing all necessary model components:</p><dl><dt>coef</dt>
 <dd><p>Model coefficients:</p><ul><li><p><code>baseline</code>: B-spline coefficients for baseline hazard</p></li>
 <li><p><code>hazard</code>: Coefficients
 \([\alpha_m, \alpha_{\dot{m}}, \alpha_{\ddot{m}},\)
@@ -153,12 +163,11 @@ numerical stability.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="co"># Example: Solve ODE for a subject</span></span></span>
-<span class="r-in"><span><span class="va">params</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  data <span class="op">=</span> <span class="va">subject_data</span>,  <span class="co"># Subject-specific data</span></span></span>
+<span class="r-in"><span><span class="va">parameters</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  coef <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    baseline <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.2</span>, <span class="fl">0.15</span><span class="op">)</span>,     <span class="co"># Baseline hazard spline coefficients</span></span></span>
-<span class="r-in"><span>    hazard <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">0.1</span>, <span class="fl">0.05</span>, <span class="fl">0.2</span><span class="op">)</span>,  <span class="co"># Hazard coefficients</span></span></span>
-<span class="r-in"><span>    index_g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">0.3</span>, <span class="fl">0.2</span><span class="op">)</span>,       <span class="co"># Acceleration function coefficients</span></span></span>
+<span class="r-in"><span>    baseline <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.2</span>, <span class="fl">0.15</span><span class="op">)</span>, <span class="co"># Baseline hazard spline coefficients</span></span></span>
+<span class="r-in"><span>    hazard <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">0.1</span>, <span class="fl">0.05</span>, <span class="fl">0.2</span><span class="op">)</span>, <span class="co"># Hazard coefficients</span></span></span>
+<span class="r-in"><span>    index_g <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">0.3</span>, <span class="fl">0.2</span><span class="op">)</span>, <span class="co"># Acceleration function coefficients</span></span></span>
 <span class="r-in"><span>    index_beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.4</span>, <span class="fl">0.2</span>, <span class="fl">0.1</span>, <span class="fl">0.15</span><span class="op">)</span> <span class="co"># Single index coefficients</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  config <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
@@ -168,13 +177,13 @@ numerical stability.</p>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Solve the ODE system</span></span></span>
-<span class="r-in"><span><span class="va">sol</span> <span class="op">&lt;-</span> <span class="fu">.solve_joint_ode</span><span class="op">(</span><span class="va">params</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">sol</span> <span class="op">&lt;-</span> <span class="fu">.solve_joint_ode</span><span class="op">(</span><span class="va">subject_data</span>, <span class="va">parameters</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Incorporate random effect b_i = 0.5</span></span></span>
 <span class="r-in"><span><span class="va">b</span> <span class="op">&lt;-</span> <span class="fl">0.5</span></span></span>
 <span class="r-in"><span><span class="va">actual_log_hazard</span> <span class="op">&lt;-</span> <span class="va">sol</span><span class="op">$</span><span class="va">log_hazard</span> <span class="op">+</span> <span class="va">b</span></span></span>
 <span class="r-in"><span><span class="va">actual_cum_hazard</span> <span class="op">&lt;-</span> <span class="va">sol</span><span class="op">$</span><span class="va">cum_hazard</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">predicted_biomarker</span> <span class="op">&lt;-</span> <span class="va">sol</span><span class="op">$</span><span class="va">biomarker</span> <span class="op">+</span> <span class="va">b</span>  <span class="co"># Add b to biomarker values</span></span></span>
+<span class="r-in"><span><span class="va">predicted_biomarker</span> <span class="op">&lt;-</span> <span class="va">sol</span><span class="op">$</span><span class="va">biomarker</span> <span class="op">+</span> <span class="va">b</span> <span class="co"># Add b to biomarker values</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>

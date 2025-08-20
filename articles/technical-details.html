@@ -180,18 +180,20 @@ e^b\Lambda_i(T_i|0) - \frac{1}{\sigma_b^2}</span></li>
 </ul>
 </li>
 <li>
-<p>Compute posterior moments via Gauss-Hermite quadrature:</p>
+<p>Compute posterior moments via adaptive Gauss-Hermite quadrature
+(using <code>aghq</code> package):</p>
 <ul>
-<li>Points: <span class="math inline">b_q = \tilde{b}_i +
-\sqrt{2\tilde{v}_i} x_q</span> where <span class="math inline">\tilde{v}_i = -1/H_b|_{\tilde{b}_i}</span>
+<li>Build quadrature at mode:
+<code>fit_aghq &lt;- aghq::aghq(logpost, startingvalue)</code>
 </li>
-<li>Weights: <span class="math inline">w_{iq} \propto w_q
-\exp[\ell_i(b_q)]</span> (normalized)</li>
+<li>Extract moments: <code>aghq::compute_moment(fit_aghq, ff)</code> for
+any function <code>ff</code>
+</li>
 <li>
-<span class="math inline">\hat{b}_i = \sum_q w_{iq} b_q</span>,
-<span class="math inline">\hat{v}_i = \sum_q w_{iq}(b_q -
-\hat{b}_i)^2</span>, <span class="math inline">E[e^{b_i}|\mathcal{O}_i]
-= \sum_q w_{iq} e^{b_q}</span>
+<span class="math inline">\hat{b}_i = E[b_i|\mathcal{O}_i]</span>,
+<span class="math inline">\hat{v}_i =
+\text{Var}[b_i|\mathcal{O}_i]</span>, <span class="math inline">E[e^{b_i}|\mathcal{O}_i]</span> all computed via
+<code>aghq</code>
 </li>
 </ul>
 </li>
