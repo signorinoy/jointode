@@ -78,11 +78,11 @@ Key simplification: $\log\lambda_i(T_i|b) = \log\lambda_i(T_i|0) + b$ and $\Lamb
    - $\nabla_b = \frac{S_i - n_i b}{\sigma_e^2} + \delta_i - e^b\Lambda_i(T_i|0) - \frac{b}{\sigma_b^2}$
    - $H_b = -\frac{n_i}{\sigma_e^2} - e^b\Lambda_i(T_i|0) - \frac{1}{\sigma_b^2}$
 
-3. Compute posterior moments via Gauss-Hermite quadrature:
+3. Compute posterior moments via adaptive Gauss-Hermite quadrature (using `aghq` package):
 
-   - Points: $b_q = \tilde{b}_i + \sqrt{2\tilde{v}_i} x_q$ where $\tilde{v}_i = -1/H_b|_{\tilde{b}_i}$
-   - Weights: $w_{iq} \propto w_q \exp[\ell_i(b_q)]$ (normalized)
-   - $\hat{b}_i = \sum_q w_{iq} b_q$, $\hat{v}_i = \sum_q w_{iq}(b_q - \hat{b}_i)^2$, $E[e^{b_i}|\mathcal{O}_i] = \sum_q w_{iq} e^{b_q}$
+   - Build quadrature at mode: `fit_aghq <- aghq::aghq(logpost, startingvalue)`
+   - Extract moments: `aghq::compute_moment(fit_aghq, ff)` for any function `ff`
+   - $\hat{b}_i = E[b_i|\mathcal{O}_i]$, $\hat{v}_i = \text{Var}[b_i|\mathcal{O}_i]$, $E[e^{b_i}|\mathcal{O}_i]$ all computed via `aghq`
 
 ### M-Step
 

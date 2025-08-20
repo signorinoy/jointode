@@ -4,19 +4,19 @@
 \alias{.solve_joint_ode}
 \title{Solve Joint ODE System}
 \usage{
-.solve_joint_ode(params, initial = c(0, 0, 0))
+.solve_joint_ode(data, parameters, initial = c(0, 0, 0))
 }
 \arguments{
-\item{params}{A list containing all necessary model components:
+\item{data}{A list containing subject-specific data:
 \describe{
-\item{data}{Subject-specific data with components:
-\itemize{
-\item \code{time}: Event/censoring time
-\item \code{status}: Event indicator (0/1)
-\item \code{covariates}: Baseline covariates for survival model
-\item \code{longitudinal}: List with times, measurements, covariates
-}
-}
+\item{time}{Event/censoring time}
+\item{status}{Event indicator (0/1)}
+\item{covariates}{Baseline covariates for survival model}
+\item{longitudinal}{List with times, measurements, covariates}
+}}
+
+\item{parameters}{A list containing all necessary model components:
+\describe{
 \item{coef}{Model coefficients:
 \itemize{
 \item \code{baseline}: B-spline coefficients for baseline hazard
@@ -99,12 +99,11 @@ numerical stability.
 \examples{
 \dontrun{
 # Example: Solve ODE for a subject
-params <- list(
-  data = subject_data,  # Subject-specific data
+parameters <- list(
   coef = list(
-    baseline = c(0.1, 0.2, 0.15),     # Baseline hazard spline coefficients
-    hazard = c(0.3, 0.1, 0.05, 0.2),  # Hazard coefficients
-    index_g = c(0.5, 0.3, 0.2),       # Acceleration function coefficients
+    baseline = c(0.1, 0.2, 0.15), # Baseline hazard spline coefficients
+    hazard = c(0.3, 0.1, 0.05, 0.2), # Hazard coefficients
+    index_g = c(0.5, 0.3, 0.2), # Acceleration function coefficients
     index_beta = c(0.4, 0.2, 0.1, 0.15) # Single index coefficients
   ),
   config = list(
@@ -114,13 +113,13 @@ params <- list(
 )
 
 # Solve the ODE system
-sol <- .solve_joint_ode(params)
+sol <- .solve_joint_ode(subject_data, parameters)
 
 # Incorporate random effect b_i = 0.5
 b <- 0.5
 actual_log_hazard <- sol$log_hazard + b
 actual_cum_hazard <- sol$cum_hazard * exp(b)
-predicted_biomarker <- sol$biomarker + b  # Add b to biomarker values
+predicted_biomarker <- sol$biomarker + b # Add b to biomarker values
 }
 
 }
