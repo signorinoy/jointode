@@ -4,22 +4,22 @@ test_that("simulate() returns correct structure", {
 
   # Check return type
   expect_type(sim_data, "list")
-  expect_named(sim_data, c("data.long", "data.surv"))
+  expect_named(sim_data, c("longitudinal_data", "survival_data"))
 
-  # Check data.long structure
-  expect_s3_class(sim_data$data.long, "data.frame")
-  expect_named(sim_data$data.long, c("id", "time", "v", "x1", "x2"))
-  expect_gt(nrow(sim_data$data.long), 0)
+  # Check longitudinal_data structure
+  expect_s3_class(sim_data$longitudinal_data, "data.frame")
+  expect_named(sim_data$longitudinal_data, c("id", "time", "v", "x1", "x2"))
+  expect_gt(nrow(sim_data$longitudinal_data), 0)
 
-  # Check data.surv structure
-  expect_s3_class(sim_data$data.surv, "data.frame")
-  expect_named(sim_data$data.surv, c("id", "time", "status", "w1", "w2"))
-  expect_equal(nrow(sim_data$data.surv), 20)
+  # Check survival_data structure
+  expect_s3_class(sim_data$survival_data, "data.frame")
+  expect_named(sim_data$survival_data, c("id", "time", "status", "w1", "w2"))
+  expect_equal(nrow(sim_data$survival_data), 20)
 
   # Check id consistency
   expect_equal(
-    sort(unique(sim_data$data.long$id)),
-    sort(unique(sim_data$data.surv$id))
+    sort(unique(sim_data$longitudinal_data$id)),
+    sort(unique(sim_data$survival_data$id))
   )
 })
 
@@ -39,78 +39,80 @@ test_that("simulate() respects parameter inputs", {
   )
 
   # Check correct number of subjects
-  expect_equal(length(unique(sim_data$data.surv$id)), 10)
-  expect_equal(nrow(sim_data$data.surv), 10)
+  expect_equal(length(unique(sim_data$survival_data$id)), 10)
+  expect_equal(nrow(sim_data$survival_data), 10)
 
   # Check data types
-  expect_type(sim_data$data.long$id, "integer")
-  expect_type(sim_data$data.long$time, "double")
-  expect_type(sim_data$data.long$v, "double")
-  expect_type(sim_data$data.long$x1, "double")
-  expect_type(sim_data$data.long$x2, "double")
+  expect_type(sim_data$longitudinal_data$id, "integer")
+  expect_type(sim_data$longitudinal_data$time, "double")
+  expect_type(sim_data$longitudinal_data$v, "double")
+  expect_type(sim_data$longitudinal_data$x1, "double")
+  expect_type(sim_data$longitudinal_data$x2, "double")
 
-  expect_type(sim_data$data.surv$id, "integer")
-  expect_type(sim_data$data.surv$time, "double")
-  expect_type(sim_data$data.surv$status, "integer")
-  expect_type(sim_data$data.surv$w1, "double")
-  expect_type(sim_data$data.surv$w2, "double")
+  expect_type(sim_data$survival_data$id, "integer")
+  expect_type(sim_data$survival_data$time, "double")
+  expect_type(sim_data$survival_data$status, "integer")
+  expect_type(sim_data$survival_data$w1, "double")
+  expect_type(sim_data$survival_data$w2, "double")
 })
 
 test_that("simulate() produces valid survival data", {
   sim_data <- simulate(n = 50, seed = 789, verbose = FALSE)
 
   # Check survival times are positive
-  expect_true(all(sim_data$data.surv$time > 0))
+  expect_true(all(sim_data$survival_data$time > 0))
 
   # Check status is binary
-  expect_true(all(sim_data$data.surv$status %in% c(0, 1)))
+  expect_true(all(sim_data$survival_data$status %in% c(0, 1)))
 
   # Check event rate is reasonable (between 20% and 80%)
-  event_rate <- mean(sim_data$data.surv$status)
+  event_rate <- mean(sim_data$survival_data$status)
   expect_gt(event_rate, 0.2)
   expect_lt(event_rate, 0.8)
 
   # Check w2 is binary
-  expect_true(all(sim_data$data.surv$w2 %in% c(0, 1)))
+  expect_true(all(sim_data$survival_data$w2 %in% c(0, 1)))
 
   # Check w1 is continuous
-  expect_true(is.numeric(sim_data$data.surv$w1))
-  expect_true(length(unique(sim_data$data.surv$w1)) > 1)
+  expect_true(is.numeric(sim_data$survival_data$w1))
+  expect_true(length(unique(sim_data$survival_data$w1)) > 1)
 })
 
 test_that("simulate() produces valid longitudinal data", {
   sim_data <- simulate(n = 30, seed = 321, verbose = FALSE)
 
   # Check multiple observations per subject
-  obs_per_subject <- table(sim_data$data.long$id)
+  obs_per_subject <- table(sim_data$longitudinal_data$id)
   expect_true(all(obs_per_subject > 1))
 
   # Check time values are reasonable
-  expect_true(all(sim_data$data.long$time >= 0))
-  expect_true(all(sim_data$data.long$time <= max(sim_data$data.surv$time)))
+  expect_true(all(sim_data$longitudinal_data$time >= 0))
+  expect_true(
+    all(sim_data$longitudinal_data$time <= max(sim_data$survival_data$time))
+  )
 
   # Check covariate values
   # x1 should be positive (exponential decay)
-  expect_true(all(sim_data$data.long$x1 > 0))
-  expect_true(all(sim_data$data.long$x1 <= 1))
+  expect_true(all(sim_data$longitudinal_data$x1 > 0))
+  expect_true(all(sim_data$longitudinal_data$x1 <= 1))
 
   # x2 should be bounded (sine function)
-  expect_true(all(abs(sim_data$data.long$x2) <= 0.2))
+  expect_true(all(abs(sim_data$longitudinal_data$x2) <= 0.2))
 
   # Check v values are numeric and finite
-  expect_true(all(is.finite(sim_data$data.long$v)))
+  expect_true(all(is.finite(sim_data$longitudinal_data$v)))
 })
 
 test_that("simulate() handles edge cases", {
   # Small sample size
   sim_small <- simulate(n = 2, seed = 111, verbose = FALSE)
-  expect_equal(nrow(sim_small$data.surv), 2)
-  expect_gt(nrow(sim_small$data.long), 2)
+  expect_equal(nrow(sim_small$survival_data), 2)
+  expect_gt(nrow(sim_small$longitudinal_data), 2)
 
   # Large sample size
   sim_large <- simulate(n = 100, seed = 222, verbose = FALSE)
-  expect_equal(nrow(sim_large$data.surv), 100)
-  expect_gt(nrow(sim_large$data.long), 100)
+  expect_equal(nrow(sim_large$survival_data), 100)
+  expect_gt(nrow(sim_large$longitudinal_data), 100)
 })
 
 test_that("simulate() reproducibility with seed", {
@@ -118,12 +120,12 @@ test_that("simulate() reproducibility with seed", {
   sim1 <- simulate(n = 25, seed = 999, verbose = FALSE)
   sim2 <- simulate(n = 25, seed = 999, verbose = FALSE)
 
-  expect_identical(sim1$data.long, sim2$data.long)
-  expect_identical(sim1$data.surv, sim2$data.surv)
+  expect_identical(sim1$longitudinal_data, sim2$longitudinal_data)
+  expect_identical(sim1$survival_data, sim2$survival_data)
 
   # Different seeds should produce different results
   sim3 <- simulate(n = 25, seed = 888, verbose = FALSE)
-  expect_false(identical(sim1$data.long$v, sim3$data.long$v))
+  expect_false(identical(sim1$longitudinal_data$v, sim3$longitudinal_data$v))
 })
 
 test_that("simulate() parameter validation", {

@@ -43,14 +43,14 @@ The package requires two data frames:
 # id: subject identifier
 # time: measurement time
 # v: biomarker value
-head(data.long)
+head(longitudinal_data)
 
 # Example survival data structure
 # id: subject identifier
 # time: observation time
 # status: event indicator (1=event, 0=censored)
 # w1, w2: baseline covariates
-head(data.surv)
+head(survival_data)
 ```
 
 ### Model Fitting
@@ -58,10 +58,10 @@ head(data.surv)
 ```{r model-fit}
 # Fit joint ODE model
 fit <- JointODE(
-  data.long = data.long,
-  data.surv = data.surv,
-  formula.long = v ~ 1,
-  formula.surv = Surv(time, status) ~ w1 + w2,
+  longitudinal_data = longitudinal_data,
+  survival_data = survival_data,
+  longitudinal_formula = v ~ 1,
+  survival_formula = Surv(time, status) ~ w1 + w2,
   id = "id",
   time = "time"
 )

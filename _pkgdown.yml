@@ -37,7 +37,12 @@ reference:
   desc: "Core functions for joint ODE modeling"
   contents:
   - has_concept("modeling")
-  
+
+- title: "Datasets"
+  desc: "Joint Survival and Longitudinal Data"
+  contents:
+  - has_concept("datasets")
+
 - title: "Utilities"
   desc: "Helper functions"
   contents:

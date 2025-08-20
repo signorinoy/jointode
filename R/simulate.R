@@ -32,7 +32,7 @@
 #'
 #' @return A list of containing:
 #'   \describe{
-#'     \item{data.long}{Data frame with longitudinal measurements:
+#'     \item{longitudinal_data}{Data frame with longitudinal measurements:
 #'       \itemize{
 #'         \item \code{id}: Subject identifier
 #'         \item \code{time}: Measurement time
@@ -43,7 +43,7 @@
 #'         \item \code{x2}: Time-varying covariate 2 (seasonal:
 #'           \eqn{0.2\sin(2\pi t)})
 #'       }}
-#'     \item{data.surv}{Data frame with survival outcomes:
+#'     \item{survival_data}{Data frame with survival outcomes:
 #'       \itemize{
 #'         \item \code{id}: Subject identifier
 #'         \item \code{time}: Observed event/censoring time
@@ -142,10 +142,10 @@
 #' str(sim)
 #'
 #' # Check data characteristics
-#' cat("Event rate:", mean(sim$data.surv$status), "\n")
+#' cat("Event rate:", mean(sim$survival_data$status), "\n")
 #' cat(
 #'   "Observations per subject:",
-#'   nrow(sim$data.long) / nrow(sim$data.surv), "\n"
+#'   nrow(sim$longitudinal_data) / nrow(sim$survival_data), "\n"
 #' )
 #'
 #' # Visualize trajectories with survival information
@@ -153,8 +153,8 @@
 #' library(dplyr)
 #'
 #' # Select subjects with different outcomes
-#' plot_data <- sim$data.long %>%
-#'   left_join(sim$data.surv[, c("id", "time", "status")],
+#' plot_data <- sim$longitudinal_data %>%
+#'   left_join(sim$survival_data[, c("id", "time", "status")],
 #'     by = "id", suffix = c("", "_event")
 #'   ) %>%
 #'   filter(id %in% sample(unique(id), 9))
@@ -179,7 +179,7 @@
 #' \code{\link[simsurv]{simsurv}} for the underlying survival simulation
 #' \code{\link[deSolve]{ode}} for ODE integration details
 #'
-#' @concept utilities
+#' @concept datasets
 #'
 #' @importFrom deSolve ode
 #' @importFrom simsurv simsurv
@@ -237,18 +237,18 @@ simulate <- function(
 
   # Generate survival times
   if (verbose) message("Step 2/3: Generating survival times...")
-  data.surv <- .generate_survival_data(trajectories, params, verbose)
+  survival_data <- .generate_survival_data(trajectories, params, verbose)
 
   # Generate longitudinal measurements
   if (verbose) message("Step 3/3: Generating longitudinal data...")
-  data.long <- .generate_longitudinal_data(
-    trajectories, data.surv$obstime, params
+  longitudinal_data <- .generate_longitudinal_data(
+    trajectories, survival_data$obstime, params
   )
 
   # Format and return
   list(
-    data.long = data.long,
-    data.surv = data.surv[, c("id", "time", "status", "w1", "w2")]
+    longitudinal_data = longitudinal_data,
+    survival_data = survival_data[, c("id", "time", "status", "w1", "w2")]
   )
 }
 
@@ -338,7 +338,7 @@ simulate <- function(
   n <- length(trajectories)
 
   # Extract baseline covariates
-  covdat <- data.frame(
+  covariate_data <- data.frame(
     id = seq_len(n),
     b_i = vapply(trajectories, `[[`, numeric(1), "b_i"),
     w1 = vapply(trajectories, function(x) x$w_i[1], numeric(1)),
@@ -346,7 +346,7 @@ simulate <- function(
   )
 
   # Define hazard function
-  hazard_func <- function(t, x, betas, ...) {
+  hazard_function <- function(t, x, betas, ...) {
     traj <- trajectories[[as.integer(x["id"])]]
 
     # Baseline hazard (Weibull)
@@ -367,8 +367,8 @@ simulate <- function(
 
   # Generate event times
   surv_times <- simsurv::simsurv(
-    hazard = hazard_func,
-    x = covdat,
+    hazard = hazard_function,
+    x = covariate_data,
     betas = c(w1 = params$phi[1], w2 = params$phi[2]),
     maxt = 10,
     interval = c(1e-8, 15)
@@ -379,7 +379,7 @@ simulate <- function(
 
   # Combine with covariates
   surv_times$time <- surv_times$obstime
-  merge(surv_times, covdat[, c("id", "w1", "w2")], by = "id")
+  merge(surv_times, covariate_data[, c("id", "w1", "w2")], by = "id")
 }
 
 #' Apply administrative censoring

@@ -53,7 +53,7 @@ longitudinal observations (default: 0.1).}
 \value{
 A list of containing:
 \describe{
-\item{data.long}{Data frame with longitudinal measurements:
+\item{longitudinal_data}{Data frame with longitudinal measurements:
 \itemize{
 \item \code{id}: Subject identifier
 \item \code{time}: Measurement time
@@ -64,7 +64,7 @@ A list of containing:
 \item \code{x2}: Time-varying covariate 2 (seasonal:
 \eqn{0.2\sin(2\pi t)})
 }}
-\item{data.surv}{Data frame with survival outcomes:
+\item{survival_data}{Data frame with survival outcomes:
 \itemize{
 \item \code{id}: Subject identifier
 \item \code{time}: Observed event/censoring time
@@ -170,10 +170,10 @@ sim <- simulate()
 str(sim)
 
 # Check data characteristics
-cat("Event rate:", mean(sim$data.surv$status), "\n")
+cat("Event rate:", mean(sim$survival_data$status), "\n")
 cat(
   "Observations per subject:",
-  nrow(sim$data.long) / nrow(sim$data.surv), "\n"
+  nrow(sim$longitudinal_data) / nrow(sim$survival_data), "\n"
 )
 
 # Visualize trajectories with survival information
@@ -181,8 +181,8 @@ library(ggplot2)
 library(dplyr)
 
 # Select subjects with different outcomes
-plot_data <- sim$data.long \%>\%
-  left_join(sim$data.surv[, c("id", "time", "status")],
+plot_data <- sim$longitudinal_data \%>\%
+  left_join(sim$survival_data[, c("id", "time", "status")],
     by = "id", suffix = c("", "_event")
   ) \%>\%
   filter(id \%in\% sample(unique(id), 9))
@@ -208,4 +208,4 @@ ggplot(plot_data, aes(x = time, y = v)) +
 \code{\link[simsurv]{simsurv}} for the underlying survival simulation
 \code{\link[deSolve]{ode}} for ODE integration details
 }
-\concept{utilities}
+\concept{datasets}
