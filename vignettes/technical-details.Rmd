@@ -129,53 +129,54 @@ where:
 
 ### Gradient Computation
 
-Gradients require solving augmented ODE systems with sensitivity equations.
-
-**Base ODE System (ODE-1):**
-$$\frac{d}{dt}\begin{bmatrix}
-\Lambda \\ m \\ \dot{m} \\ \mathbf{I}_B \\ \mathbf{I}_m
-\end{bmatrix} = \begin{bmatrix}
-\lambda \\ \dot{m} \\ g \\ \mathbf{B}^{(\lambda)} \lambda \\ \mathbf{m} \lambda
-\end{bmatrix}$$
-
-where auxiliary integrals:
-
-- $\mathbf{I}_B(t) = \int_0^t \mathbf{B}^{(\lambda)}(s)\lambda(s)ds$
-- $\mathbf{I}_m(t) = \int_0^t \mathbf{m}(s)\lambda(s)ds$
-
-**Sensitivity Equations:**
-
-For $\boldsymbol{\beta}$ optimization, add:
-$$\frac{d\mathbf{S}_\beta}{dt} = \mathbf{J} \mathbf{S}_\beta + \begin{bmatrix}0 \\ \boldsymbol{\theta}^T\mathbf{B}'_g(u) \mathbf{Z}\end{bmatrix}$$
-
-For $\boldsymbol{\theta}$ optimization, add:
-$$\frac{d\mathbf{S}_\theta}{dt} = \mathbf{J} \mathbf{S}_\theta + \begin{bmatrix}0 \\ \mathbf{B}_g(u)\end{bmatrix}$$
-
-where $\mathbf{J} = \begin{bmatrix}0 & I \\ 0 & 0\end{bmatrix}$ is the shift operator.
-
-### Gradient Formulas
-
-**Direct hazard parameters:**
-
-- $\nabla_{\boldsymbol{\eta}} Q = \sum_i [\delta_i \mathbf{B}^{(\lambda)}(T_i) - E[e^{b_i}] \mathbf{I}_B(T_i)]$
-- $\nabla_{\boldsymbol{\alpha}} Q = \sum_i [\delta_i \mathbf{m}_i(T_i) - E[e^{b_i}] \mathbf{I}_m(T_i)]$
-- $\nabla_{\boldsymbol{\phi}} Q = \sum_i [\delta_i - E[e^{b_i}]\Lambda_i(T_i)] \mathbf{W}_i$
-
-**Trajectory parameters:**
-
-Both $\boldsymbol{\beta}$ and $\boldsymbol{\theta}$ gradients have longitudinal and survival components:
-
+The M-step maximizes $Q(\boldsymbol{\Theta})$ using gradient-based optimization. All gradients decompose additively:
 $$\nabla Q = \nabla Q_{\text{long}} + \nabla Q_{\text{surv}}$$
 
-where:
+**Hazard parameters** ($\boldsymbol{\eta}$, $\boldsymbol{\alpha}$, $\boldsymbol{\phi}$) admit closed-form gradient expressions:
 
-- Longitudinal: $\nabla Q_{\text{long}} = \frac{1}{\sigma_e^2}\sum_{i,j} r_{ij} \cdot \frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\cdot}}$
-- Survival: $\nabla Q_{\text{surv}} = \sum_i [\delta_i \frac{\partial\log\lambda_i}{\partial\boldsymbol{\cdot}} - E[e^{b_i}] \frac{\partial\Lambda_i}{\partial\boldsymbol{\cdot}}]$
+- $\nabla_{\boldsymbol{\eta}} Q = \sum_i [\delta_i \mathbf{B}^{(\lambda)}(T_i) - E[e^{b_i}|\mathcal{O}_i] \frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\eta}}]$
+- $\nabla_{\boldsymbol{\alpha}} Q = \sum_i [\delta_i \mathbf{m}_i(T_i) - E[e^{b_i}|\mathcal{O}_i] \frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\alpha}}]$  
+- $\nabla_{\boldsymbol{\phi}} Q = \sum_i [\delta_i - E[e^{b_i}|\mathcal{O}_i]\Lambda_i(T_i|0)] \mathbf{W}_i$
 
-with residual $r_{ij} = V_{ij} - m_i(T_{ij}) - \hat{b}_i$.
+The computation of these gradients requires solving an augmented ODE system:
+
+$$\frac{d}{dt}\begin{bmatrix}
+\Lambda_i \\ m_i \\ \dot{m}_i \\ \partial\Lambda_{\eta,i} \\ \partial\Lambda_{\alpha,i}
+\end{bmatrix} = \begin{bmatrix}
+\lambda_i(t|0) \\ \dot{m}_i(t) \\ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \mathbf{B}^{(\lambda)}(t) \lambda_i(t|0) \\ \mathbf{m}(t) \lambda_i(t|0)
+\end{bmatrix}$$
+
+where $\partial\Lambda_{\eta,i}$ and $\partial\Lambda_{\alpha,i}$ are sensitivities with respect to $\boldsymbol{\eta}$ and $\boldsymbol{\alpha}$, respectively.
+
+**Trajectory parameters** ($\boldsymbol{\beta}$, $\boldsymbol{\theta}$) have gradient expressions involving sensitivities:
+
+- $\nabla_{\boldsymbol{\beta}} Q = \sum_{i,j} \frac{r_{ij}}{\sigma_e^2} \frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\beta}} + \sum_i \left[\delta_i \boldsymbol{\alpha}^{\top} \frac{\partial \mathbf{m}_i(T_i)}{\partial \boldsymbol{\beta}} - E[e^{b_i}|\mathcal{O}_i] \frac{\partial \Lambda_i(T_i|0)}{\partial \boldsymbol{\beta}}\right]$
+
+- $\nabla_{\boldsymbol{\theta}} Q = \sum_{i,j} \frac{r_{ij}}{\sigma_e^2} \frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\theta}} + \sum_i \left[\delta_i \boldsymbol{\alpha}^{\top} \frac{\partial \mathbf{m}_i(T_i)}{\partial \boldsymbol{\theta}} - E[e^{b_i}|\mathcal{O}_i] \frac{\partial \Lambda_i(T_i|0)}{\partial \boldsymbol{\theta}}\right]$
+
+where $r_{ij} = V_{ij} - m_i(T_{ij}) - \hat{b}_i$ denotes the residual.
+
+The gradients with respect to $\boldsymbol{\beta}$ and $\boldsymbol{\theta}$ similarly require solving augmented ODE systems that track sensitivities.
+
+For $\boldsymbol{\beta}$ sensitivities:
+$$\frac{d}{dt}\begin{bmatrix}
+\Lambda_i \\ m_i \\ \dot{m}_i \\ \partial m_{i,\beta} \\ \partial\dot{m}_{i,\beta} \\ \partial\Lambda_{\beta,i}
+\end{bmatrix} = \begin{bmatrix}
+\lambda_i(t|0) \\ \dot{m}_i(t) \\ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial \dot{m}_{i,\beta} \\ \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u) \mathbf{Z}(t) \\ \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}} \lambda_i(t|0)
+\end{bmatrix}$$
+
+For $\boldsymbol{\theta}$ sensitivities:
+$$\frac{d}{dt}\begin{bmatrix}
+\Lambda_i \\ m_i \\ \dot{m}_i \\ \partial m_{i,\theta} \\ \partial\dot{m}_{i,\theta} \\ \partial\Lambda_{\theta,i}
+\end{bmatrix} = \begin{bmatrix}
+\lambda_i(t|0) \\ \dot{m}_i(t) \\ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial\dot{m}_{i,\theta} \\ \mathbf{B}_g(u) \\ \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}} \lambda_i(t|0)
+\end{bmatrix}$$
+
+where $\mathbf{B}'_g(u) = \frac{d\mathbf{B}_g(u)}{du}$ denotes the B-spline derivative basis.
+
 
 ### Convergence
 
-The EM algorithm iterates until relative change in log-likelihood is below threshold:
+The EM algorithm iterates until the relative change in log-likelihood falls below a specified threshold:
 
 $$\frac{|\mathcal{L}^{(k+1)} - \mathcal{L}^{(k)}|}{|\mathcal{L}^{(k)}|} < \epsilon$$
