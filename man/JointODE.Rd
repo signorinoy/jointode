@@ -120,8 +120,4 @@ summary(fit)
 }
 
 }
-\seealso{
-\code{\link{.validate}} for data validation,
-\code{\link{.process}} for data preprocessing
-}
 \concept{modeling}

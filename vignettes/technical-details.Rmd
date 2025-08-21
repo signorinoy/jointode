@@ -16,88 +16,166 @@ knitr::opts_chunk$set(
 
 ## Introduction
 
-This vignette provides mathematical and computational details of the joint ODE model implementation.
+This vignette describes the mathematical framework and computational implementation of the JointODE model, which jointly models longitudinal biomarker trajectories and survival outcomes through a coupled ordinary differential equation (ODE) system.
 
-## ODE System
+## Model Framework
 
-State vector: $\mathbf{s}_i(t)=(\Lambda_i(t), m_i(t), \dot{m}_i(t))^{\top}$ where $\Lambda_i(t)$ is cumulative hazard, $m_i(t)$ is biomarker level, and $\dot{m}_i(t)$ is biomarker velocity.
+### State Variables
 
-The system evolves as:
+The model tracks three state variables for each subject $i$:
+
+- $\Lambda_i(t)$: Cumulative hazard
+- $m_i(t)$: Biomarker level  
+- $\dot{m}_i(t)$: Biomarker velocity (rate of change)
+
+### ODE System
+
+The state vector $\mathbf{s}_i(t) = (\Lambda_i(t), m_i(t), \dot{m}_i(t))^{\top}$ evolves according to:
 
 $$
 \frac{d\mathbf{s}_i}{dt} = \begin{pmatrix}
 \lambda_i(t|b_i) \\
 \dot{m}_i(t) \\
 g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t))
-\end{pmatrix}, \quad \mathbf{s}_i(0) = (0, m_{i0}, \dot{m}_{i0})^{\top}
+\end{pmatrix}
 $$
 
-where:
+with initial conditions $\mathbf{s}_i(0) = (0, m_{i0}, \dot{m}_{i0})^{\top}$.
 
-- Hazard: $\lambda_i(t|b_i) = \exp[\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i}+\mathbf{W}_i^{\top}\boldsymbol{\phi}]$
-- Acceleration: $g(u) = \boldsymbol{\theta}^{\top} \mathbf{B}^{(g)}(u)$ with $u = \boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)$
-- Features: $\mathbf{m}_i(t) = (m_i(t), \dot{m}_i(t), \ddot{m}_i(t))^{\top}$, $\mathbf{Z}_i(t) = (m_i(t), \dot{m}_i(t), \mathbf{X}_i(t)^{\top}, t)^{\top}$
+### Model Components
 
-## Likelihood
+**Hazard Function:**
+$$\lambda_i(t|b_i) = \exp\left[\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i} + \mathbf{W}_i^{\top}\boldsymbol{\phi}\right]$$
 
-Parameters: $\boldsymbol{\Theta} = (\boldsymbol{\theta}, \boldsymbol{\beta}, \boldsymbol{\eta}, \boldsymbol{\alpha}, \boldsymbol{\phi}, \sigma_e^2, \sigma_b^2)$
+- $\mathbf{B}^{(\lambda)}(t)$: B-spline basis for baseline hazard
+- $\mathbf{m}_i(t) = (m_i(t), \dot{m}_i(t), \ddot{m}_i(t))^{\top}$: Biomarker features
+- $b_i$: Subject-specific random effect
+- $\mathbf{W}_i$: Baseline covariates
 
-The joint likelihood integrates over random effects:
+**Acceleration Function:**
+$$g(u) = \boldsymbol{\theta}^{\top} \mathbf{B}^{(g)}(u), \quad u = \boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)$$
+
+- $\mathbf{B}^{(g)}(u)$: B-spline basis for acceleration
+- $\mathbf{Z}_i(t) = (m_i(t), \dot{m}_i(t), \mathbf{X}_i(t)^{\top}, t)^{\top}$: Feature vector
+- $\boldsymbol{\beta}$: Single-index coefficients (constrained: $\|\boldsymbol{\beta}\| = 1$)
+
+## Statistical Inference
+
+### Likelihood
+
+The joint likelihood for subject $i$ integrates over the random effect:
 
 $$L_i(\boldsymbol{\Theta}) = \int f(\mathbf{V}_i | b_i) \cdot f(T_i, \delta_i | b_i) \cdot f(b_i) \, db_i$$
 
-Components:
+where $\boldsymbol{\Theta} = (\boldsymbol{\theta}, \boldsymbol{\beta}, \boldsymbol{\eta}, \boldsymbol{\alpha}, \boldsymbol{\phi}, \sigma_e^2, \sigma_b^2)$.
 
-- Longitudinal: $f(\mathbf{V}_i | b_i) = \prod_{j=1}^{n_i} \phi(V_{ij}; m_i(T_{ij}) + b_i, \sigma_e^2)$
-- Survival: $f(T_i, \delta_i | b_i) = [\lambda_i(T_i|b_i)]^{\delta_i} \exp[-\Lambda_i(T_i|b_i)]$
-- Random effect: $f(b_i) = \phi(b_i; 0, \sigma_b^2)$
+**Likelihood Components:**
 
-## EM Algorithm
+1. **Longitudinal:** $f(\mathbf{V}_i | b_i) = \prod_{j=1}^{n_i} \mathcal{N}(V_{ij}; m_i(T_{ij}) + b_i, \sigma_e^2)$
+2. **Survival:** $f(T_i, \delta_i | b_i) = [\lambda_i(T_i|b_i)]^{\delta_i} \exp[-\Lambda_i(T_i|b_i)]$
+3. **Random Effect:** $f(b_i) \sim \mathcal{N}(0, \sigma_b^2)$
 
-### E-Step
+### EM Algorithm
 
-Compute posterior expectations $\hat{b}_i = E[b_i|\mathcal{O}_i]$ and $\hat{v}_i = \text{Var}[b_i|\mathcal{O}_i]$.
+We use an Expectation-Maximization (EM) algorithm for parameter estimation.
 
-The Q-function decomposes as $Q(\boldsymbol{\Theta}|\boldsymbol{\Theta}^{(k)}) = Q_L + Q_S + Q_R$:
+#### E-Step: Posterior Computation
 
-- $Q_L = -\frac{N}{2}\log(2\pi\sigma_e^2) - \frac{1}{2\sigma_e^2}\sum_{i,j}[(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i]$
-- $Q_S = \sum_{i} \{\delta_i[\log\lambda_i(T_i|0) + \hat{b}_i] - \Lambda_i(T_i|0) \cdot E[e^{b_i}|\mathcal{O}_i]\}$
-- $Q_R = -\frac{n}{2}\log(2\pi\sigma_b^2) - \frac{1}{2\sigma_b^2}\sum_{i}(\hat{b}_i^2 + \hat{v}_i)$
+For each subject $i$, compute the posterior distribution of $b_i$ given observed data $\mathcal{O}_i$.
 
-Key simplification: $\log\lambda_i(T_i|b) = \log\lambda_i(T_i|0) + b$ and $\Lambda_i(T_i|b) = e^b\Lambda_i(T_i|0)$
+**Key simplification:** The hazard and cumulative hazard factor as:
 
-**Implementation** (for each subject $i$):
+- $\lambda_i(t|b_i) = e^{b_i} \lambda_i(t|0)$
+- $\Lambda_i(t|b_i) = e^{b_i} \Lambda_i(t|0)$
 
-1. Solve ODE with $b_i = 0$ to get $m_i(t)$, $\Lambda_i(T_i|0)$, $\log\lambda_i(T_i|0)$
+**Implementation:**
 
-2. Find posterior mode $\tilde{b}_i$ by maximizing:
-   $$\ell_i(b) \propto b\left[\frac{S_i}{\sigma_e^2} + \delta_i\right] - \frac{b^2}{2}\left[\frac{n_i}{\sigma_e^2} + \frac{1}{\sigma_b^2}\right] - e^b\Lambda_i(T_i|0)$$
-   
-   where $S_i = \sum_j(V_{ij} - m_i(T_{ij}))$. Newton-Raphson: $b \leftarrow b - \nabla_b/H_b$ with
+1. **Solve baseline ODE** with $b_i = 0$ to obtain $m_i(t)$, $\lambda_i(t|0)$, $\Lambda_i(T_i|0)$
+2. **Find posterior mode** $\tilde{b}_i$ by maximizing:
+   $$\ell_i(b) = b\left[\frac{S_i}{\sigma_e^2} + \delta_i\right] - \frac{b^2}{2}\left[\frac{n_i}{\sigma_e^2} + \frac{1}{\sigma_b^2}\right] - e^b\Lambda_i(T_i|0)$$
+   where $S_i = \sum_j(V_{ij} - m_i(T_{ij}))$
+3. **Compute posterior moments** via adaptive Gauss-Hermite quadrature:
+   - Mean: $\hat{b}_i = E[b_i|\mathcal{O}_i]$
+   - Variance: $\hat{v}_i = \text{Var}[b_i|\mathcal{O}_i]$
+   - Transform: $E[e^{b_i}|\mathcal{O}_i]$ for survival updates
 
-   - $\nabla_b = \frac{S_i - n_i b}{\sigma_e^2} + \delta_i - e^b\Lambda_i(T_i|0) - \frac{b}{\sigma_b^2}$
-   - $H_b = -\frac{n_i}{\sigma_e^2} - e^b\Lambda_i(T_i|0) - \frac{1}{\sigma_b^2}$
+#### M-Step: Parameter Updates
 
-3. Compute posterior moments via adaptive Gauss-Hermite quadrature (using `aghq` package):
+Maximize the expected complete-data log-likelihood:
 
-   - Build quadrature at mode: `fit_aghq <- aghq::aghq(logpost, startingvalue)`
-   - Extract moments: `aghq::compute_moment(fit_aghq, ff)` for any function `ff`
-   - $\hat{b}_i = E[b_i|\mathcal{O}_i]$, $\hat{v}_i = \text{Var}[b_i|\mathcal{O}_i]$, $E[e^{b_i}|\mathcal{O}_i]$ all computed via `aghq`
+$$Q(\boldsymbol{\Theta}) = Q_{\text{long}} + Q_{\text{surv}} + Q_{\text{RE}}$$
 
-### M-Step
+where:
 
-Update parameters by maximizing $Q(\boldsymbol{\Theta}|\boldsymbol{\Theta}^{(k)})$:
+- $Q_{\text{long}} = -\frac{1}{2\sigma_e^2}\sum_{i,j} [(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i] - \frac{N}{2}\log(2\pi\sigma_e^2)$
+- $Q_{\text{surv}} = \sum_i [\delta_i(\log\lambda_i(T_i|0) + \hat{b}_i) - E[e^{b_i}|\mathcal{O}_i]\Lambda_i(T_i|0)]$
+- $Q_{\text{RE}} = -\frac{1}{2\sigma_b^2}\sum_i (\hat{b}_i^2 + \hat{v}_i) - \frac{n}{2}\log(2\pi\sigma_b^2)$
 
-1. **Longitudinal** $(\boldsymbol{\theta}, \boldsymbol{\beta})$: Minimize $\sum_{i,j} [V_{ij} - m_i(T_{ij}) - \hat{b}_i]^2$ via L-BFGS
+**Optimization Strategy:**
 
-2. **Measurement variance**: $\sigma_e^2 = \frac{1}{N}\sum_{i,j} [(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i]$
+1. **Survival parameters** $(\boldsymbol{\eta}, \boldsymbol{\alpha}, \boldsymbol{\phi})$: 
+   - Fix trajectory parameters
+   - Optimize via L-BFGS with analytical gradients
+2. **Trajectory parameters** $(\boldsymbol{\beta}, \boldsymbol{\theta})$:
+   - Alternating optimization with constraint $\|\boldsymbol{\beta}\| = 1$
+   - Iterate until convergence:
+     - Fix $\boldsymbol{\theta}$, optimize $\boldsymbol{\beta}$
+     - Fix $\boldsymbol{\beta}$, optimize $\boldsymbol{\theta}$
+3. **Variance components** (closed-form):
+   - $\sigma_e^2 = \frac{1}{N}\sum_{i,j}[(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i]$
+   - $\sigma_b^2 = \frac{1}{n}\sum_i(\hat{b}_i^2 + \hat{v}_i)$
 
-3. **Survival** $(\boldsymbol{\eta}, \boldsymbol{\alpha}, \boldsymbol{\phi})$: Maximize with gradients
+## Computational Details
 
-   - $\nabla_{\boldsymbol{\alpha}} = \sum_i [\delta_i \mathbf{m}_i(T_i) - E[e^{b_i}|\mathcal{O}_i] \int_0^{T_i} \mathbf{m}_i(s)\lambda_i(s|0)ds]$
-   - $\nabla_{\boldsymbol{\eta}} = \sum_i [\delta_i \mathbf{B}^{(\lambda)}(T_i) - E[e^{b_i}|\mathcal{O}_i] \int_0^{T_i} \mathbf{B}^{(\lambda)}(s)\lambda_i(s|0)ds]$
-   - $\nabla_{\boldsymbol{\phi}} = \sum_i [\delta_i \mathbf{W}_i - E[e^{b_i}|\mathcal{O}_i] \cdot \mathbf{W}_i\Lambda_i(T_i|0)]$
+### Gradient Computation
 
-4. **Random effect variance**: $\sigma_b^2 = \frac{1}{n}\sum_i (\hat{b}_i^2 + \hat{v}_i)$
+Gradients require solving augmented ODE systems with sensitivity equations.
 
-Iterate until $|\mathcal{L}^{(k+1)} - \mathcal{L}^{(k)}|/|\mathcal{L}^{(k)}| < \epsilon$.
+**Base ODE System (ODE-1):**
+$$\frac{d}{dt}\begin{bmatrix}
+\Lambda \\ m \\ \dot{m} \\ \mathbf{I}_B \\ \mathbf{I}_m
+\end{bmatrix} = \begin{bmatrix}
+\lambda \\ \dot{m} \\ g \\ \mathbf{B}^{(\lambda)} \lambda \\ \mathbf{m} \lambda
+\end{bmatrix}$$
+
+where auxiliary integrals:
+
+- $\mathbf{I}_B(t) = \int_0^t \mathbf{B}^{(\lambda)}(s)\lambda(s)ds$
+- $\mathbf{I}_m(t) = \int_0^t \mathbf{m}(s)\lambda(s)ds$
+
+**Sensitivity Equations:**
+
+For $\boldsymbol{\beta}$ optimization, add:
+$$\frac{d\mathbf{S}_\beta}{dt} = \mathbf{J} \mathbf{S}_\beta + \begin{bmatrix}0 \\ \boldsymbol{\theta}^T\mathbf{B}'_g(u) \mathbf{Z}\end{bmatrix}$$
+
+For $\boldsymbol{\theta}$ optimization, add:
+$$\frac{d\mathbf{S}_\theta}{dt} = \mathbf{J} \mathbf{S}_\theta + \begin{bmatrix}0 \\ \mathbf{B}_g(u)\end{bmatrix}$$
+
+where $\mathbf{J} = \begin{bmatrix}0 & I \\ 0 & 0\end{bmatrix}$ is the shift operator.
+
+### Gradient Formulas
+
+**Direct hazard parameters:**
+
+- $\nabla_{\boldsymbol{\eta}} Q = \sum_i [\delta_i \mathbf{B}^{(\lambda)}(T_i) - E[e^{b_i}] \mathbf{I}_B(T_i)]$
+- $\nabla_{\boldsymbol{\alpha}} Q = \sum_i [\delta_i \mathbf{m}_i(T_i) - E[e^{b_i}] \mathbf{I}_m(T_i)]$
+- $\nabla_{\boldsymbol{\phi}} Q = \sum_i [\delta_i - E[e^{b_i}]\Lambda_i(T_i)] \mathbf{W}_i$
+
+**Trajectory parameters:**
+
+Both $\boldsymbol{\beta}$ and $\boldsymbol{\theta}$ gradients have longitudinal and survival components:
+
+$$\nabla Q = \nabla Q_{\text{long}} + \nabla Q_{\text{surv}}$$
+
+where:
+
+- Longitudinal: $\nabla Q_{\text{long}} = \frac{1}{\sigma_e^2}\sum_{i,j} r_{ij} \cdot \frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\cdot}}$
+- Survival: $\nabla Q_{\text{surv}} = \sum_i [\delta_i \frac{\partial\log\lambda_i}{\partial\boldsymbol{\cdot}} - E[e^{b_i}] \frac{\partial\Lambda_i}{\partial\boldsymbol{\cdot}}]$
+
+with residual $r_{ij} = V_{ij} - m_i(T_{ij}) - \hat{b}_i$.
+
+### Convergence
+
+The EM algorithm iterates until relative change in log-likelihood is below threshold:
+
+$$\frac{|\mathcal{L}^{(k+1)} - \mathcal{L}^{(k)}|}{|\mathcal{L}^{(k)}|} < \epsilon$$
