@@ -1,9 +1,7 @@
 # Utility Functions for JointODE Package
 # Internal utility functions used throughout the JointODE package.
 
-# ==============================================================================
-# SECTION 1: DATA VALIDATION AND PROCESSING
-# ==============================================================================
+# ===== SECTION 1: DATA VALIDATION AND PROCESSING =====
 
 # Internal function: Validate input data for joint modeling
 # Checks data integrity, formula validity, variable consistency, and temporal
@@ -396,9 +394,7 @@
   data_process
 }
 
-# ==============================================================================
-# SECTION 2: NUMERICAL COMPUTATION
-# ==============================================================================
+# ===== SECTION 2: NUMERICAL COMPUTATION  =====
 
 # Configure B-Spline Parameters
 # Creates B-spline configuration with optimal knot placement
@@ -461,9 +457,7 @@
   )
 }
 
-# ==============================================================================
-# SECTION 3: ODE SOLVING HELPERS
-# ==============================================================================
+# ===== SECTION 3: ODE SOLVING HELPERS =====
 
 # Internal function: Get longitudinal covariates at time point
 .get_longitudinal_covariates <- function(data, time = NULL, row_index = NULL) {
@@ -486,30 +480,20 @@
 }
 
 # Internal function: Compute acceleration function
-.compute_acceleration <- function(biomarker, velocity, time_point,
-                                  data, coef, config) {
-  # Get longitudinal covariates
+.compute_acceleration <- function(
+    biomarker, velocity, time_point, data, coef, config) {
   longitudinal_covariates <- .get_longitudinal_covariates(data, time_point)
-
-  # Build covariate vector Z
   z <- c(biomarker, velocity, longitudinal_covariates, time_point)
-  n_beta <- length(coef$index_beta)
-  if (length(z) < n_beta) {
-    z <- c(z, rep(0, n_beta - length(z)))
-  }
-  z <- z[1:n_beta]
-
-  # Compute single index
   index_value <- sum(coef$index_beta * z)
 
-  # Evaluate acceleration function
   basis_g <- .compute_spline_basis(index_value, config$index)
+
   as.numeric(basis_g %*% coef$index_g)
 }
 
 # Internal function: Compute log-hazard function
-.compute_log_hazard <- function(time_point, biomarker, velocity,
-                                acceleration, data, coef, config) {
+.compute_log_hazard <- function(
+    time_point, biomarker, velocity, acceleration, data, coef, config) {
   # Baseline hazard
   basis_lambda <- .compute_spline_basis(time_point, config$baseline)
   log_baseline <- as.numeric(basis_lambda %*% coef$baseline)
@@ -537,19 +521,13 @@
 
   switch(sensitivity_type,
     basic = initial,
-
-    gradient = c(
-      initial,
-      rep(0, n_basis_lambda),
-      rep(0, 3)
-    ),
+    gradient = c(initial, rep(0, n_basis_lambda + 3)),
 
     beta = {
       n_beta <- length(parameters$coef$index_beta)
       c(
         initial,
-        rep(0, n_basis_lambda),
-        rep(0, 3),
+        rep(0, n_basis_lambda + 3),
         rep(0, 2 * n_beta),
         rep(0, n_beta)
       )
@@ -866,9 +844,7 @@
   .extract_ode_results(solution, data, parameters, sensitivity_type)
 }
 
-# ==============================================================================
-# SECTION 4: STATISTICAL DISTRIBUTIONS
-# ==============================================================================
+# ===== SECTION 4: STATISTICAL DISTRIBUTIONS =====
 
 # Internal function: Compute posterior moments using AGHQ
 # Uses adaptive Gauss-Hermite quadrature for random effect posterior
