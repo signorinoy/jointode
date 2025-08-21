@@ -78,157 +78,292 @@
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>This vignette provides mathematical and computational details of the
-joint ODE model implementation.</p>
+<p>This vignette describes the mathematical framework and computational
+implementation of the JointODE model, which jointly models longitudinal
+biomarker trajectories and survival outcomes through a coupled ordinary
+differential equation (ODE) system.</p>
 </div>
 <div class="section level2">
-<h2 id="ode-system">ODE System<a class="anchor" aria-label="anchor" href="#ode-system"></a>
+<h2 id="model-framework">Model Framework<a class="anchor" aria-label="anchor" href="#model-framework"></a>
 </h2>
-<p>State vector: <span class="math inline">\mathbf{s}_i(t)=(\Lambda_i(t), m_i(t),
-\dot{m}_i(t))^{\top}</span> where <span class="math inline">\Lambda_i(t)</span> is cumulative hazard, <span class="math inline">m_i(t)</span> is biomarker level, and <span class="math inline">\dot{m}_i(t)</span> is biomarker velocity.</p>
-<p>The system evolves as:</p>
+<div class="section level3">
+<h3 id="state-variables">State Variables<a class="anchor" aria-label="anchor" href="#state-variables"></a>
+</h3>
+<p>The model tracks three state variables for each subject <span class="math inline">i</span>:</p>
+<ul>
+<li>
+<span class="math inline">\Lambda_i(t)</span>: Cumulative
+hazard</li>
+<li>
+<span class="math inline">m_i(t)</span>: Biomarker level<br>
+</li>
+<li>
+<span class="math inline">\dot{m}_i(t)</span>: Biomarker velocity
+(rate of change)</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="ode-system">ODE System<a class="anchor" aria-label="anchor" href="#ode-system"></a>
+</h3>
+<p>The state vector <span class="math inline">\mathbf{s}_i(t) =
+(\Lambda_i(t), m_i(t), \dot{m}_i(t))^{\top}</span> evolves according
+to:</p>
 <p><span class="math display">
 \frac{d\mathbf{s}_i}{dt} = \begin{pmatrix}
 \lambda_i(t|b_i) \\
 \dot{m}_i(t) \\
 g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t))
-\end{pmatrix}, \quad \mathbf{s}_i(0) = (0, m_{i0}, \dot{m}_{i0})^{\top}
+\end{pmatrix}
 </span></p>
-<p>where:</p>
+<p>with initial conditions <span class="math inline">\mathbf{s}_i(0) =
+(0, m_{i0}, \dot{m}_{i0})^{\top}</span>.</p>
+</div>
+<div class="section level3">
+<h3 id="model-components">Model Components<a class="anchor" aria-label="anchor" href="#model-components"></a>
+</h3>
+<p><strong>Hazard Function:</strong> <span class="math display">\lambda_i(t|b_i) =
+\exp\left[\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) +
+\boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i} +
+\mathbf{W}_i^{\top}\boldsymbol{\phi}\right]</span></p>
 <ul>
-<li>Hazard: <span class="math inline">\lambda_i(t|b_i) =
-\exp[\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) +
-\boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) +
-b_{i}+\mathbf{W}_i^{\top}\boldsymbol{\phi}]</span>
-</li>
-<li>Acceleration: <span class="math inline">g(u) =
-\boldsymbol{\theta}^{\top} \mathbf{B}^{(g)}(u)</span> with <span class="math inline">u =
-\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)</span>
-</li>
-<li>Features: <span class="math inline">\mathbf{m}_i(t) = (m_i(t),
-\dot{m}_i(t), \ddot{m}_i(t))^{\top}</span>, <span class="math inline">\mathbf{Z}_i(t) = (m_i(t), \dot{m}_i(t),
-\mathbf{X}_i(t)^{\top}, t)^{\top}</span>
-</li>
+<li>
+<span class="math inline">\mathbf{B}^{(\lambda)}(t)</span>: B-spline
+basis for baseline hazard</li>
+<li>
+<span class="math inline">\mathbf{m}_i(t) = (m_i(t), \dot{m}_i(t),
+\ddot{m}_i(t))^{\top}</span>: Biomarker features</li>
+<li>
+<span class="math inline">b_i</span>: Subject-specific random
+effect</li>
+<li>
+<span class="math inline">\mathbf{W}_i</span>: Baseline
+covariates</li>
+</ul>
+<p><strong>Acceleration Function:</strong> <span class="math display">g(u) = \boldsymbol{\theta}^{\top}
+\mathbf{B}^{(g)}(u), \quad u =
+\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)</span></p>
+<ul>
+<li>
+<span class="math inline">\mathbf{B}^{(g)}(u)</span>: B-spline basis
+for acceleration</li>
+<li>
+<span class="math inline">\mathbf{Z}_i(t) = (m_i(t), \dot{m}_i(t),
+\mathbf{X}_i(t)^{\top}, t)^{\top}</span>: Feature vector</li>
+<li>
+<span class="math inline">\boldsymbol{\beta}</span>: Single-index
+coefficients (constrained: <span class="math inline">\|\boldsymbol{\beta}\| = 1</span>)</li>
 </ul>
 </div>
+</div>
 <div class="section level2">
-<h2 id="likelihood">Likelihood<a class="anchor" aria-label="anchor" href="#likelihood"></a>
+<h2 id="statistical-inference">Statistical Inference<a class="anchor" aria-label="anchor" href="#statistical-inference"></a>
 </h2>
-<p>Parameters: <span class="math inline">\boldsymbol{\Theta} =
-(\boldsymbol{\theta}, \boldsymbol{\beta}, \boldsymbol{\eta},
-\boldsymbol{\alpha}, \boldsymbol{\phi}, \sigma_e^2,
-\sigma_b^2)</span></p>
-<p>The joint likelihood integrates over random effects:</p>
+<div class="section level3">
+<h3 id="likelihood">Likelihood<a class="anchor" aria-label="anchor" href="#likelihood"></a>
+</h3>
+<p>The joint likelihood for subject <span class="math inline">i</span>
+integrates over the random effect:</p>
 <p><span class="math display">L_i(\boldsymbol{\Theta}) = \int
 f(\mathbf{V}_i | b_i) \cdot f(T_i, \delta_i | b_i) \cdot f(b_i) \,
 db_i</span></p>
-<p>Components:</p>
+<p>where <span class="math inline">\boldsymbol{\Theta} =
+(\boldsymbol{\theta}, \boldsymbol{\beta}, \boldsymbol{\eta},
+\boldsymbol{\alpha}, \boldsymbol{\phi}, \sigma_e^2,
+\sigma_b^2)</span>.</p>
+<p><strong>Likelihood Components:</strong></p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Longitudinal:</strong> <span class="math inline">f(\mathbf{V}_i | b_i) = \prod_{j=1}^{n_i}
+\mathcal{N}(V_{ij}; m_i(T_{ij}) + b_i, \sigma_e^2)</span>
+</li>
+<li>
+<strong>Survival:</strong> <span class="math inline">f(T_i, \delta_i
+| b_i) = [\lambda_i(T_i|b_i)]^{\delta_i}
+\exp[-\Lambda_i(T_i|b_i)]</span>
+</li>
+<li>
+<strong>Random Effect:</strong> <span class="math inline">f(b_i)
+\sim \mathcal{N}(0, \sigma_b^2)</span>
+</li>
+</ol>
+</div>
+<div class="section level3">
+<h3 id="em-algorithm">EM Algorithm<a class="anchor" aria-label="anchor" href="#em-algorithm"></a>
+</h3>
+<p>We use an Expectation-Maximization (EM) algorithm for parameter
+estimation.</p>
+<div class="section level4">
+<h4 id="e-step-posterior-computation">E-Step: Posterior Computation<a class="anchor" aria-label="anchor" href="#e-step-posterior-computation"></a>
+</h4>
+<p>For each subject <span class="math inline">i</span>, compute the
+posterior distribution of <span class="math inline">b_i</span> given
+observed data <span class="math inline">\mathcal{O}_i</span>.</p>
+<p><strong>Key simplification:</strong> The hazard and cumulative hazard
+factor as:</p>
 <ul>
-<li>Longitudinal: <span class="math inline">f(\mathbf{V}_i | b_i) =
-\prod_{j=1}^{n_i} \phi(V_{ij}; m_i(T_{ij}) + b_i,
-\sigma_e^2)</span>
+<li><span class="math inline">\lambda_i(t|b_i) = e^{b_i}
+\lambda_i(t|0)</span></li>
+<li><span class="math inline">\Lambda_i(t|b_i) = e^{b_i}
+\Lambda_i(t|0)</span></li>
+</ul>
+<p><strong>Implementation:</strong></p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Solve baseline ODE</strong> with <span class="math inline">b_i = 0</span> to obtain <span class="math inline">m_i(t)</span>, <span class="math inline">\lambda_i(t|0)</span>, <span class="math inline">\Lambda_i(T_i|0)</span>
 </li>
-<li>Survival: <span class="math inline">f(T_i, \delta_i | b_i) =
-[\lambda_i(T_i|b_i)]^{\delta_i} \exp[-\Lambda_i(T_i|b_i)]</span>
+<li>
+<strong>Find posterior mode</strong> <span class="math inline">\tilde{b}_i</span> by maximizing: <span class="math display">\ell_i(b) = b\left[\frac{S_i}{\sigma_e^2} +
+\delta_i\right] - \frac{b^2}{2}\left[\frac{n_i}{\sigma_e^2} +
+\frac{1}{\sigma_b^2}\right] - e^b\Lambda_i(T_i|0)</span> where <span class="math inline">S_i = \sum_j(V_{ij} - m_i(T_{ij}))</span>
 </li>
-<li>Random effect: <span class="math inline">f(b_i) = \phi(b_i; 0,
-\sigma_b^2)</span>
+<li>
+<strong>Compute posterior moments</strong> via adaptive
+Gauss-Hermite quadrature:
+<ul>
+<li>Mean: <span class="math inline">\hat{b}_i =
+E[b_i|\mathcal{O}_i]</span>
+</li>
+<li>Variance: <span class="math inline">\hat{v}_i =
+\text{Var}[b_i|\mathcal{O}_i]</span>
+</li>
+<li>Transform: <span class="math inline">E[e^{b_i}|\mathcal{O}_i]</span>
+for survival updates</li>
+</ul>
+</li>
+</ol>
+</div>
+<div class="section level4">
+<h4 id="m-step-parameter-updates">M-Step: Parameter Updates<a class="anchor" aria-label="anchor" href="#m-step-parameter-updates"></a>
+</h4>
+<p>Maximize the expected complete-data log-likelihood:</p>
+<p><span class="math display">Q(\boldsymbol{\Theta}) = Q_{\text{long}} +
+Q_{\text{surv}} + Q_{\text{RE}}</span></p>
+<p>where:</p>
+<ul>
+<li><span class="math inline">Q_{\text{long}} =
+-\frac{1}{2\sigma_e^2}\sum_{i,j} [(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 +
+\hat{v}_i] - \frac{N}{2}\log(2\pi\sigma_e^2)</span></li>
+<li><span class="math inline">Q_{\text{surv}} = \sum_i
+[\delta_i(\log\lambda_i(T_i|0) + \hat{b}_i) -
+E[e^{b_i}|\mathcal{O}_i]\Lambda_i(T_i|0)]</span></li>
+<li><span class="math inline">Q_{\text{RE}} =
+-\frac{1}{2\sigma_b^2}\sum_i (\hat{b}_i^2 + \hat{v}_i) -
+\frac{n}{2}\log(2\pi\sigma_b^2)</span></li>
+</ul>
+<p><strong>Optimization Strategy:</strong></p>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Survival parameters</strong> <span class="math inline">(\boldsymbol{\eta}, \boldsymbol{\alpha},
+\boldsymbol{\phi})</span>:
+<ul>
+<li>Fix trajectory parameters</li>
+<li>Optimize via L-BFGS with analytical gradients</li>
+</ul>
+</li>
+<li>
+<strong>Trajectory parameters</strong> <span class="math inline">(\boldsymbol{\beta}, \boldsymbol{\theta})</span>:
+<ul>
+<li>Alternating optimization with constraint <span class="math inline">\|\boldsymbol{\beta}\| = 1</span>
+</li>
+<li>Iterate until convergence:
+<ul>
+<li>Fix <span class="math inline">\boldsymbol{\theta}</span>, optimize
+<span class="math inline">\boldsymbol{\beta}</span>
+</li>
+<li>Fix <span class="math inline">\boldsymbol{\beta}</span>, optimize
+<span class="math inline">\boldsymbol{\theta}</span>
 </li>
 </ul>
+</li>
+</ul>
+</li>
+<li>
+<strong>Variance components</strong> (closed-form):
+<ul>
+<li><span class="math inline">\sigma_e^2 = \frac{1}{N}\sum_{i,j}[(V_{ij}
+- m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i]</span></li>
+<li><span class="math inline">\sigma_b^2 = \frac{1}{n}\sum_i(\hat{b}_i^2
++ \hat{v}_i)</span></li>
+</ul>
+</li>
+</ol>
+</div>
+</div>
 </div>
 <div class="section level2">
-<h2 id="em-algorithm">EM Algorithm<a class="anchor" aria-label="anchor" href="#em-algorithm"></a>
+<h2 id="computational-details">Computational Details<a class="anchor" aria-label="anchor" href="#computational-details"></a>
 </h2>
 <div class="section level3">
-<h3 id="e-step">E-Step<a class="anchor" aria-label="anchor" href="#e-step"></a>
+<h3 id="gradient-computation">Gradient Computation<a class="anchor" aria-label="anchor" href="#gradient-computation"></a>
 </h3>
-<p>Compute posterior expectations <span class="math inline">\hat{b}_i =
-E[b_i|\mathcal{O}_i]</span> and <span class="math inline">\hat{v}_i =
-\text{Var}[b_i|\mathcal{O}_i]</span>.</p>
-<p>The Q-function decomposes as <span class="math inline">Q(\boldsymbol{\Theta}|\boldsymbol{\Theta}^{(k)}) =
-Q_L + Q_S + Q_R</span>:</p>
+<p>Gradients require solving augmented ODE systems with sensitivity
+equations.</p>
+<p><strong>Base ODE System (ODE-1):</strong> <span class="math display">\frac{d}{dt}\begin{bmatrix}
+\Lambda \\ m \\ \dot{m} \\ \mathbf{I}_B \\ \mathbf{I}_m
+\end{bmatrix} = \begin{bmatrix}
+\lambda \\ \dot{m} \\ g \\ \mathbf{B}^{(\lambda)} \lambda \\ \mathbf{m}
+\lambda
+\end{bmatrix}</span></p>
+<p>where auxiliary integrals:</p>
 <ul>
-<li><span class="math inline">Q_L = -\frac{N}{2}\log(2\pi\sigma_e^2) -
-\frac{1}{2\sigma_e^2}\sum_{i,j}[(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 +
-\hat{v}_i]</span></li>
-<li><span class="math inline">Q_S = \sum_{i}
-\{\delta_i[\log\lambda_i(T_i|0) + \hat{b}_i] - \Lambda_i(T_i|0) \cdot
-E[e^{b_i}|\mathcal{O}_i]\}</span></li>
-<li><span class="math inline">Q_R = -\frac{n}{2}\log(2\pi\sigma_b^2) -
-\frac{1}{2\sigma_b^2}\sum_{i}(\hat{b}_i^2 + \hat{v}_i)</span></li>
+<li><span class="math inline">\mathbf{I}_B(t) = \int_0^t
+\mathbf{B}^{(\lambda)}(s)\lambda(s)ds</span></li>
+<li><span class="math inline">\mathbf{I}_m(t) = \int_0^t
+\mathbf{m}(s)\lambda(s)ds</span></li>
 </ul>
-<p>Key simplification: <span class="math inline">\log\lambda_i(T_i|b) =
-\log\lambda_i(T_i|0) + b</span> and <span class="math inline">\Lambda_i(T_i|b) = e^b\Lambda_i(T_i|0)</span></p>
-<p><strong>Implementation</strong> (for each subject <span class="math inline">i</span>):</p>
-<ol style="list-style-type: decimal">
-<li><p>Solve ODE with <span class="math inline">b_i = 0</span> to get
-<span class="math inline">m_i(t)</span>, <span class="math inline">\Lambda_i(T_i|0)</span>, <span class="math inline">\log\lambda_i(T_i|0)</span></p></li>
-<li>
-<p>Find posterior mode <span class="math inline">\tilde{b}_i</span>
-by maximizing: <span class="math display">\ell_i(b) \propto
-b\left[\frac{S_i}{\sigma_e^2} + \delta_i\right] -
-\frac{b^2}{2}\left[\frac{n_i}{\sigma_e^2} + \frac{1}{\sigma_b^2}\right]
-- e^b\Lambda_i(T_i|0)</span></p>
-<p>where <span class="math inline">S_i = \sum_j(V_{ij} -
-m_i(T_{ij}))</span>. Newton-Raphson: <span class="math inline">b
-\leftarrow b - \nabla_b/H_b</span> with</p>
-<ul>
-<li><span class="math inline">\nabla_b = \frac{S_i - n_i b}{\sigma_e^2}
-+ \delta_i - e^b\Lambda_i(T_i|0) - \frac{b}{\sigma_b^2}</span></li>
-<li><span class="math inline">H_b = -\frac{n_i}{\sigma_e^2} -
-e^b\Lambda_i(T_i|0) - \frac{1}{\sigma_b^2}</span></li>
-</ul>
-</li>
-<li>
-<p>Compute posterior moments via adaptive Gauss-Hermite quadrature
-(using <code>aghq</code> package):</p>
-<ul>
-<li>Build quadrature at mode:
-<code>fit_aghq &lt;- aghq::aghq(logpost, startingvalue)</code>
-</li>
-<li>Extract moments: <code>aghq::compute_moment(fit_aghq, ff)</code> for
-any function <code>ff</code>
-</li>
-<li>
-<span class="math inline">\hat{b}_i = E[b_i|\mathcal{O}_i]</span>,
-<span class="math inline">\hat{v}_i =
-\text{Var}[b_i|\mathcal{O}_i]</span>, <span class="math inline">E[e^{b_i}|\mathcal{O}_i]</span> all computed via
-<code>aghq</code>
-</li>
-</ul>
-</li>
-</ol>
+<p><strong>Sensitivity Equations:</strong></p>
+<p>For <span class="math inline">\boldsymbol{\beta}</span> optimization,
+add: <span class="math display">\frac{d\mathbf{S}_\beta}{dt} =
+\mathbf{J} \mathbf{S}_\beta + \begin{bmatrix}0 \\
+\boldsymbol{\theta}^T\mathbf{B}'_g(u)
+\mathbf{Z}\end{bmatrix}</span></p>
+<p>For <span class="math inline">\boldsymbol{\theta}</span>
+optimization, add: <span class="math display">\frac{d\mathbf{S}_\theta}{dt} = \mathbf{J}
+\mathbf{S}_\theta + \begin{bmatrix}0 \\
+\mathbf{B}_g(u)\end{bmatrix}</span></p>
+<p>where <span class="math inline">\mathbf{J} = \begin{bmatrix}0 &amp; I
+\\ 0 &amp; 0\end{bmatrix}</span> is the shift operator.</p>
 </div>
 <div class="section level3">
-<h3 id="m-step">M-Step<a class="anchor" aria-label="anchor" href="#m-step"></a>
+<h3 id="gradient-formulas">Gradient Formulas<a class="anchor" aria-label="anchor" href="#gradient-formulas"></a>
 </h3>
-<p>Update parameters by maximizing <span class="math inline">Q(\boldsymbol{\Theta}|\boldsymbol{\Theta}^{(k)})</span>:</p>
-<ol style="list-style-type: decimal">
-<li><p><strong>Longitudinal</strong> <span class="math inline">(\boldsymbol{\theta}, \boldsymbol{\beta})</span>:
-Minimize <span class="math inline">\sum_{i,j} [V_{ij} - m_i(T_{ij}) -
-\hat{b}_i]^2</span> via L-BFGS</p></li>
-<li><p><strong>Measurement variance</strong>: <span class="math inline">\sigma_e^2 = \frac{1}{N}\sum_{i,j} [(V_{ij} -
-m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i]</span></p></li>
-<li>
-<p><strong>Survival</strong> <span class="math inline">(\boldsymbol{\eta}, \boldsymbol{\alpha},
-\boldsymbol{\phi})</span>: Maximize with gradients</p>
+<p><strong>Direct hazard parameters:</strong></p>
 <ul>
-<li><span class="math inline">\nabla_{\boldsymbol{\alpha}} = \sum_i
-[\delta_i \mathbf{m}_i(T_i) - E[e^{b_i}|\mathcal{O}_i] \int_0^{T_i}
-\mathbf{m}_i(s)\lambda_i(s|0)ds]</span></li>
-<li><span class="math inline">\nabla_{\boldsymbol{\eta}} = \sum_i
-[\delta_i \mathbf{B}^{(\lambda)}(T_i) - E[e^{b_i}|\mathcal{O}_i]
-\int_0^{T_i} \mathbf{B}^{(\lambda)}(s)\lambda_i(s|0)ds]</span></li>
-<li><span class="math inline">\nabla_{\boldsymbol{\phi}} = \sum_i
-[\delta_i \mathbf{W}_i - E[e^{b_i}|\mathcal{O}_i] \cdot
-\mathbf{W}_i\Lambda_i(T_i|0)]</span></li>
+<li><span class="math inline">\nabla_{\boldsymbol{\eta}} Q = \sum_i
+[\delta_i \mathbf{B}^{(\lambda)}(T_i) - E[e^{b_i}]
+\mathbf{I}_B(T_i)]</span></li>
+<li><span class="math inline">\nabla_{\boldsymbol{\alpha}} Q = \sum_i
+[\delta_i \mathbf{m}_i(T_i) - E[e^{b_i}] \mathbf{I}_m(T_i)]</span></li>
+<li><span class="math inline">\nabla_{\boldsymbol{\phi}} Q = \sum_i
+[\delta_i - E[e^{b_i}]\Lambda_i(T_i)] \mathbf{W}_i</span></li>
 </ul>
+<p><strong>Trajectory parameters:</strong></p>
+<p>Both <span class="math inline">\boldsymbol{\beta}</span> and <span class="math inline">\boldsymbol{\theta}</span> gradients have
+longitudinal and survival components:</p>
+<p><span class="math display">\nabla Q = \nabla Q_{\text{long}} + \nabla
+Q_{\text{surv}}</span></p>
+<p>where:</p>
+<ul>
+<li>Longitudinal: <span class="math inline">\nabla Q_{\text{long}} =
+\frac{1}{\sigma_e^2}\sum_{i,j} r_{ij} \cdot \frac{\partial
+m_i(T_{ij})}{\partial \boldsymbol{\cdot}}</span>
 </li>
-<li><p><strong>Random effect variance</strong>: <span class="math inline">\sigma_b^2 = \frac{1}{n}\sum_i (\hat{b}_i^2 +
-\hat{v}_i)</span></p></li>
-</ol>
-<p>Iterate until <span class="math inline">|\mathcal{L}^{(k+1)} -
-\mathcal{L}^{(k)}|/|\mathcal{L}^{(k)}| &lt; \epsilon</span>.</p>
+<li>Survival: <span class="math inline">\nabla Q_{\text{surv}} = \sum_i
+[\delta_i \frac{\partial\log\lambda_i}{\partial\boldsymbol{\cdot}} -
+E[e^{b_i}]
+\frac{\partial\Lambda_i}{\partial\boldsymbol{\cdot}}]</span>
+</li>
+</ul>
+<p>with residual <span class="math inline">r_{ij} = V_{ij} - m_i(T_{ij})
+- \hat{b}_i</span>.</p>
+</div>
+<div class="section level3">
+<h3 id="convergence">Convergence<a class="anchor" aria-label="anchor" href="#convergence"></a>
+</h3>
+<p>The EM algorithm iterates until relative change in log-likelihood is
+below threshold:</p>
+<p><span class="math display">\frac{|\mathcal{L}^{(k+1)} -
+\mathcal{L}^{(k)}|}{|\mathcal{L}^{(k)}|} &lt; \epsilon</span></p>
 </div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
