@@ -1,7 +1,9 @@
 Package: JointODE
 Title: Joint Modeling of Longitudinal and Survival Data Using ODEs
 Version: 0.0.0.9000
-Authors@R: 
+Author: Ziyang Gong
+Maintainer: Ziyang Gong <meetziyang@gmail.com>
+Authors@R:
     person("Ziyang", "Gong", , "meetziyang@gmail.com", role = c("aut", "cre"))
 Description: Implements joint modeling of longitudinal biomarker trajectories and
     time-to-event outcomes using ordinary differential equations (ODEs). The package
@@ -14,13 +16,14 @@ BugReports: https://github.com/signorinoy/JointODE/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
-Imports: 
+Imports:
     stats,
     deSolve,
-    simsurv,
     survival,
-    aghq
-Suggests: 
+    aghq,
+    splines,
+    simsurv
+Suggests:
     ggplot2,
     graphics,
     knitr,

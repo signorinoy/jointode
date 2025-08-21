@@ -5,7 +5,7 @@ template:
   bootswatch: cosmo
   math-rendering: katex
   light-switch: true
-  
+
   navbar:
     structure:
       left: [intro, reference, articles, tutorials, news]
@@ -16,7 +16,7 @@ template:
         menu:
         - text: Getting Started
           href: articles/getting-started.html
-        - text: Technical Details  
+        - text: Technical Details
           href: articles/technical-details.html
 
 # Article index configuration
@@ -47,4 +47,3 @@ reference:
   desc: "Helper functions"
   contents:
   - has_concept("utilities")
-

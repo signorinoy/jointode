@@ -79,9 +79,8 @@
 #'
 #' @concept modeling
 #'
-#' @seealso
-#' \code{\link{.validate}} for data validation,
-#' \code{\link{.process}} for data preprocessing
+#' @importFrom stats optim
+#' @importFrom survival Surv
 #'
 #' @examples
 #' \dontrun{
@@ -140,7 +139,6 @@ JointODE <- function(
 
   # 1.3 Extract properties
   event_times <- vapply(data_process, `[[`, numeric(1), "time")
-  ids <- vapply(data_process, `[[`, numeric(1), "id")
   n_subjects <- attr(data_process, "n_subjects")
   subjects_with_long <- Filter(
     function(s) s$longitudinal$n_obs > 0,
@@ -162,7 +160,7 @@ JointODE <- function(
   )
   spline_baseline_config$boundary_knots[1] <- 0
 
-  scores <- seq(-1, 1, length.out = 100)
+  scores <- seq(-5, 5, length.out = 100)
   spline_index_config <- .get_spline_config(
     x = scores,
     degree = spline_index$degree,
@@ -175,7 +173,7 @@ JointODE <- function(
   baseline_spline_coefficients <- numeric(spline_baseline_config$df)
   hazard_coefficients <- numeric(n_survival_covariates + 3)
   index_spline_coefficients <- numeric(spline_index_config$df)
-  index_coefficients <- rnorm(n_longitudinal_covariates + 3)
+  index_coefficients <- rep(1, n_longitudinal_covariates + 3)
   index_coefficients <- index_coefficients / sqrt(sum(index_coefficients^2))
   measurement_error_sd <- 1
   random_effect_sd <- 1
@@ -209,13 +207,14 @@ JointODE <- function(
     )
   )
 
-  posterior <- vector("list", n_subjects)
+  posteriors <- list()
   for (i in seq_len(n_subjects)) {
-    id <- ids[i]
-    ode_solution <- .solve_joint_ode(data_process[[id]], parameters)
-    posterior[[i]] <- .compute_posterior_aghq(
+    subject_data <- data_process[[i]]
+    subject_id <- names(data_process)[i]
+    ode_solution <- .solve_joint_ode(subject_data, parameters)
+    posteriors[[subject_id]] <- .compute_posterior_aghq(
       ode_solution = ode_solution,
-      data = data_process[[id]],
+      data = subject_data,
       b_hat_init = b_hat[i],
       measurement_error_sd = measurement_error_sd,
       random_effect_sd = random_effect_sd
@@ -224,9 +223,22 @@ JointODE <- function(
 
   # Placeholder M-Step (currently just adds small increments)
   # TODO: Replace with proper optimization
-  measurement_error_sd <- measurement_error_sd + 0.1
-  random_effect_sd <- random_effect_sd + 0.1
-
+  theta <- c(
+    baseline_spline_coefficients, hazard_coefficients,
+    index_spline_coefficients, index_coefficients
+  )
+  optim(.compute_q_function,
+    par = theta, data_list = data_process,
+    posteriors = posteriors,
+    config = list(
+      baseline = spline_baseline_config,
+      index = spline_index_config
+    ),
+    measurement_error_sd = measurement_error_sd,
+    random_effect_sd = random_effect_sd,
+    method = control_settings$method,
+    control = list(trace = 2, maxit = control_settings$maxit)
+  )
 
   # TODO: Add EM iteration loop here
   # TODO: Add convergence checking
@@ -248,25 +260,25 @@ JointODE <- function(
         baseline = spline_baseline_config,
         index = spline_index_config
       ),
-      logLik = NA_real_,  # TODO: Calculate final log-likelihood
-      AIC = NA_real_,     # TODO: Calculate AIC = -2*logLik + 2*n_params
-      BIC = NA_real_,     # TODO: Calculate BIC = -2*logLik + log(n)*n_params
+      logLik = NA_real_, # TODO: Calculate final log-likelihood
+      AIC = NA_real_, # TODO: Calculate AIC = -2*logLik + 2*n_params
+      BIC = NA_real_, # TODO: Calculate BIC = -2*logLik + log(n)*n_params
       convergence = list(
-        converged = FALSE,  # TODO: Set based on convergence criteria
-        iterations = 0,     # TODO: Track actual iterations
-        message = "EM algorithm not yet implemented"  # TODO: Update message
+        converged = FALSE, # TODO: Set based on convergence criteria
+        iterations = 0, # TODO: Track actual iterations
+        message = "EM algorithm not yet implemented" # TODO: Update message
       ),
       fitted = list(
-        longitudinal = NULL,  # TODO: Store fitted longitudinal trajectories
-        survival = NULL       # TODO: Store fitted survival probabilities
+        longitudinal = NULL, # TODO: Store fitted longitudinal trajectories
+        survival = NULL # TODO: Store fitted survival probabilities
       ),
       residuals = list(
-        longitudinal = NULL,  # TODO: Calculate longitudinal residuals
-        martingale = NULL     # TODO: Calculate martingale residuals
+        longitudinal = NULL, # TODO: Calculate longitudinal residuals
+        martingale = NULL # TODO: Calculate martingale residuals
       ),
       random_effects = list(
-        estimates = vapply(posterior, `[[`, numeric(1), "b_hat"),
-        variances = vapply(posterior, `[[`, numeric(1), "v_hat")
+        estimates = vapply(posteriors, `[[`, numeric(1), "b_hat"),
+        variances = vapply(posteriors, `[[`, numeric(1), "v_hat")
       ),
       data = data_process,
       control = control_settings,
