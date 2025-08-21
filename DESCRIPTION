@@ -29,6 +29,10 @@ Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
-    dplyr
+    dplyr,
+    JSM,
+    nlme,
+    tidyr,
+    patchwork
 Config/testthat/edition: 3
 VignetteBuilder: knitr

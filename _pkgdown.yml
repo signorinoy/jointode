@@ -18,6 +18,8 @@ template:
           href: articles/getting-started.html
         - text: Technical Details
           href: articles/technical-details.html
+        - text: Comparison with JSM
+          href: articles/comparison-with-jsm.html
 
 # Article index configuration
 articles:
@@ -30,6 +32,7 @@ articles:
   navbar: ~
   contents:
   - technical-details
+  - comparison-with-jsm
 
 # Reference configuration
 reference:

@@ -1,0 +1,301 @@
+---
+title: "Comparison with JSM Package"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Comparison with JSM Package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+## Introduction
+
+This vignette compares joint modeling (JSM package) with time-varying Cox regression using simulated data with known parameters. Joint models properly account for measurement error and informative dropout, while naive approaches may yield biased estimates.
+
+### Model Structure
+
+**Longitudinal trajectory:**
+$$Y_i(t) = \beta_0 + \beta_1 t + \beta_2 x_{1i} + \beta_3 x_{2i} + b_{i} + \epsilon_i(t)$$
+
+**Survival hazard:**
+$$h_i(t) = h_0(t) \exp(\gamma_1 w_{1i} + \gamma_2 w_{2i} + \alpha m_i(t))$$
+
+where $m_i(t)$ is the true biomarker value and $\alpha$ quantifies the association.
+
+## Setup
+
+```{r load-packages}
+library(JointODE)
+library(JSM)
+library(nlme)
+library(survival)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(patchwork)
+
+set.seed(2024)
+```
+
+```{r generate-data}
+# Generate data with known parameters
+sim_data <- JointODE::simulate(
+  n = 200,           # Number of subjects
+  sigma_e = 0.5,     # Measurement error SD
+  verbose = FALSE
+)
+
+long_data <- sim_data$longitudinal_data
+surv_data <- sim_data$survival_data
+
+# Data summary
+cat(sprintf(
+  "Dataset: %d subjects, %d observations\n",
+  n_distinct(long_data$id), nrow(long_data)
+))
+cat(sprintf(
+  "Events: %.0f%% (median follow-up: %.1f)\n",
+  100 * mean(surv_data$status),
+  median(surv_data$time)
+))
+```
+
+## Data Preparation
+
+```{r prepare-data}
+# Format data for JSM package
+jsm_data <- dataPreprocess(
+  long = long_data %>% rename(ID = id),
+  surv = surv_data %>% rename(ID = id, survtime = time),
+  id.col = "ID",
+  long.time.col = "time",
+  surv.time.col = "survtime",
+  surv.event.col = "status"
+) %>%
+  rename(obstime = time,
+         start = start.join,
+         stop = stop.join,
+         event = event.join)
+
+surv_data_jsm <- surv_data %>% rename(ID = id, survtime = time)
+```
+
+## Exploratory Analysis
+
+```{r viz-longitudinal, fig.height=4}
+# Visualize longitudinal trajectories
+long_data %>%
+  filter(id %in% sample(unique(id), 20)) %>%
+  ggplot(aes(time, v)) +
+  geom_line(aes(group = id), alpha = 0.2) +
+  geom_smooth(se = TRUE, color = "#3498DB", size = 1.2) +
+  theme_minimal(base_size = 10) +
+  labs(x = "Time", y = "Biomarker",
+       title = "Individual Trajectories with Population Mean")
+```
+
+```{r viz-survival, fig.height=3.5}
+# Survival distribution
+km_fit <- survfit(Surv(survtime, status) ~ 1, data = surv_data_jsm)
+plot(km_fit, xlab = "Time", ylab = "Survival Probability",
+     main = sprintf("Event Rate: %.0f%%, Median: %.1f",
+                    100 * mean(surv_data_jsm$status), median(km_fit)),
+     conf.int = TRUE, mark.time = FALSE, lwd = 2, col = "#E74C3C")
+grid(lty = 3, col = "gray90")
+```
+
+## Model Fitting
+
+### Longitudinal Model
+
+```{r fit-lme}
+fit_lme <- lme(
+  v ~ obstime + x1 + x2,
+  random = ~ 1 | ID,
+  data = jsm_data,
+  control = lmeControl(opt = "optim")
+)
+
+summary(fit_lme)
+```
+
+### Baseline Survival
+
+```{r fit-cox}
+fit_cox <- coxph(
+  Surv(start, stop, event) ~ w1 + w2,
+  data = jsm_data,
+  x = TRUE
+)
+summary(fit_cox)
+```
+
+### Joint Model
+
+```{r fit-jsm}
+fit_jsm <- jmodelTM(
+  fit_lme,
+  fit_cox,
+  data = jsm_data,
+  timeVarY = "obstime",
+  control = list(
+    delta = 1e-8,
+    max.iter = 500,
+    tol.P = 1e-04
+  )
+)
+
+summary(fit_jsm)
+```
+
+### Time-Varying Cox
+
+```{r fit-tvcox}
+fit_tvcox <- coxph(
+  Surv(start, stop, event) ~ w1 + w2 + v + cluster(ID),
+  data = jsm_data
+)
+
+summary(fit_tvcox)
+```
+
+## Comparison
+
+```{r compare-models, fig.height=10, fig.width=9}
+# True parameter values (using defaults from JointODE::simulate)
+# alpha[1] = 0.3 (value effect), phi = c(0.2, -0.15) for survival covariates
+true_params <- data.frame(
+  param = c("Association", "w1", "w2"),
+  true_value = c(0.3, 0.2, -0.15)
+)
+
+# Extract and organize coefficients
+extract_coef <- function(jsm, tvcox) {
+  jsm_vcov <- sqrt(diag(jsm$Vcov))
+  tvcox_summ <- summary(tvcox)$coefficients
+
+  data.frame(
+    param = c("Association", "w1", "w2"),
+    jsm_est = c(jsm$coefficients$alpha,
+                jsm$coefficients$phi[c("w1", "w2")]),
+    jsm_se = c(jsm_vcov["alpha:v"],
+               jsm_vcov[c("phi:w1", "phi:w2")]),
+    tvc_est = coef(tvcox)[c("v", "w1", "w2")],
+    tvc_se = tvcox_summ[c("v", "w1", "w2"), "se(coef)"]
+  ) %>%
+    mutate(across(c("jsm_est", "jsm_se", "tvc_est", "tvc_se"), as.numeric))
+}
+
+comp <- extract_coef(fit_jsm, fit_tvcox) %>%
+  left_join(true_params, by = "param") %>%
+  mutate(
+    diff = jsm_est - tvc_est,
+    diff_pct = 100 * diff / abs(tvc_est),
+    jsm_p = 2 * pnorm(-abs(jsm_est / jsm_se)),
+    tvc_p = 2 * pnorm(-abs(tvc_est / tvc_se)),
+    jsm_bias = jsm_est - true_value,
+    tvc_bias = tvc_est - true_value
+  )
+
+# Summary table with significance stars
+format_est <- function(est, se, p) {
+  stars <- dplyr::case_when(
+    p < 0.001 ~ "***",
+    p < 0.01 ~ "**",
+    p < 0.05 ~ "*",
+    TRUE ~ ""
+  )
+  sprintf("%.3f (%.3f)%s", est, se, stars)
+}
+
+# Simple comparison table
+comp %>%
+  mutate(
+    Parameter = c("α (Association)", "β₁ (w1)", "β₂ (w2)"),
+    True = sprintf("%.2f", true_value),
+    `JSM` = format_est(jsm_est, jsm_se, jsm_p),
+    `TVC` = format_est(tvc_est, tvc_se, tvc_p),
+    `JSM Bias` = sprintf("%+.3f", jsm_bias),
+    `TVC Bias` = sprintf("%+.3f", tvc_bias)
+  ) %>%
+  select(Parameter, True, JSM, TVC, `JSM Bias`, `TVC Bias`) %>%
+  knitr::kable(
+    caption = "Parameter Estimates (* p<0.05, ** p<0.01, *** p<0.001)",
+    align = c("l", rep("c", 5))
+  )
+
+# Combined visualization
+library(patchwork)
+library(tidyr)
+
+# Clean forest plot
+forest_data <- comp %>%
+  pivot_longer(c(jsm_est, tvc_est), names_to = "model", values_to = "est") %>%
+  mutate(
+    se = ifelse(model == "jsm_est", jsm_se, tvc_se),
+    lower = est - 1.96 * se,
+    upper = est + 1.96 * se,
+    model = factor(model, labels = c("JSM", "TVC")),
+    param_label = c("α", "β₁", "β₂")[as.numeric(factor(param))],
+    param = factor(param, levels = c("Association", "w1", "w2"))
+  )
+
+p_forest <- ggplot(forest_data, aes(x = est, y = param_label, color = model)) +
+  geom_vline(xintercept = 0, linetype = "dashed", alpha = 0.3) +
+  geom_vline(data = true_params %>%
+               mutate(param_label = c("α", "β₁", "β₂")),
+             aes(xintercept = true_value),
+             color = "darkgreen", alpha = 0.4, size = 1) +
+  geom_errorbarh(aes(xmin = lower, xmax = upper),
+                 position = position_dodge(0.5), height = 0.2, size = 0.8) +
+  geom_point(position = position_dodge(0.5), size = 3) +
+  scale_color_manual(values = c("JSM" = "#3498DB", "TVC" = "#E74C3C")) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "top",
+        panel.grid.major.y = element_blank()) +
+  labs(x = "Estimate (95% CI)", y = NULL, color = NULL,
+       title = "Parameter Estimates",
+       subtitle = "Green line = true value")
+
+# Simple bias plot
+bias_data <- comp %>%
+  pivot_longer(c(jsm_bias, tvc_bias),
+               names_to = "method", values_to = "bias") %>%
+  mutate(
+    method = factor(method, labels = c("JSM", "TVC")),
+    param_label = c("α", "β₁", "β₂")[as.numeric(factor(param))]
+  )
+
+p_bias <- ggplot(bias_data, aes(x = param_label, y = bias, fill = method)) +
+  geom_hline(yintercept = 0, linetype = "solid", alpha = 0.3) +
+  geom_col(position = position_dodge(0.7), alpha = 0.8, width = 0.6) +
+  geom_text(aes(label = sprintf("%+.3f", bias)),
+            position = position_dodge(0.7),
+            vjust = ifelse(bias_data$bias > 0, -0.5, 1.5),
+            size = 3) +
+  scale_fill_manual(values = c("JSM" = "#3498DB", "TVC" = "#E74C3C")) +
+  scale_y_continuous(expand = expansion(mult = c(0.15, 0.15))) +
+  theme_minimal(base_size = 11) +
+  theme(legend.position = "top",
+        panel.grid.major.x = element_blank()) +
+  labs(x = "Parameter", y = "Bias", color = NULL,
+       title = "Estimation Bias",
+       subtitle = "Estimate - True Value")
+
+# Combine plots
+p_forest / p_bias
+```
+
+```{r session-info, echo=FALSE}
+sessionInfo()
+```
