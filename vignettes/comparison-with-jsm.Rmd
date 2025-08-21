@@ -50,8 +50,8 @@ set.seed(2024)
 ```{r generate-data}
 # Generate data with known parameters
 sim_data <- JointODE::simulate(
-  n = 200,           # Number of subjects
-  sigma_e = 0.5,     # Measurement error SD
+  n = 200, # Number of subjects
+  sigma_e = 0.5, # Measurement error SD
   verbose = FALSE
 )
 
@@ -82,10 +82,12 @@ jsm_data <- dataPreprocess(
   surv.time.col = "survtime",
   surv.event.col = "status"
 ) %>%
-  rename(obstime = time,
-         start = start.join,
-         stop = stop.join,
-         event = event.join)
+  rename(
+    obstime = time,
+    start = start.join,
+    stop = stop.join,
+    event = event.join
+  )
 
 surv_data_jsm <- surv_data %>% rename(ID = id, survtime = time)
 ```
@@ -100,17 +102,23 @@ long_data %>%
   geom_line(aes(group = id), alpha = 0.2) +
   geom_smooth(se = TRUE, color = "#3498DB", size = 1.2) +
   theme_minimal(base_size = 10) +
-  labs(x = "Time", y = "Biomarker",
-       title = "Individual Trajectories with Population Mean")
+  labs(
+    x = "Time", y = "Biomarker",
+    title = "Individual Trajectories with Population Mean"
+  )
 ```
 
 ```{r viz-survival, fig.height=3.5}
 # Survival distribution
 km_fit <- survfit(Surv(survtime, status) ~ 1, data = surv_data_jsm)
-plot(km_fit, xlab = "Time", ylab = "Survival Probability",
-     main = sprintf("Event Rate: %.0f%%, Median: %.1f",
-                    100 * mean(surv_data_jsm$status), median(km_fit)),
-     conf.int = TRUE, mark.time = FALSE, lwd = 2, col = "#E74C3C")
+plot(km_fit,
+  xlab = "Time", ylab = "Survival Probability",
+  main = sprintf(
+    "Event Rate: %.0f%%, Median: %.1f",
+    100 * mean(surv_data_jsm$status), median(km_fit)
+  ),
+  conf.int = TRUE, mark.time = FALSE, lwd = 2, col = "#E74C3C"
+)
 grid(lty = 3, col = "gray90")
 ```
 
@@ -186,10 +194,14 @@ extract_coef <- function(jsm, tvcox) {
 
   data.frame(
     param = c("Association", "w1", "w2"),
-    jsm_est = c(jsm$coefficients$alpha,
-                jsm$coefficients$phi[c("w1", "w2")]),
-    jsm_se = c(jsm_vcov["alpha:v"],
-               jsm_vcov[c("phi:w1", "phi:w2")]),
+    jsm_est = c(
+      jsm$coefficients$alpha,
+      jsm$coefficients$phi[c("w1", "w2")]
+    ),
+    jsm_se = c(
+      jsm_vcov["alpha:v"],
+      jsm_vcov[c("phi:w1", "phi:w2")]
+    ),
     tvc_est = coef(tvcox)[c("v", "w1", "w2")],
     tvc_se = tvcox_summ[c("v", "w1", "w2"), "se(coef)"]
   ) %>%
@@ -252,25 +264,33 @@ forest_data <- comp %>%
 
 p_forest <- ggplot(forest_data, aes(x = est, y = param_label, color = model)) +
   geom_vline(xintercept = 0, linetype = "dashed", alpha = 0.3) +
-  geom_vline(data = true_params %>%
-               mutate(param_label = c("α", "β₁", "β₂")),
-             aes(xintercept = true_value),
-             color = "darkgreen", alpha = 0.4, size = 1) +
+  geom_vline(
+    data = true_params %>%
+      mutate(param_label = c("α", "β₁", "β₂")),
+    aes(xintercept = true_value),
+    color = "darkgreen", alpha = 0.4, size = 1
+  ) +
   geom_errorbarh(aes(xmin = lower, xmax = upper),
-                 position = position_dodge(0.5), height = 0.2, size = 0.8) +
+    position = position_dodge(0.5), height = 0.2, size = 0.8
+  ) +
   geom_point(position = position_dodge(0.5), size = 3) +
   scale_color_manual(values = c("JSM" = "#3498DB", "TVC" = "#E74C3C")) +
   theme_minimal(base_size = 11) +
-  theme(legend.position = "top",
-        panel.grid.major.y = element_blank()) +
-  labs(x = "Estimate (95% CI)", y = NULL, color = NULL,
-       title = "Parameter Estimates",
-       subtitle = "Green line = true value")
+  theme(
+    legend.position = "top",
+    panel.grid.major.y = element_blank()
+  ) +
+  labs(
+    x = "Estimate (95% CI)", y = NULL, color = NULL,
+    title = "Parameter Estimates",
+    subtitle = "Green line = true value"
+  )
 
 # Simple bias plot
 bias_data <- comp %>%
   pivot_longer(c(jsm_bias, tvc_bias),
-               names_to = "method", values_to = "bias") %>%
+    names_to = "method", values_to = "bias"
+  ) %>%
   mutate(
     method = factor(method, labels = c("JSM", "TVC")),
     param_label = c("α", "β₁", "β₂")[as.numeric(factor(param))]
@@ -280,20 +300,66 @@ p_bias <- ggplot(bias_data, aes(x = param_label, y = bias, fill = method)) +
   geom_hline(yintercept = 0, linetype = "solid", alpha = 0.3) +
   geom_col(position = position_dodge(0.7), alpha = 0.8, width = 0.6) +
   geom_text(aes(label = sprintf("%+.3f", bias)),
-            position = position_dodge(0.7),
-            vjust = ifelse(bias_data$bias > 0, -0.5, 1.5),
-            size = 3) +
+    position = position_dodge(0.7),
+    vjust = ifelse(bias_data$bias > 0, -0.5, 1.5),
+    size = 3
+  ) +
   scale_fill_manual(values = c("JSM" = "#3498DB", "TVC" = "#E74C3C")) +
   scale_y_continuous(expand = expansion(mult = c(0.15, 0.15))) +
   theme_minimal(base_size = 11) +
-  theme(legend.position = "top",
-        panel.grid.major.x = element_blank()) +
-  labs(x = "Parameter", y = "Bias", color = NULL,
-       title = "Estimation Bias",
-       subtitle = "Estimate - True Value")
+  theme(
+    legend.position = "top",
+    panel.grid.major.x = element_blank()
+  ) +
+  labs(
+    x = "Parameter", y = "Bias", color = NULL,
+    title = "Estimation Bias",
+    subtitle = "Estimate - True Value"
+  )
 
 # Combine plots
 p_forest / p_bias
+```
+
+## Model Performance
+
+```{r cindex-comparison}
+# Calculate C-index for model comparison
+library(survival)
+
+# JSM: Combine survival predictors with longitudinal predictions
+jsm_risk <- -with(
+  jsm_data,
+  fit_jsm$coefficients$phi["w1"] * w1 +
+    fit_jsm$coefficients$phi["w2"] * w2 +
+    fit_jsm$coefficients$alpha * fitted(fit_lme)
+)
+
+# Time-varying Cox: Use built-in linear predictor
+tvc_risk <- -predict(fit_tvcox, type = "lp")
+
+# Calculate concordance for both models
+jsm_conc <- concordance(Surv(start, stop, event) ~ jsm_risk, data = jsm_data)
+tvc_conc <- concordance(Surv(start, stop, event) ~ tvc_risk, data = jsm_data)
+
+# Create comparison
+cindex_comp <- data.frame(
+  Model = c("Joint Model", "Time-Varying Cox"),
+  Cindex = c(jsm_conc$concordance, tvc_conc$concordance),
+  SE = sqrt(c(jsm_conc$var, tvc_conc$var))
+) %>%
+  mutate(
+    Lower = Cindex - 1.96 * SE,
+    Upper = Cindex + 1.96 * SE,
+    CI = sprintf("%.3f (%.3f-%.3f)", Cindex, Lower, Upper)
+  )
+
+# Display table
+knitr::kable(
+  select(cindex_comp, Model, `C-index (95% CI)` = CI),
+  caption = "Concordance Index: Higher = Better Discrimination",
+  align = c("l", "c")
+)
 ```
 
 ```{r session-info, echo=FALSE}

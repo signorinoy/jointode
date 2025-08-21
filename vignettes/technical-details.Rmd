@@ -25,7 +25,7 @@ This vignette describes the mathematical framework and computational implementat
 The model tracks three state variables for each subject $i$:
 
 - $\Lambda_i(t)$: Cumulative hazard
-- $m_i(t)$: Biomarker level  
+- $m_i(t)$: Biomarker level
 - $\dot{m}_i(t)$: Biomarker velocity (rate of change)
 
 ### ODE System
@@ -113,7 +113,7 @@ where:
 
 **Optimization Strategy:**
 
-1. **Survival parameters** $(\boldsymbol{\eta}, \boldsymbol{\alpha}, \boldsymbol{\phi})$: 
+1. **Survival parameters** $(\boldsymbol{\eta}, \boldsymbol{\alpha}, \boldsymbol{\phi})$:
    - Fix trajectory parameters
    - Optimize via L-BFGS with analytical gradients
 2. **Trajectory parameters** $(\boldsymbol{\beta}, \boldsymbol{\theta})$:
