@@ -160,16 +160,16 @@ The gradients with respect to $\boldsymbol{\beta}$ and $\boldsymbol{\theta}$ sim
 
 For $\boldsymbol{\beta}$ sensitivities:
 $$\frac{d}{dt}\begin{bmatrix}
-\Lambda_i \\ m_i \\ \dot{m}_i \\ \partial m_{i,\beta} \\ \partial\dot{m}_{i,\beta} \\ \partial\Lambda_{\beta,i}
+m_i \\ \dot{m}_i \\ \partial m_{i,\beta} \\ \partial\dot{m}_{i,\beta} \\ \partial\Lambda_{\beta,i}
 \end{bmatrix} = \begin{bmatrix}
-\lambda_i(t|0) \\ \dot{m}_i(t) \\ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial \dot{m}_{i,\beta} \\ \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u) \mathbf{Z}(t) \\ \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}} \lambda_i(t|0)
+\dot{m}_i(t) \\ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial \dot{m}_{i,\beta} \\ \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u) \mathbf{Z}(t) \\ \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}} \lambda_i(t|0)
 \end{bmatrix}$$
 
 For $\boldsymbol{\theta}$ sensitivities:
 $$\frac{d}{dt}\begin{bmatrix}
-\Lambda_i \\ m_i \\ \dot{m}_i \\ \partial m_{i,\theta} \\ \partial\dot{m}_{i,\theta} \\ \partial\Lambda_{\theta,i}
+m_i \\ \dot{m}_i \\ \partial m_{i,\theta} \\ \partial\dot{m}_{i,\theta} \\ \partial\Lambda_{\theta,i}
 \end{bmatrix} = \begin{bmatrix}
-\lambda_i(t|0) \\ \dot{m}_i(t) \\ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial\dot{m}_{i,\theta} \\ \mathbf{B}_g(u) \\ \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}} \lambda_i(t|0)
+\dot{m}_i(t) \\ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial\dot{m}_{i,\theta} \\ \mathbf{B}_g(u) \\ \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}} \lambda_i(t|0)
 \end{bmatrix}$$
 
 where $\mathbf{B}'_g(u) = \frac{d\mathbf{B}_g(u)}{du}$ denotes the B-spline derivative basis.
