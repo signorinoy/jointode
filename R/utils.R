@@ -481,34 +481,34 @@
 
 # Internal function: Compute acceleration function
 .compute_acceleration <- function(
-    biomarker, velocity, time_point, data, coef, config) {
-  longitudinal_covariates <- .get_longitudinal_covariates(data, time_point)
-  z <- c(biomarker, velocity, longitudinal_covariates, time_point)
-  index_value <- sum(coef$index_beta * z)
+    biomarker, velocity, time, data, coefficients, config) {
+  longitudinal_covariates <- .get_longitudinal_covariates(data, time)
+  z <- c(biomarker, velocity, longitudinal_covariates, time)
+  index_value <- sum(coefficients$index_beta * z)
 
   basis_g <- .compute_spline_basis(index_value, config$index)
 
-  as.numeric(basis_g %*% coef$index_g)
+  as.numeric(basis_g %*% coefficients$index_g)
 }
 
 # Internal function: Compute log-hazard function
 .compute_log_hazard <- function(
-    time_point, biomarker, velocity, acceleration, data, coef, config) {
+    time, biomarker, velocity, acceleration, data, coefficients, config) {
   # Baseline hazard
-  basis_lambda <- .compute_spline_basis(time_point, config$baseline)
-  log_baseline <- as.numeric(basis_lambda %*% coef$baseline)
+  basis_lambda <- .compute_spline_basis(time, config$baseline)
+  log_baseline <- as.numeric(basis_lambda %*% coefficients$baseline)
 
   # Biomarker effects
   log_biomarker <- sum(
-    coef$hazard[1:3] * c(biomarker, velocity, acceleration)
+    coefficients$hazard[1:3] * c(biomarker, velocity, acceleration)
   )
 
   # Covariate effects
   log_covariate <- 0
-  if (length(coef$hazard) > 3 && !is.null(data$covariates)) {
+  if (length(coefficients$hazard) > 3 && !is.null(data$covariates)) {
     w <- as.numeric(data$covariates)
     if (length(w) > 0) {
-      log_covariate <- sum(coef$hazard[4:(3 + length(w))] * w)
+      log_covariate <- sum(coefficients$hazard[4:(3 + length(w))] * w)
     }
   }
 
@@ -516,32 +516,27 @@
 }
 
 # Internal function: Prepare initial conditions for ODE
-.prepare_initial_conditions <- function(initial, parameters, sensitivity_type) {
-  n_basis_lambda <- parameters$config$baseline$df
+.prepare_initial_conditions <- function(data, coefficients, sensitivity_type) {
+  m0 <- head(data$longitudinal$measurements, 1)
+  dt <- diff(head(data$longitudinal$times, 2))
+  dm0 <- diff(head(data$longitudinal$measurements, 2)) / dt
 
   switch(sensitivity_type,
-    basic = initial,
-    gradient = c(initial, rep(0, n_basis_lambda + 3)),
-
+    basic = c(0, m0, dm0),
+    eta_alpha = {
+      n_basis <- coefficients$config$baseline$df
+      c(0, m0, dm0, rep(0, 2 * n_basis))
+    },
     beta = {
-      n_beta <- length(parameters$coef$index_beta)
-      c(
-        initial,
-        rep(0, n_basis_lambda + 3),
-        rep(0, 2 * n_beta),
-        rep(0, n_beta)
-      )
+      n_index_beta <- length(coefficients$coef$index_beta)
+      # TODO: how to set initial conditions for beta sensitivity
+      c(m0, dm0, rep(0, 3 * n_index_beta))
     },
 
     theta = {
-      n_theta <- length(parameters$coef$index_g)
-      c(
-        initial,
-        rep(0, n_basis_lambda),
-        rep(0, 3),
-        rep(0, 2 * n_theta),
-        rep(0, n_theta)
-      )
+      n_index_basis <- length(coefficients$coef$index_g)
+      # TODO: how to set initial conditions for theta sensitivity
+      c(m0, dm0, rep(0, 3 * n_index_basis))
     }
   )
 }
@@ -623,216 +618,107 @@
 
 # Internal function: Solve joint ODE system
 # Solves the coupled ODE system for cumulative hazard and biomarker trajectory
-# Supports multiple configurations: basic, gradient, beta, theta
-.solve_joint_ode <- function(data, parameters, initial = c(0, 0, 0),
-                             sensitivity_type = "basic") {
+# Supports multiple configurations: basic, eta_alpha, beta, theta
+.solve_joint_ode <- function(data, parameters, sensitivity_type = "basic") {
 
   # Validate sensitivity_type
-  valid_types <- c("basic", "gradient", "beta", "theta")
+  valid_types <- c("basic", "eta_alpha", "beta", "theta")
   if (!sensitivity_type %in% valid_types) {
     stop("Invalid sensitivity_type. Must be one of: ",
          paste(valid_types, collapse = ", "))
   }
 
   # Define ODE derivatives function based on sensitivity type
-  ode_derivatives <- if (sensitivity_type == "gradient" ||
-                           sensitivity_type == "basic") {
-    # ODE-1: Basic forward solve (with or without integrals)
+  ode_derivatives <- if (sensitivity_type == "basic" ||
+                           sensitivity_type == "eta_alpha") {
+    # ODE-1: With or without derivatives w.r.t. eta and alpha
     function(time, state, parameters) {
-      biomarker_value <- state[2]
-      biomarker_velocity <- state[3]
-
-      # Get covariates at current time (nearest neighbor interpolation)
-      # Note: Covariates retrieval implemented but not currently used
-      # This is a placeholder for future longitudinal covariate support
+      biomarker <- state[2]
+      velocity <- state[3]
 
       # Compute acceleration
-      biomarker_acceleration <- .compute_acceleration(
-        biomarker_value, biomarker_velocity, time,
+      acceleration <- .compute_acceleration(
+        biomarker, velocity, time,
         parameters$data, parameters$coef, parameters$config
       )
 
       # Compute hazard (without random effect b)
       log_hazard <- .compute_log_hazard(
-        time, biomarker_value, biomarker_velocity, biomarker_acceleration,
+        time, biomarker, velocity, acceleration,
         parameters$data, parameters$coef, parameters$config
       )
       hazard <- exp(log_hazard)
 
-      # Compute B-spline basis for integrals
-      basis_lambda <- .compute_spline_basis(time, parameters$config$baseline)
-
-      # Compute m vector for integral
-      m_vec <- c(biomarker_value, biomarker_velocity, biomarker_acceleration)
-
       # Basic derivatives: [dΛ/dt, dm/dt, dṁ/dt]
-      basic_derivs <- c(hazard, biomarker_velocity, biomarker_acceleration)
+      basic_derivs <- c(hazard, velocity, acceleration)
 
-      # Add integral derivatives only if sensitivity_type == "gradient"
-      # (not "basic")
-      if (parameters$sensitivity_type == "gradient" && length(state) > 3) {
-        # I_B derivatives (positions 4 to 4+n_basis_lambda-1)
-        i_b_derivs <- as.numeric(basis_lambda) * hazard
-
-        # I_m derivatives (next 3 positions)
-        i_m_derivs <- m_vec * hazard
-
-        list(c(basic_derivs, i_b_derivs, i_m_derivs))
+      # Add integral derivatives only if sensitivity_type == "eta_alpha"
+      if (parameters$sensitivity_type == "eta_alpha" && length(state) > 3) {
+        basis_lambda <- .compute_spline_basis(time, parameters$config$baseline)
+        m_vec <- c(biomarker, velocity, acceleration)
+        list(c(basic_derivs, as.numeric(basis_lambda) * hazard, m_vec * hazard))
       } else {
         list(basic_derivs)
       }
     }
 
   } else if (sensitivity_type == "beta") {
-    # ODE-2: With beta sensitivity
+    # ODE-2: With derivatives w.r.t. beta
     function(time, state, parameters) {
-      n_basis_lambda <- parameters$config$baseline$df
       n_beta <- length(parameters$coef$index_beta)
 
-      # Extract base states
-      biomarker_value <- state[2]
-      biomarker_velocity <- state[3]
+      # Extract states
+      biomarker <- state[1]
+      velocity <- state[2]
+      dbiomarker_dbeta <- state[(3):(2 + n_beta)]
+      dvelocity_dbeta <- state[(3 + n_beta):(2 + 2 * n_beta)]
 
-      # Extract sensitivity states
-      idx_s_beta <- (4 + n_basis_lambda + 3) + 1  # Start of S_beta
-      s_m_beta <- state[idx_s_beta:(idx_s_beta + n_beta - 1)]
-      s_v_beta <- state[(idx_s_beta + n_beta):(idx_s_beta + 2 * n_beta - 1)]
-
-      # Get longitudinal covariates
-      has_longitudinal <- length(parameters$data$longitudinal$times) > 0
-      longitudinal_covariates <- if (has_longitudinal) {
-        time_index <- which.min(abs(parameters$data$longitudinal$times - time))
-        .get_longitudinal_covariates(parameters$data, row_index = time_index)
-      } else {
-        numeric(0)
-      }
-
-      # Compute Z vector and u = beta^T Z
-      z <- c(biomarker_value, biomarker_velocity, longitudinal_covariates, time)
-      n_beta_actual <- length(parameters$coef$index_beta)
-      if (length(z) < n_beta_actual) {
-        z <- c(z, rep(0, n_beta_actual - length(z)))
-      }
-      z <- z[1:n_beta_actual]
-      u <- sum(parameters$coef$index_beta * z)
-
-      # Compute basis functions
-      basis_g <- .compute_spline_basis(u, parameters$config$index)
-      basis_g_deriv <- .compute_spline_basis_deriv(u, parameters$config$index)
-
-      # Acceleration and its beta sensitivity
-      biomarker_acceleration <- as.numeric(basis_g %*% parameters$coef$index_g)
-      s_a_beta <- as.numeric(parameters$coef$index_g %*% basis_g_deriv) * z
-
-      # Compute hazard
-      log_hazard <- .compute_log_hazard(
-        time, biomarker_value, biomarker_velocity, biomarker_acceleration,
+      # Compute acceleration
+      acceleration <- .compute_acceleration(
+        biomarker, velocity, time,
         parameters$data, parameters$coef, parameters$config
       )
-      hazard <- exp(log_hazard)
 
-      # Hazard sensitivity w.r.t. beta
-      dhazard_dbeta <- hazard * sum(parameters$coef$hazard[1:3] *
-                                      c(s_m_beta, s_v_beta, s_a_beta))
+      longitudinal_covariates <- .get_longitudinal_covariates(
+        parameters$data, time
+      )
+      beta <- parameters$coef$index_beta
+      index_value <- sum(
+        beta * c(biomarker, velocity, longitudinal_covariates, time)
+      )
+      basis_g_deriv <- .compute_spline_basis_deriv(
+        index_value, parameters$config$index
+      )
 
-      # Standard ODE-1 components
-      basis_lambda <- .compute_spline_basis(time, parameters$config$baseline)
-      m_vec <- c(biomarker_value, biomarker_velocity, biomarker_acceleration)
+      c(dbiomarker_dbeta, dvelocity_dbeta, acceleration, basis_g_deriv)
 
-      # All derivatives
-      basic_derivs <- c(hazard, biomarker_velocity, biomarker_acceleration)
-      i_b_derivs <- as.numeric(basis_lambda) * hazard
-      i_m_derivs <- m_vec * hazard
-      s_beta_derivs <- c(s_v_beta, s_a_beta)
-      lambda_beta_derivs <- dhazard_dbeta
-
-      list(c(basic_derivs, i_b_derivs, i_m_derivs, s_beta_derivs,
-             lambda_beta_derivs))
     }
   } else if (sensitivity_type == "theta") {
     # ODE-3: With theta sensitivity
     function(time, state, parameters) {
-      n_basis_lambda <- parameters$config$baseline$df
-      n_theta <- length(parameters$coef$index_g)
-
-      # Extract base states
-      biomarker_value <- state[2]
-      biomarker_velocity <- state[3]
-
-      # Extract sensitivity states
-      idx_s_theta <- (4 + n_basis_lambda + 3) + 1  # Start of S_theta
-      s_m_theta <- state[idx_s_theta:(idx_s_theta + n_theta - 1)]
-      s_v_theta <- state[(idx_s_theta + n_theta):
-                           (idx_s_theta + 2 * n_theta - 1)]
-
-      # Get longitudinal covariates
-      has_longitudinal <- length(parameters$data$longitudinal$times) > 0
-      longitudinal_covariates <- if (has_longitudinal) {
-        time_index <- which.min(abs(parameters$data$longitudinal$times - time))
-        .get_longitudinal_covariates(parameters$data, row_index = time_index)
-      } else {
-        numeric(0)
-      }
-
-      # Compute u and basis
-      z <- c(biomarker_value, biomarker_velocity, longitudinal_covariates, time)
-      n_beta <- length(parameters$coef$index_beta)
-      if (length(z) < n_beta) z <- c(z, rep(0, n_beta - length(z)))
-      u <- sum(parameters$coef$index_beta * z[1:n_beta])
-      basis_g <- .compute_spline_basis(u, parameters$config$index)
-
-      # Acceleration
-      biomarker_acceleration <- as.numeric(basis_g %*% parameters$coef$index_g)
-
-      # Sensitivity of acceleration w.r.t. theta = B_g(u)
-      s_a_theta <- as.numeric(basis_g)
-
-      # Compute hazard
-      log_hazard <- .compute_log_hazard(
-        time, biomarker_value, biomarker_velocity, biomarker_acceleration,
-        parameters$data, parameters$coef, parameters$config
-      )
-      hazard <- exp(log_hazard)
-
-      # Hazard sensitivity w.r.t. theta
-      dhazard_dtheta <- hazard * sum(parameters$coef$hazard[1:3] *
-                                       c(s_m_theta, s_v_theta, s_a_theta))
-
-      # Standard ODE-1 components
-      basis_lambda <- .compute_spline_basis(time, parameters$config$baseline)
-      m_vec <- c(biomarker_value, biomarker_velocity, biomarker_acceleration)
-
-      # All derivatives
-      basic_derivs <- c(hazard, biomarker_velocity, biomarker_acceleration)
-      i_b_derivs <- as.numeric(basis_lambda) * hazard
-      i_m_derivs <- m_vec * hazard
-      s_theta_derivs <- c(s_v_theta, s_a_theta)
-      lambda_theta_derivs <- dhazard_dtheta
-
-      list(c(basic_derivs, i_b_derivs, i_m_derivs, s_theta_derivs,
-             lambda_theta_derivs))
     }
   } else {
     stop("Unknown sensitivity type: ", sensitivity_type)
   }
 
   # Prepare initial conditions based on sensitivity type
-  initial_extended <- .prepare_initial_conditions(initial, parameters,
-                                                  sensitivity_type)
+  initial_extended <- .prepare_initial_conditions(
+    data, parameters, sensitivity_type
+  )
 
   # Solve ODE System
   ode_parameters <- list(
     data = data,
     coef = parameters$coef,
     config = parameters$config,
-    sensitivity_type = sensitivity_type  # Pass sensitivity type to ODE function
+    sensitivity_type = sensitivity_type
   )
   event_time <- data$time
-  time_points <- sort(unique(c(0, data$longitudinal$times, event_time)))
+  times <- sort(unique(c(0, data$longitudinal$times, event_time)))
 
   solution <- deSolve::ode(
     y = initial_extended,
-    times = time_points,
+    times = times,
     func = ode_derivatives,
     parms = ode_parameters,
     method = "lsoda",
