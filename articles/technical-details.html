@@ -36,7 +36,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started</a></li>
     <li><a class="dropdown-item" href="../articles/technical-details.html">Technical Details</a></li>
-    <li><a class="dropdown-item" href="../articles/comparison-with-jsm.html">Comparison with JSM Package</a></li>
+    <li><a class="dropdown-item" href="../articles/comparison.html">Comparison</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -305,14 +305,20 @@ expressions:</p>
 <li><span class="math inline">\nabla_{\boldsymbol{\eta}} Q = \sum_i
 [\delta_i \mathbf{B}^{(\lambda)}(T_i) - E[e^{b_i}|\mathcal{O}_i]
 \frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\eta}}]</span></li>
-<li>
-<span class="math inline">\nabla_{\boldsymbol{\alpha}} Q = \sum_i
+<li><span class="math inline">\nabla_{\boldsymbol{\alpha}} Q = \sum_i
 [\delta_i \mathbf{m}_i(T_i) - E[e^{b_i}|\mathcal{O}_i]
-\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\alpha}}]</span><br>
-</li>
+\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\alpha}}]</span></li>
 <li><span class="math inline">\nabla_{\boldsymbol{\phi}} Q = \sum_i
 [\delta_i - E[e^{b_i}|\mathcal{O}_i]\Lambda_i(T_i|0)]
 \mathbf{W}_i</span></li>
+</ul>
+<p>Since <span class="math inline">\Lambda_i(T_i|0)</span> depends on
+<span class="math inline">\boldsymbol{\eta}</span> and <span class="math inline">\boldsymbol{\alpha}</span> through the hazard, their
+gradients are:</p>
+<ul>
+<li>$=_{0}^{T_i},t</li>
+<li>$=_{0}^{T_i},t</li>
+<li>$=_{0}^{T_i},t</li>
 </ul>
 <p>The computation of these gradients requires solving an augmented ODE
 system:</p>
