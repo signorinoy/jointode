@@ -20,15 +20,50 @@ This vignette describes the mathematical framework and computational implementat
 
 ## Model Framework
 
-### State Variables
+### Longitudinal Model
+
+The observed biomarker measurements are modeled as: $$
+V_{ij}=m_i(T_{ij})+b_i+\varepsilon_{ij},\quad i=1,\ldots,n,\quad j=1,\ldots,n_i
+$$
+
+where:
+
+-   $V_{ij}$: Observed biomarker value for subject $i$ at time $T_{ij}$
+-   $m_i(t)$: True underlying biomarker trajectory
+-   $b_i\sim\mathcal{N}(0,\sigma_{b}^{2})$: Subject-specific random intercept
+-   $\varepsilon_{ij}\sim\mathcal{N}(0,\sigma_{e}^{2})$: Measurement error
+
+The biomarker trajectory evolution is characterized by the following second-order differential equation:
+
+$$
+\ddot{m}_i(t) = f\big(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t\big)
+$$
+
+where $f: \mathbb{R} \times \mathbb{R} \times \mathbb{R}^p \times \mathbb{R}^+ \to \mathbb{R}$ is a smooth function modeling the biomarker acceleration as a function of its current value $m_i(t)$, velocity $\dot{m}_i(t)$, time-varying covariates $\mathbf{X}_i(t) \in \mathbb{R}^p$, and time $t$.
+
+### Survival Model
+
+The hazard function incorporates biomarker dynamics:
+
+$$
+\lambda_i(t) = \lambda_{0}(t)\exp\left[\mathbf{m}_i(t)^{\top}\boldsymbol{\alpha}+\mathbf{W}_i^{\top}\boldsymbol{\phi}+b_{i}\right]
+$$
+
+where:
+
+-   $\lambda_{0}(t)$: Baseline hazard (e.g., Weibull, piecewise constant)
+-   $\mathbf{m}_i(t)=\left(m_i(t), \dot{m}_i(t), \ddot{m}_i(t)\right)^{\top}$: Biomarker value and derivatives
+-   $\boldsymbol{\alpha}=(\alpha_0, \alpha_1, \alpha_2)^{\top}$: Association parameters for value, velocity, and acceleration
+-   $\mathbf{W}_i$: Baseline covariates with coefficients $\boldsymbol{\phi}$
+-   $b_i$: Subject-specific random intercept
+
+### ODE System
 
 The model tracks three state variables for each subject $i$:
 
 - $\Lambda_i(t)$: Cumulative hazard
 - $m_i(t)$: Biomarker level
 - $\dot{m}_i(t)$: Biomarker velocity (rate of change)
-
-### ODE System
 
 The state vector $\mathbf{s}_i(t) = (\Lambda_i(t), m_i(t), \dot{m}_i(t))^{\top}$ evolves according to:
 
@@ -140,9 +175,9 @@ $$\nabla Q = \nabla Q_{\text{long}} + \nabla Q_{\text{surv}}$$
 
 Since $\Lambda_i(T_i|0)$ depends on $\boldsymbol{\eta}$ and $\boldsymbol{\alpha}$ through the hazard, their gradients are:
 
-- $\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\eta}}=\int_{0}^{T_i}\frac{\partial\exp\left\{\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i} + \mathbf{W}_i^{\top}\boldsymbol{\phi}\right\}}{\partial\boldsymbol{\eta}}\,\mathrm{d}t
-- $\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\alpha}}=\int_{0}^{T_i}\frac{\partial\exp\left\{\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i} + \mathbf{W}_i^{\top}\boldsymbol{\phi}\right\}}{\partial\boldsymbol{\alpha}}\,\mathrm{d}t
-- $\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\phi}}=\int_{0}^{T_i}\frac{\partial\exp\left\{\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i} + \mathbf{W}_i^{\top}\boldsymbol{\phi}\right\}}{\partial\boldsymbol{\phi}}\,\mathrm{d}t
+- $\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\eta}}=\int_{0}^{T_i}\frac{\partial\exp\left\{\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i} + \mathbf{W}_i^{\top}\boldsymbol{\phi}\right\}}{\partial\boldsymbol{\eta}}\,\mathrm{d}t$
+- $\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\alpha}}=\int_{0}^{T_i}\frac{\partial\exp\left\{\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i} + \mathbf{W}_i^{\top}\boldsymbol{\phi}\right\}}{\partial\boldsymbol{\alpha}}\,\mathrm{d}t$
+- $\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\phi}}=\int_{0}^{T_i}\frac{\partial\exp\left\{\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i} + \mathbf{W}_i^{\top}\boldsymbol{\phi}\right\}}{\partial\boldsymbol{\phi}}\,\mathrm{d}t$
 
 The computation of these gradients requires solving an augmented ODE system:
 
@@ -161,6 +196,12 @@ where $\partial\Lambda_{\eta,i}$ and $\partial\Lambda_{\alpha,i}$ are sensitivit
 - $\nabla_{\boldsymbol{\theta}} Q = \sum_{i,j} \frac{r_{ij}}{\sigma_e^2} \frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\theta}} + \sum_i \left[\delta_i \boldsymbol{\alpha}^{\top} \frac{\partial \mathbf{m}_i(T_i)}{\partial \boldsymbol{\theta}} - E[e^{b_i}|\mathcal{O}_i] \frac{\partial \Lambda_i(T_i|0)}{\partial \boldsymbol{\theta}}\right]$
 
 where $r_{ij} = V_{ij} - m_i(T_{ij}) - \hat{b}_i$ denotes the residual.
+
+Since $m_i(t)$ depends on $\boldsymbol{\beta}$ and $\boldsymbol{\theta}$, their gradients are:
+
+$$\frac{\partial m_i(t)}{\partial \boldsymbol{\beta}} = \int_{0}^{t} \frac{\partial\dot{m}_i(s)}{\partial \boldsymbol{\beta}} \,\mathrm{d}s,\quad \frac{\partial\dot{m}_i(t)}{\partial \boldsymbol{\beta}} = \frac{\partial g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t))}{\partial \boldsymbol{\beta}} = \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u) \mathbf{Z}(t)$$
+
+$$\frac{\partial m_i(t)}{\partial \boldsymbol{\theta}} = \int_{0}^{t} \frac{\partial\dot{m}_i(s)}{\partial \boldsymbol{\theta}} \,\mathrm{d}s,\quad \frac{\partial\dot{m}_i(t)}{\partial \boldsymbol{\theta}} = \frac{\partial g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t))}{\partial \boldsymbol{\theta}} = \mathbf{B}_g(u)$$
 
 The gradients with respect to $\boldsymbol{\beta}$ and $\boldsymbol{\theta}$ similarly require solving augmented ODE systems that track sensitivities.
 
