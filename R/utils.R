@@ -539,13 +539,11 @@
     },
     beta = {
       n_index_beta <- length(coefficients$coef$index_beta)
-      # Initial conditions: [m, m_dot, dm_dbeta, dm_dot_dbeta, dLambda_dbeta]
-      c(biomarker_initial, rep(0, 3 * n_index_beta))
+      c(0, biomarker_initial, rep(0, 3 * n_index_beta))
     },
     theta = {
       n_index_basis <- length(coefficients$coef$index_g)
-      # Initial conditions: [m, m_dot, dm_dtheta, dm_dot_dtheta, dLambda_dtheta]
-      c(biomarker_initial, rep(0, 3 * n_index_basis))
+      c(0, biomarker_initial, rep(0, 3 * n_index_basis))
     }
   )
 }
@@ -664,60 +662,43 @@
   }
 
   # Define ODE derivatives function based on sensitivity type
-  ode_derivatives <- if (
-    sensitivity_type == "basic" || sensitivity_type == "eta_alpha"
-  ) {
-    # ODE-1: With or without derivatives w.r.t. eta and alpha
-    function(time, state, parameters) {
-      biomarker <- state[2]
-      velocity <- state[3]
+  ode_derivatives <- function(time, state, parameters) {
+    biomarker <- state[2]
+    velocity <- state[3]
 
-      # Compute acceleration
-      acceleration <- .compute_acceleration(
-        biomarker, velocity, time,
-        parameters$data, parameters$coef, parameters$config
-      )
+    # Compute acceleration
+    acceleration <- .compute_acceleration(
+      biomarker, velocity, time,
+      parameters$data, parameters$coef, parameters$config
+    )
 
-      # Compute hazard (without random effect b)
-      log_hazard <- .compute_log_hazard(
-        time, biomarker, velocity, acceleration,
-        parameters$data, parameters$coef, parameters$config
-      )
-      hazard <- exp(log_hazard)
+    # Compute hazard (without random effect b)
+    log_hazard <- .compute_log_hazard(
+      time, biomarker, velocity, acceleration,
+      parameters$data, parameters$coef, parameters$config
+    )
+    hazard <- exp(log_hazard)
 
-      # Basic derivatives: [dΛ/dt, dm/dt, dṁ/dt]
-      basic_derivs <- c(hazard, velocity, acceleration)
+    # Basic derivatives: [dΛ/dt, dm/dt, dṁ/dt]
+    basic_derivs <- c(hazard, velocity, acceleration)
 
-      # Add integral derivatives only if sensitivity_type == "eta_alpha"
-      if (parameters$sensitivity_type == "eta_alpha" && length(state) > 3) {
-        basis_lambda <- .compute_spline_basis(time, parameters$config$baseline)
-        m_vec <- c(biomarker, velocity, acceleration)
-        list(c(basic_derivs, as.numeric(basis_lambda) * hazard, m_vec * hazard))
-      } else {
-        list(basic_derivs)
-      }
-    }
-  } else if (sensitivity_type == "beta") {
-    # ODE-2: With derivatives w.r.t. beta
-    function(time, state, parameters) {
+    if (parameters$sensitivity_type == "basic") {
+      list(basic_derivs)
+    } else if (parameters$sensitivity_type == "eta_alpha") {
+      basis_lambda <- .compute_spline_basis(time, parameters$config$baseline)
+      m_vec <- c(biomarker, velocity, acceleration)
+      list(c(basic_derivs, as.numeric(basis_lambda) * hazard, m_vec * hazard))
+    } else if (parameters$sensitivity_type == "beta") {
       n_beta <- length(parameters$coef$index_beta)
-
-      biomarker <- state[1]
-      velocity <- state[2]
-      dbiomarker_dbeta <- state[3:(2 + n_beta)]
-      dvelocity_dbeta <- state[(3 + n_beta):(2 + 2 * n_beta)]
-
-      # Compute acceleration
-      acceleration <- .compute_acceleration(
-        biomarker, velocity, time,
-        parameters$data, parameters$coef, parameters$config
-      )
+      dbiomarker_dbeta <- state[4:(3 + n_beta)]
+      dvelocity_dbeta <- state[(4 + n_beta):(3 + 2 * n_beta)]
 
       # Get Z vector for index
       longitudinal_covariates <- .get_longitudinal_covariates(
         parameters$data, time
       )
       z_vec <- c(biomarker, velocity, longitudinal_covariates, time)
+
       # Compute index value and basis derivatives
       beta <- parameters$coef$index_beta
       index_value <- sum(beta * z_vec)
@@ -725,8 +706,11 @@
         index_value, parameters$config$index
       )
       theta <- parameters$coef$index_g
+
       # Compute d(acceleration)/dbeta using chain rule
-      # d(g(beta'z))/dbeta = theta' * B'_g(u) * (z + beta' * dz/dbeta)
+      # Since z contains biomarker and velocity which depend on beta:
+      # d(g(beta'z))/dbeta = theta' * B'_g(u) * Z
+      # where d(beta'z)/dbeta = z + beta' * dz/dbeta
       dz_dbeta <- rbind(
         dbiomarker_dbeta,
         dvelocity_dbeta,
@@ -737,12 +721,7 @@
       dacceleration_dbeta <- as.vector(
         crossprod(theta, basis_g_deriv)
       ) * du_dbeta
-      # Compute hazard for Lambda sensitivity
-      log_hazard <- .compute_log_hazard(
-        time, biomarker, velocity, acceleration,
-        parameters$data, parameters$coef, parameters$config
-      )
-      hazard <- exp(log_hazard)
+
       # Compute dLambda/dbeta derivative
       alpha <- parameters$coef$hazard[1:3]
       dm_vec_dbeta <- rbind(
@@ -756,28 +735,12 @@
 
       # Return derivatives
       list(c(
-        velocity,
-        acceleration,
-        dvelocity_dbeta,
-        dacceleration_dbeta,
-        d_lambda_dt_dbeta
+        basic_derivs, dvelocity_dbeta, dacceleration_dbeta, d_lambda_dt_dbeta
       ))
-    }
-  } else if (sensitivity_type == "theta") {
-    # ODE-3: With theta sensitivity
-    function(time, state, parameters) {
+    } else if (sensitivity_type == "theta") {
       n_theta <- length(parameters$coef$index_g)
-
-      biomarker <- state[1]
-      velocity <- state[2]
-      dbiomarker_dtheta <- state[3:(2 + n_theta)]
-      dvelocity_dtheta <- state[(3 + n_theta):(2 + 2 * n_theta)]
-
-      # Compute acceleration
-      acceleration <- .compute_acceleration(
-        biomarker, velocity, time,
-        parameters$data, parameters$coef, parameters$config
-      )
+      dbiomarker_dtheta <- state[4:(3 + n_theta)]
+      dvelocity_dtheta <- state[(4 + n_theta):(3 + 2 * n_theta)]
 
       # Get Z vector and compute index
       longitudinal_covariates <- .get_longitudinal_covariates(
@@ -785,6 +748,8 @@
       )
       z_vec <- c(biomarker, velocity, longitudinal_covariates, time)
       beta <- parameters$coef$index_beta
+
+      # Compute index value and basis derivatives
       index_value <- sum(beta * z_vec)
 
       # Compute basis for g function
@@ -803,12 +768,6 @@
       dacceleration_dtheta <- as.vector(basis_g) +
         as.vector(crossprod(theta, basis_g_deriv)) * dz_dtheta_contrib
 
-      # Compute hazard for Lambda sensitivity
-      log_hazard <- .compute_log_hazard(
-        time, biomarker, velocity, acceleration,
-        parameters$data, parameters$coef, parameters$config
-      )
-      hazard <- exp(log_hazard)
       # Compute dLambda/dtheta derivative
       alpha <- parameters$coef$hazard[1:3]
       dm_vec_dtheta <- rbind(
@@ -822,15 +781,11 @@
 
       # Return derivatives
       list(c(
-        velocity,
-        acceleration,
-        dvelocity_dtheta,
-        dacceleration_dtheta,
-        d_lambda_dt_dtheta
+        basic_derivs, dvelocity_dtheta, dacceleration_dtheta, d_lambda_dt_dtheta
       ))
+    } else {
+      stop("Unknown sensitivity type: ", sensitivity_type)
     }
-  } else {
-    stop("Unknown sensitivity type: ", sensitivity_type)
   }
 
   # Prepare initial conditions based on sensitivity type
@@ -892,7 +847,7 @@
 
   # Define log-posterior function (up to normalizing constant)
   logpost <- function(b) {
-    - b^2 * (n_obs * inv_measurement_error_sd2 + inv_random_effect_sd2) +
+    -b^2 * (n_obs * inv_measurement_error_sd2 + inv_random_effect_sd2) +
       b * (s_i * inv_measurement_error_sd2 + status) -
       exp(b) * cum_hazard_0
   }
@@ -1001,7 +956,8 @@
   for (idx in seq_len(n_subjects)) {
     i <- subject_order[idx]
     ode_sol <- .solve_joint_ode(
-      data_list[[i]], parameters, sensitivity_type = "eta_alpha"
+      data_list[[i]], parameters,
+      sensitivity_type = "eta_alpha"
     )
     log_hazard_vec[i] <- ode_sol$log_hazard
     cum_hazard_vec[i] <- ode_sol$cum_hazard
@@ -1044,6 +1000,10 @@
     ),
     "gradient"
   )
+}
+
+.compute_q_beta <- function(
+    params, data_list, posteriors, config, fixed_params) {
 }
 
 # Internal function: Compute Q function for M-step
