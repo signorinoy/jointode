@@ -260,7 +260,29 @@ JointODE <- function(
     ]
     cat("Lambda0:", baseline_spline_coefficients, "\n")
     cat("(alpha,eta):", hazard_coefficients, "\n")
+
     # 2.2 Optimize index coefficients
+    res_index <- optim(
+      par = index_coefficients,
+      fn = .compute_q_beta,
+      gr = .compute_q_beta_grad,
+      data_list = data_process,
+      posteriors = posteriors,
+      config = list(
+        baseline = spline_baseline_config,
+        index = spline_index_config
+      ),
+      fixed_params = list(
+        baseline = baseline_spline_coefficients,
+        hazard = hazard_coefficients,
+        index_g = index_spline_coefficients,
+        measurement_error_sd = measurement_error_sd
+      ),
+      method = control_settings$method,
+      control = list(trace = 1, REPORT = 1, pgtol = 1e-6, maxit = 1)
+    )
+    index_coefficients <- res_index$par / sqrt(sum(res_index$par^2))
+    cat("Beta:", index_coefficients, "\n")
 
     # 2.3 Optimize measurement error and random effect SDs
 
