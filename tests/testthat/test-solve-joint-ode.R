@@ -44,8 +44,8 @@ test_that(".solve_joint_ode works with basic sensitivity type", {
     u, g_0, spline_index
   )
   index_coefficients <- index_coefficients / sqrt(sum(index_coefficients^2))
-  measurement_error_sd <- 0.1
-  random_effect_sd <- 0.1
+  measurement_error_sd <- 1e-2
+  random_effect_sd <- 1e-2
 
   spline_baseline_config <- .get_spline_config(
     x = times,

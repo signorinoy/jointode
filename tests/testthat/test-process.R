@@ -38,8 +38,9 @@ test_that(".process correctly structures basic data", {
   # Attributes
   expect_equal(attr(result, "n_subjects"), 3)
   expect_equal(attr(result, "n_observations"), 12)
-  expect_true(attr(result, "event_rate") >= 0 &&
-                attr(result, "event_rate") <= 1)
+  expect_true(
+    attr(result, "event_rate") >= 0 && attr(result, "event_rate") <= 1
+  )
 })
 
 test_that(".process handles missing longitudinal data", {
@@ -340,7 +341,7 @@ test_that(".process handles missing values in covariates appropriately", {
   # Check that data is processed correctly
   subject1 <- result[["1"]]
   expect_equal(nrow(subject1$longitudinal$covariates), 4)
-  expect_equal(ncol(subject1$longitudinal$covariates), 3)  # time, x1, x2
+  expect_equal(ncol(subject1$longitudinal$covariates), 3) # time, x1, x2
 })
 
 test_that(".process computes correct summary attributes", {

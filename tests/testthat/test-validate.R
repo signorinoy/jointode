@@ -529,7 +529,8 @@ test_that(".validate checks spline_baseline parameters correctly", {
   expect_error(
     JointODE:::.validate(
       v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time", spline_baseline = list(invalid_param = 3),
+      "id", "time",
+      spline_baseline = list(invalid_param = 3),
       spline_index = list()
     ),
     "Invalid parameters in spline_baseline: invalid_param"
@@ -539,7 +540,8 @@ test_that(".validate checks spline_baseline parameters correctly", {
   expect_error(
     JointODE:::.validate(
       v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time", spline_baseline = list(degree = 0), spline_index = list()
+      "id", "time",
+      spline_baseline = list(degree = 0), spline_index = list()
     ),
     "spline_baseline\\$degree must be a single integer between 1 and 5"
   )
@@ -547,7 +549,8 @@ test_that(".validate checks spline_baseline parameters correctly", {
   expect_error(
     JointODE:::.validate(
       v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time", spline_baseline = list(degree = 6), spline_index = list()
+      "id", "time",
+      spline_baseline = list(degree = 6), spline_index = list()
     ),
     "spline_baseline\\$degree must be a single integer between 1 and 5"
   )
@@ -556,7 +559,8 @@ test_that(".validate checks spline_baseline parameters correctly", {
   expect_error(
     JointODE:::.validate(
       v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time", spline_baseline = list(n_knots = 0), spline_index = list()
+      "id", "time",
+      spline_baseline = list(n_knots = 0), spline_index = list()
     ),
     "spline_baseline\\$n_knots must be a single integer between 1 and 20"
   )
@@ -565,7 +569,8 @@ test_that(".validate checks spline_baseline parameters correctly", {
   expect_error(
     JointODE:::.validate(
       v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time", spline_baseline = list(knot_placement = "invalid"),
+      "id", "time",
+      spline_baseline = list(knot_placement = "invalid"),
       spline_index = list()
     ),
     "spline_baseline\\$knot_placement must be one of: quantile, equal"
@@ -575,11 +580,14 @@ test_that(".validate checks spline_baseline parameters correctly", {
   expect_error(
     JointODE:::.validate(
       v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time", spline_baseline = list(boundary_knots = c(2, 1)),
+      "id", "time",
+      spline_baseline = list(boundary_knots = c(2, 1)),
       spline_index = list()
     ),
-    paste("spline_baseline\\$boundary_knots\\[1\\] must be",
-          "less than boundary_knots\\[2\\]")
+    paste(
+      "spline_baseline\\$boundary_knots\\[1\\] must be",
+      "less than boundary_knots\\[2\\]"
+    )
   )
 
   # Test valid spline_baseline parameters
@@ -607,7 +615,8 @@ test_that(".validate checks spline_index parameters correctly", {
   expect_error(
     JointODE:::.validate(
       v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time", spline_baseline = list(),
+      "id", "time",
+      spline_baseline = list(),
       spline_index = list(invalid_param = 3)
     ),
     "Invalid parameters in spline_index: invalid_param"
@@ -617,7 +626,8 @@ test_that(".validate checks spline_index parameters correctly", {
   expect_error(
     JointODE:::.validate(
       v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time", spline_baseline = "not a list", spline_index = list()
+      "id", "time",
+      spline_baseline = "not a list", spline_index = list()
     ),
     "spline_baseline must be a list"
   )
@@ -625,7 +635,8 @@ test_that(".validate checks spline_index parameters correctly", {
   expect_error(
     JointODE:::.validate(
       v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time", spline_baseline = list(), spline_index = 5
+      "id", "time",
+      spline_baseline = list(), spline_index = 5
     ),
     "spline_index must be a list"
   )

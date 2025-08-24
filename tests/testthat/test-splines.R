@@ -33,7 +33,7 @@ test_that(".get_spline_config handles knot placement strategies", {
 
   # Test quantile placement (default)
   config_q <- JointODE:::.get_spline_config(
-    x, n_knots = 4, knot_placement = "quantile"
+    x = x, n_knots = 4, knot_placement = "quantile"
   )
   expect_length(config_q$knots, 4)
   # Knots should be at quantiles
@@ -42,7 +42,7 @@ test_that(".get_spline_config handles knot placement strategies", {
 
   # Test equal spacing
   config_e <- JointODE:::.get_spline_config(
-    x, n_knots = 4, knot_placement = "equal"
+    x = x, n_knots = 4, knot_placement = "equal"
   )
   expect_length(config_e$knots, 4)
   # Check knots are equally spaced
