@@ -6,162 +6,193 @@
 \usage{
 simulate(
   n = 50,
-  alpha = c(0.3, 0.1, -0.05),
+  alpha = c(0.5, 0.4, -0.5),
   beta = c(-0.3, -0.5, 0.2, 0.1, 0.05),
   phi = c(0.2, -0.15),
   weibull_shape = 1.5,
   weibull_scale = 8,
-  sigma_b = 0.5,
+  sigma_b = 0.1,
   sigma_e = 0.1,
   seed = 42,
   verbose = TRUE
 )
 }
 \arguments{
-\item{n}{Integer. Number of subjects to simulate (default: 50).}
+\item{n}{Integer. Number of subjects to simulate. Larger cohorts provide
+more stable parameter estimates (default: 50).}
 
-\item{alpha}{Numeric vector of length 3. Association parameters linking
-trajectory features to survival hazard: \code{[value, velocity,
-  acceleration]} (default: c(0.3, 0.1, -0.05)).}
+\item{alpha}{Numeric vector of length 3. Association parameters quantifying
+how trajectory features influence survival hazard:
+\code{[biomarker, velocity, acceleration]}.
+Positive values indicate increased risk (default: c(0.5, 0.4, -0.5)).}
 
-\item{beta}{Numeric vector of length 5. ODE dynamics parameters controlling
-trajectory evolution: \code{[position_feedback, damping, treatment_effect,
-  seasonal_effect, time_trend]} (default: c(-0.3, -0.5, 0.2, 0.1, 0.05)).}
+\item{beta}{Numeric vector governing ODE dynamics (length 5). Controls
+biomarker trajectory evolution: \code{[biomarker, velocity,
+  x1, x2, time]}. Automatically normalized to unit length for identifiability
+(default: c(-0.3, -0.5, 0.2, 0.1, 0.05)).}
 
-\item{phi}{Numeric vector of length 2. Baseline covariate effects on
-survival hazard: \code{[continuous_covariate, binary_covariate]}
+\item{phi}{Numeric vector of length 2. Baseline covariate effects modulating
+survival hazard independently of biomarker dynamics: \code{[w1, w2]}
 (default: c(0.2, -0.15)).}
 
-\item{weibull_shape}{Numeric. Shape parameter (\eqn{\kappa}) for Weibull
-baseline hazard. Values > 1 indicate increasing hazard, < 1 decreasing
-(default: 1.5).}
+\item{weibull_shape}{Numeric. Weibull shape parameter (\eqn{\kappa})
+characterizing baseline hazard evolution. Values > 1 yield increasing
+hazard (aging effect), < 1 decreasing hazard (selection effect), =
+1 constant hazard (exponential) (default: 1.5).}
 
-\item{weibull_scale}{Numeric. Scale parameter (\eqn{\theta}) for Weibull
-baseline hazard controlling the time scale (default: 8).}
+\item{weibull_scale}{Numeric. Weibull scale parameter (\eqn{\theta})
+determining the characteristic event time. Larger values shift the
+hazard curve rightward (default: 8).}
 
-\item{sigma_b}{Numeric. Standard deviation of subject-specific random
-intercepts representing between-subject heterogeneity (default: 0.5).}
+\item{sigma_b}{Numeric. Standard deviation of subject-specific random effects
+capturing unobserved heterogeneity. Larger values increase between-subject
+variability in both trajectories and hazards (default: 0.1).}
 
-\item{sigma_e}{Numeric. Standard deviation of measurement error for
-longitudinal observations (default: 0.1).}
+\item{sigma_e}{Numeric. Measurement error standard deviation reflecting
+assay precision and biological fluctuations. Smaller values indicate
+more reliable biomarker measurements (default: 0.1).}
 
-\item{seed}{Integer. Random seed for reproducibility (default: 42).}
+\item{seed}{Integer. Random seed ensuring reproducible simulations.
+Essential for method validation and comparison studies (default: 42).}
 
-\item{verbose}{Logical. Print progress messages during simulation
-(default: TRUE).}
+\item{verbose}{Logical. Display informative progress messages during
+simulation workflow (default: TRUE).}
 }
 \value{
-A list of containing:
+A list containing two complementary datasets:
 \describe{
 \item{longitudinal_data}{Data frame with longitudinal measurements:
 \itemize{
 \item \code{id}: Subject identifier
 \item \code{time}: Measurement time
-\item \code{v}: Observed biomarker value (latent + random effect
-+ error)
-\item \code{x1}: Time-varying covariate 1 (treatment decay:
-\eqn{e^{-t/5}})
-\item \code{x2}: Time-varying covariate 2 (seasonal:
-\eqn{0.2\sin(2\pi t)})
+\item \code{v}: Observed biomarker value incorporating latent
+trajectory, random effect, and measurement error
+\item \code{x1}: First longitudinal covariate (standardized)
+\item \code{x2}: Second longitudinal covariate (standardized)
+\item \code{biomarker}: True latent biomarker trajectory value
+\item \code{velocity}: True latent biomarker velocity value
+\item \code{acceleration}: True latent biomarker acceleration value
 }}
 \item{survival_data}{Data frame with survival outcomes:
 \itemize{
 \item \code{id}: Subject identifier
 \item \code{time}: Observed event/censoring time
 \item \code{status}: Event indicator (1 = event, 0 = censored)
-\item \code{w1}: Baseline continuous covariate ~ N(0,1)
-\item \code{w2}: Baseline binary covariate ~ Bernoulli(0.5)
+\item \code{w1}: First survival covariate (standardized)
+\item \code{w2}: Second survival covariate (standardized)
+\item \code{b}: Shared random effect
 }}
 }
 }
 \description{
-Generates synthetic data from a joint ordinary differential equation (ODE)
-model that couples longitudinal biomarker trajectories with time-to-event
-outcomes. This framework produces realistic clinical trial or observational
-study data where biomarker dynamics influence event hazards through shared
-random effects and trajectory features.
+Generates synthetic data from a sophisticated joint modeling framework that
+seamlessly integrates longitudinal biomarker trajectories with survival
+outcomes through ordinary differential equations (ODEs). This simulation
+engine produces realistic clinical trial datasets where complex biomarker
+dynamics govern event hazards via shared random effects and trajectory
+features, capturing the intricate interplay between disease progression
+and time-to-event processes.
 }
 \details{
-\strong{Model Framework}
+\strong{Mathematical Framework}
 
-The simulation implements a joint model with two coupled components:
+The simulation orchestrates a sophisticated joint model architecture
+comprising two intricately coupled components:
 
-\strong{1. Longitudinal Model}
+\strong{1. Longitudinal Dynamics}
 
-Biomarker evolution follows a second-order nonlinear ODE:
-\deqn{\ddot{m}_i(t) = g(\boldsymbol{\beta}^T \mathbf{Z}_i(t))}
+Biomarker evolution is governed by a second-order nonlinear ODE system
+that captures complex temporal dynamics:
+\deqn{\ddot{m}_i(t) = g(\boldsymbol{\beta}^{\top} \mathbf{Z}_i(t))}
 
 where:
 \itemize{
-\item \eqn{m_i(t)} is the latent biomarker trajectory for subject \eqn{i}
-\item \eqn{\mathbf{Z}_i(t) = [m_i(t), \dot{m}_i(t), X_1(t), X_2(t), t]^T}
-is the augmented state vector
-\item \eqn{g(u) = 0.5 \tanh(u/3)} is a bounded nonlinear link function
-ensuring stability
-\item \eqn{\boldsymbol{\beta}} controls dynamics (feedback, damping,
-covariate effects)
+\item \eqn{m_i(t)}: Latent biomarker trajectory for subject \eqn{i}
+\item \eqn{\mathbf{Z}_i(t) = [m_i(t), \dot{m}_i(t), X_1, X_2, t]^{\top}}:
+State vector (5-dimensional)
+\item \eqn{g(u) = 2 \tanh(u/3)}: Bounded nonlinear transformation
+ensuring numerical stability and biological plausibility
+\item \eqn{\boldsymbol{\beta}}: Parameter vector governing homeostatic
+feedback, damping forces, and external influences
 }
 
-Observed measurements incorporate random effects and error:
+Observed measurements arise from a hierarchical structure incorporating
+both systematic and stochastic components:
 \deqn{V_{ij} = m_i(T_{ij}) + b_i + \varepsilon_{ij}}
 
-with \eqn{b_i \sim N(0, \sigma_b^2)} and
-\eqn{\varepsilon_{ij} \sim N(0, \sigma_e^2)}.
+where \eqn{b_i \sim N(0, \sigma_b^2)} captures subject-specific deviations
+and \eqn{\varepsilon_{ij} \sim N(0, \sigma_e^2)} represents measurement
+variability.
 
-\strong{2. Survival Model}
+\strong{2. Survival Process}
 
-The hazard function links trajectory dynamics to event risk:
-\deqn{\lambda_i(t|b_i) = \lambda_0(t) \exp[\boldsymbol{\alpha}^T
-  \mathbf{m}_i(t) + \mathbf{W}_i^T \boldsymbol{\phi} + b_i]}
+The instantaneous hazard function elegantly links biomarker dynamics
+to event risk through a multiplicative model:
+\deqn{\lambda_i(t|b_i) = \lambda_0(t) \exp[\boldsymbol{\alpha}^{\top}
+  \mathbf{m}_i(t) + \mathbf{W}_i^{\top} \boldsymbol{\phi} + b_i]}
 
 where:
 \itemize{
-\item \eqn{\lambda_0(t) = (\kappa/\theta)(t/\theta)^{\kappa-1}} is the
-Weibull baseline hazard
-\item \eqn{\mathbf{m}_i(t) = [m_i(t), \dot{m}_i(t), \ddot{m}_i(t)]^T}
-captures trajectory features
-\item \eqn{\mathbf{W}_i} are baseline covariates
-\item \eqn{b_i} is the shared random effect linking models
+\item \eqn{\lambda_0(t) = (\kappa/\theta)(t/\theta)^{\kappa-1}}:
+Weibull baseline hazard capturing population-level risk evolution
+\item \eqn{\mathbf{m}_i(t) = [m_i(t), \dot{m}_i(t), \ddot{m}_i(t)]^{\top}}:
+Comprehensive trajectory feature vector
+\item \eqn{\mathbf{W}_i}: Time-invariant baseline characteristics
+\item \eqn{b_i}: Shared random effect inducing correlation between
+longitudinal and survival processes
 }
 
-\strong{Simulation Process}
+\strong{Simulation Workflow}
+
+The data generation proceeds through a carefully orchestrated pipeline:
 
 \enumerate{
-\item \strong{ODE Integration}: Solve the second-order ODE system for each
-subject using adaptive LSODA algorithm
-\item \strong{Survival Generation}: Sample event times from the conditional
-hazard using the \code{simsurv} package
-\item \strong{Censoring}: Apply administrative censoring uniformly between
-50th and 95th percentiles of event times
-\item \strong{Longitudinal Sampling}: Generate visit schedules (quarterly
-for years 0-2, semi-annual thereafter) with 10\% random missingness
+\item \strong{ODE Integration}: Numerical solution of the coupled ODE
+system using adaptive Runge-Kutta methods with automatic step size
+control for optimal accuracy-efficiency tradeoff
+\item \strong{Event Time Generation}: Sophisticated sampling from the
+conditional hazard distribution via the \code{simsurv} engine,
+accounting for complex time-varying covariates
+\item \strong{Censoring Mechanism}: Realistic administrative censoring
+uniformly distributed between the 50th and 95th percentiles of
+event times, mimicking clinical trial follow-up patterns
+\item \strong{Visit Scheduling}: Adaptive measurement protocols with
+higher frequency during critical periods (quarterly initially,
+semi-annual subsequently) and stochastic 10\% missingness
 }
 
-\strong{Parameter Interpretation}
+\strong{Parameter Interpretation Guide}
 
 \itemize{
-\item \strong{ODE parameters (\code{beta})}:
+\item \strong{Trajectory Dynamics (\code{beta})}:
 \itemize{
-\item \code{beta[1]}: Negative feedback (homeostasis), typically < 0
-\item \code{beta[2]}: Damping coefficient (stability), typically < 0
-\item \code{beta[3-5]}: Covariate and time effects
+\item \code{beta[1]}: Homeostatic feedback strength (negative values
+promote stability)
+\item \code{beta[2]}: Damping coefficient controlling oscillation
+suppression
+\item \code{beta[3-4]}: Sensitivity to longitudinal covariates
+\item \code{beta[5]}: Time trend capturing systematic changes
 }
-\item \strong{Association (\code{alpha})}:
+\item \strong{Hazard Association (\code{alpha})}:
 \itemize{
-\item \code{alpha[1]}: Current value association (typically > 0 for
-risk biomarkers)
-\item \code{alpha[2]}: Rate of change association
-\item \code{alpha[3]}: Acceleration association (often < 0 for
-stability)
+\item \code{alpha[1]}: Current biomarker value effect (positive
+indicates deleterious biomarker)
+\item \code{alpha[2]}: Velocity effect capturing prognostic value
+of trajectory direction
+\item \code{alpha[3]}: Acceleration effect reflecting stability
+importance (negative suggests protective stability)
 }
 }
 }
 \note{
 \itemize{
-\item The \code{beta} parameters are normalized internally to ensure
-model identifiability
-\item Visit schedules automatically adjust based on follow-up duration
-\item Setting \code{verbose = FALSE} suppresses all progress messages
+\item Parameter vector \code{beta} undergoes automatic normalization
+to unit length, ensuring model identifiability without user
+intervention
+\item Visit schedules intelligently adapt to individual follow-up
+durations, balancing information gain with practical constraints
+\item Progress reporting can be silenced via \code{verbose = FALSE}
+for batch simulations
 }
 }
 \examples{
