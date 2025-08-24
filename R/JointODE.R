@@ -170,17 +170,10 @@ JointODE <- function(
   )
 
   # 2.2 Initialize coefficients
-  baseline_spline_coefficients <- rnorm(spline_baseline_config$df)
-  hazard_coefficients <- rnorm(n_survival_covariates + 3)
+  baseline_spline_coefficients <- numeric(spline_baseline_config$df)
+  hazard_coefficients <- numeric(n_survival_covariates + 3)
   index_spline_coefficients <- numeric(spline_index_config$df)
   index_coefficients <- rep(1, n_longitudinal_covariates + 3)
-  # Fixed coefficients for g(u) = 0.5 * tanh(u/3)
-  index_spline_coefficients <- c(
-    -0.04983400, -0.04683380, -0.04082252, -0.03177879, -0.02271413,
-    -0.01363449, -0.00454583, 0.00454583, 0.01363449, 0.02271413, 0.03177879,
-    0.04082252, 0.04683380, 0.04983400
-  )
-  index_coefficients <- c(-0.3, -0.5, 0.2, 0, 0.1, 0.05)
   index_coefficients <- index_coefficients / sqrt(sum(index_coefficients^2))
   measurement_error_sd <- 1e-2
   random_effect_sd <- 1e-2
@@ -256,7 +249,7 @@ JointODE <- function(
         index_beta = index_coefficients
       ),
       method = control_settings$method,
-      control = list(trace = 1, REPORT = 1, pgtol = 1e-6)
+      control = list(trace = 1, REPORT = 1, pgtol = 1e-6, maxit = 1)
     )
     baseline_spline_coefficients <- res_hazard$par[
       1:spline_baseline_config$df
