@@ -135,8 +135,14 @@ $$\nabla Q = \nabla Q_{\text{long}} + \nabla Q_{\text{surv}}$$
 **Hazard parameters** ($\boldsymbol{\eta}$, $\boldsymbol{\alpha}$, $\boldsymbol{\phi}$) admit closed-form gradient expressions:
 
 - $\nabla_{\boldsymbol{\eta}} Q = \sum_i [\delta_i \mathbf{B}^{(\lambda)}(T_i) - E[e^{b_i}|\mathcal{O}_i] \frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\eta}}]$
-- $\nabla_{\boldsymbol{\alpha}} Q = \sum_i [\delta_i \mathbf{m}_i(T_i) - E[e^{b_i}|\mathcal{O}_i] \frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\alpha}}]$  
+- $\nabla_{\boldsymbol{\alpha}} Q = \sum_i [\delta_i \mathbf{m}_i(T_i) - E[e^{b_i}|\mathcal{O}_i] \frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\alpha}}]$
 - $\nabla_{\boldsymbol{\phi}} Q = \sum_i [\delta_i - E[e^{b_i}|\mathcal{O}_i]\Lambda_i(T_i|0)] \mathbf{W}_i$
+
+Since $\Lambda_i(T_i|0)$ depends on $\boldsymbol{\eta}$ and $\boldsymbol{\alpha}$ through the hazard, their gradients are:
+
+- $\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\eta}}=\int_{0}^{T_i}\frac{\partial\exp\left\{\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i} + \mathbf{W}_i^{\top}\boldsymbol{\phi}\right\}}{\partial\boldsymbol{\eta}}\,\mathrm{d}t
+- $\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\alpha}}=\int_{0}^{T_i}\frac{\partial\exp\left\{\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i} + \mathbf{W}_i^{\top}\boldsymbol{\phi}\right\}}{\partial\boldsymbol{\alpha}}\,\mathrm{d}t
+- $\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\phi}}=\int_{0}^{T_i}\frac{\partial\exp\left\{\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) + b_{i} + \mathbf{W}_i^{\top}\boldsymbol{\phi}\right\}}{\partial\boldsymbol{\phi}}\,\mathrm{d}t
 
 The computation of these gradients requires solving an augmented ODE system:
 

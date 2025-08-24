@@ -1,8 +1,8 @@
 ---
-title: "Comparison with JSM Package"
+title: "Comparison"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Comparison with JSM Package}
+  %\VignetteIndexEntry{Comparison}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -50,8 +50,8 @@ set.seed(2024)
 ```{r generate-data}
 # Generate data with known parameters
 sim_data <- JointODE::simulate(
-  n = 200, # Number of subjects
-  sigma_e = 0.5, # Measurement error SD
+  n = 400, # Number of subjects
+  sigma_b = 0.1, # Measurement error SD
   verbose = FALSE
 )
 
@@ -100,7 +100,7 @@ long_data %>%
   filter(id %in% sample(unique(id), 20)) %>%
   ggplot(aes(time, v)) +
   geom_line(aes(group = id), alpha = 0.2) +
-  geom_smooth(se = TRUE, color = "#3498DB", size = 1.2) +
+  geom_smooth(se = TRUE, color = "#3498DB", linewidth = 1.2) +
   theme_minimal(base_size = 10) +
   labs(
     x = "Time", y = "Biomarker",
@@ -184,7 +184,7 @@ summary(fit_tvcox)
 # alpha[1] = 0.3 (value effect), phi = c(0.2, -0.15) for survival covariates
 true_params <- data.frame(
   param = c("Association", "w1", "w2"),
-  true_value = c(0.3, 0.2, -0.15)
+  true_value = c(0.5, 0.2, -0.15)
 )
 
 # Extract and organize coefficients
