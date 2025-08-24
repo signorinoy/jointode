@@ -88,3 +88,27 @@ create_mismatched_test_data <- function(n_subjects_long, n_subjects_surv,
 
   list(longitudinal = longitudinal_data, survival = survival_data)
 }
+
+
+estimate_bspline_coef <- function(x, f0, config) {
+  splin_config <- .get_spline_config(
+    x = x,
+    degree = config$degree,
+    n_knots = config$n_knots,
+    knot_placement = config$knot_placement,
+    boundary_knots = config$boundary_knots
+  )
+
+  # Compute B-spline basis at grid points
+  basis_matrix <- .compute_spline_basis(x, splin_config)
+
+  # Compute target values
+  y_target <- f0(x)
+
+  # Fit coefficients using least squares
+  spline_coefficients <- solve(
+    t(basis_matrix) %*% basis_matrix,
+    t(basis_matrix) %*% y_target
+  )
+  as.vector(spline_coefficients)
+}
