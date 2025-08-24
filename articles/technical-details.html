@@ -405,18 +405,18 @@ sensitivities with respect to <span class="math inline">\boldsymbol{\eta}</span>
 <p><strong>Trajectory parameters</strong> (<span class="math inline">\boldsymbol{\beta}</span>, <span class="math inline">\boldsymbol{\theta}</span>) have gradient
 expressions involving sensitivities:</p>
 <ul>
-<li><p><span class="math inline">\nabla_{\boldsymbol{\beta}} Q =
-\sum_{i,j} \frac{r_{ij}}{\sigma_e^2} \frac{\partial
-m_i(T_{ij})}{\partial \boldsymbol{\beta}} + \sum_i \left[\delta_i
-\boldsymbol{\alpha}^{\top} \frac{\partial \mathbf{m}_i(T_i)}{\partial
-\boldsymbol{\beta}} - E[e^{b_i}|\mathcal{O}_i] \frac{\partial
-\Lambda_i(T_i|0)}{\partial \boldsymbol{\beta}}\right]</span></p></li>
-<li><p><span class="math inline">\nabla_{\boldsymbol{\theta}} Q =
+<li><span class="math inline">\nabla_{\boldsymbol{\beta}} Q = \sum_{i,j}
+\frac{r_{ij}}{\sigma_e^2} \frac{\partial m_i(T_{ij})}{\partial
+\boldsymbol{\beta}} + \sum_i \left[\delta_i \boldsymbol{\alpha}^{\top}
+\frac{\partial \mathbf{m}_i(T_i)}{\partial \boldsymbol{\beta}} -
+E[e^{b_i}|\mathcal{O}_i] \frac{\partial \Lambda_i(T_i|0)}{\partial
+\boldsymbol{\beta}}\right]</span></li>
+<li><span class="math inline">\nabla_{\boldsymbol{\theta}} Q =
 \sum_{i,j} \frac{r_{ij}}{\sigma_e^2} \frac{\partial
 m_i(T_{ij})}{\partial \boldsymbol{\theta}} + \sum_i \left[\delta_i
 \boldsymbol{\alpha}^{\top} \frac{\partial \mathbf{m}_i(T_i)}{\partial
 \boldsymbol{\theta}} - E[e^{b_i}|\mathcal{O}_i] \frac{\partial
-\Lambda_i(T_i|0)}{\partial \boldsymbol{\theta}}\right]</span></p></li>
+\Lambda_i(T_i|0)}{\partial \boldsymbol{\theta}}\right]</span></li>
 </ul>
 <p>where <span class="math inline">r_{ij} = V_{ij} - m_i(T_{ij}) -
 \hat{b}_i</span> denotes the residual.</p>
@@ -424,36 +424,64 @@ m_i(T_{ij})}{\partial \boldsymbol{\theta}} + \sum_i \left[\delta_i
 <p><span class="math display">\frac{\partial m_i(t)}{\partial
 \boldsymbol{\beta}} = \int_{0}^{t} \frac{\partial\dot{m}_i(s)}{\partial
 \boldsymbol{\beta}} \,\mathrm{d}s,\quad
-\frac{\partial\dot{m}_i(t)}{\partial \boldsymbol{\beta}} =
-\frac{\partial g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t))}{\partial
-\boldsymbol{\beta}} = \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u)
-\mathbf{Z}(t)</span></p>
+\frac{\partial\dot{m}_i(t)}{\partial \boldsymbol{\beta}} = \int_{0}^{t}
+\frac{\partial \ddot{m}(s)}{\partial \boldsymbol{\beta}}
+\,\mathrm{d}s,\quad \frac{\partial \ddot{m}(s)}{\partial
+\boldsymbol{\beta}} \,\mathrm{d}s =
+\boldsymbol{\theta}^{\top}\mathbf{B}'_g(u) \frac{\partial
+u}{\partial\boldsymbol{\beta}}</span></p>
+<p>where</p>
+<p><span class="math display">\frac{\partial
+u}{\partial\boldsymbol{\beta}} = \mathbf{Z}(t) +
+\boldsymbol{\beta}^{\top} \frac{\partial
+\mathbf{Z}(t)}{\partial\boldsymbol{\beta}} = \mathbf{Z}(t) +
+\boldsymbol{\beta}^{\top} \begin{bmatrix}
+\frac{\partial m_i(t)}{\partial \boldsymbol{\beta}} &amp; \frac{\partial
+\dot{m}_i(t)}{\partial \boldsymbol{\beta}} &amp; \mathbf{0} &amp;
+\mathbf{0}
+\end{bmatrix}</span></p>
+<p>Similarly,</p>
 <p><span class="math display">\frac{\partial m_i(t)}{\partial
 \boldsymbol{\theta}} = \int_{0}^{t} \frac{\partial\dot{m}_i(s)}{\partial
 \boldsymbol{\theta}} \,\mathrm{d}s,\quad
-\frac{\partial\dot{m}_i(t)}{\partial \boldsymbol{\theta}} =
-\frac{\partial g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t))}{\partial
-\boldsymbol{\theta}} = \mathbf{B}_g(u)</span></p>
+\frac{\partial\dot{m}_i(t)}{\partial \boldsymbol{\theta}} = \int_{0}^{t}
+\frac{\partial \ddot{m}(s)}{\partial \boldsymbol{\theta}}
+\,\mathrm{d}s,\quad \frac{\partial \ddot{m}(s)}{\partial
+\boldsymbol{\theta}} \,\mathrm{d}s = \mathbf{B}_g(u) +
+\boldsymbol{\theta}^{\top}\mathbf{B}'_g(u) \frac{\partial
+u}{\partial\boldsymbol{\theta}}</span></p>
+<p>where</p>
+<p><span class="math display">
+\frac{\partial u}{\partial\boldsymbol{\theta}} =
+\boldsymbol{\beta}^{\top} \frac{\partial
+\mathbf{Z}(t)}{\partial\boldsymbol{\theta}} = \boldsymbol{\beta}^{\top}
+\begin{bmatrix}
+\frac{\partial m_i(t)}{\partial \boldsymbol{\theta}} &amp;
+\frac{\partial \dot{m}_i(t)}{\partial \boldsymbol{\theta}} &amp;
+\mathbf{0} &amp; \mathbf{0}
+\end{bmatrix}
+</span></p>
 <p>The gradients with respect to <span class="math inline">\boldsymbol{\beta}</span> and <span class="math inline">\boldsymbol{\theta}</span> similarly require solving
 augmented ODE systems that track sensitivities.</p>
 <p>For <span class="math inline">\boldsymbol{\beta}</span>
 sensitivities: <span class="math display">\frac{d}{dt}\begin{bmatrix}
-m_i \\ \dot{m}_i \\ \partial m_{i,\beta} \\ \partial\dot{m}_{i,\beta} \\
-\partial\Lambda_{\beta,i}
+\Lambda_i \\ m_i \\ \dot{m}_i \\ \partial m_{i,\beta} \\
+\partial\dot{m}_{i,\beta} \\ \partial\Lambda_{\beta,i}
 \end{bmatrix} = \begin{bmatrix}
-\dot{m}_i(t) \\ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial
-\dot{m}_{i,\beta} \\ \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u)
-\mathbf{Z}(t) \\
+\lambda_i(t|0) \\ \dot{m}_i(t) \\
+g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial \dot{m}_{i,\beta}
+\\ \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u) \mathbf{Z}(t) \\
 \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}}
 \lambda_i(t|0)
 \end{bmatrix}</span></p>
 <p>For <span class="math inline">\boldsymbol{\theta}</span>
 sensitivities: <span class="math display">\frac{d}{dt}\begin{bmatrix}
-m_i \\ \dot{m}_i \\ \partial m_{i,\theta} \\ \partial\dot{m}_{i,\theta}
-\\ \partial\Lambda_{\theta,i}
+\Lambda_i \\ m_i \\ \dot{m}_i \\ \partial m_{i,\theta} \\
+\partial\dot{m}_{i,\theta} \\ \partial\Lambda_{\theta,i}
 \end{bmatrix} = \begin{bmatrix}
-\dot{m}_i(t) \\ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\
-\partial\dot{m}_{i,\theta} \\ \mathbf{B}_g(u) \\
+\lambda_i(t|0) \\ \dot{m}_i(t) \\
+g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial\dot{m}_{i,\theta}
+\\ \mathbf{B}_g(u) \\
 \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}}
 \lambda_i(t|0)
 \end{bmatrix}</span></p>
