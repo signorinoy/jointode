@@ -160,7 +160,7 @@ JointODE <- function(
   )
   spline_baseline_config$boundary_knots[1] <- 0
 
-  scores <- seq(-5, 5, length.out = 100)
+  scores <- seq(-0.3, 0.3, length.out = 100)
   spline_index_config <- .get_spline_config(
     x = scores,
     degree = spline_index$degree,
@@ -170,19 +170,26 @@ JointODE <- function(
   )
 
   # 2.2 Initialize coefficients
-  baseline_spline_coefficients <- numeric(spline_baseline_config$df)
-  hazard_coefficients <- numeric(n_survival_covariates + 3)
+  baseline_spline_coefficients <- rnorm(spline_baseline_config$df)
+  hazard_coefficients <- rnorm(n_survival_covariates + 3)
   index_spline_coefficients <- numeric(spline_index_config$df)
   index_coefficients <- rep(1, n_longitudinal_covariates + 3)
+  # Fixed coefficients for g(u) = 0.5 * tanh(u/3)
+  index_spline_coefficients <- c(
+    -0.04983400, -0.04683380, -0.04082252, -0.03177879, -0.02271413,
+    -0.01363449, -0.00454583, 0.00454583, 0.01363449, 0.02271413, 0.03177879,
+    0.04082252, 0.04683380, 0.04983400
+  )
+  index_coefficients <- c(-0.3, -0.5, 0.2, 0, 0.1, 0.05)
   index_coefficients <- index_coefficients / sqrt(sum(index_coefficients^2))
-  measurement_error_sd <- 1
-  random_effect_sd <- 1
+  measurement_error_sd <- 1e-2
+  random_effect_sd <- 1e-2
 
-  b_hat <- rnorm(n_subjects)
+  b_hat <- numeric(n_subjects)
 
   # Set control defaults
   control_settings <- list(
-    method = "BFGS",
+    method = "L-BFGS-B",
     maxit = 1000,
     tol = 1e-6,
     verbose = FALSE
@@ -193,52 +200,79 @@ JointODE <- function(
   # The following is a placeholder implementation that demonstrates the
   # structure but does not perform actual parameter optimization
 
-  # Placeholder E-Step (currently only runs once)
-  parameters <- list(
-    coef = list(
-      baseline = baseline_spline_coefficients,
-      hazard = hazard_coefficients,
-      index_g = index_spline_coefficients,
-      index_beta = index_coefficients
-    ),
-    config = list(
-      baseline = spline_baseline_config,
-      index = spline_index_config
-    )
-  )
+  for (iter in seq_len(control_settings$maxit)) {
+    if (control_settings$verbose) {
+      message(sprintf("Iteration %d/%d", iter, control_settings$maxit))
+    }
 
-  posteriors <- list()
-  for (i in seq_len(n_subjects)) {
-    subject_data <- data_process[[i]]
-    subject_id <- names(data_process)[i]
-    ode_solution <- .solve_joint_ode(subject_data, parameters)
-    posteriors[[subject_id]] <- .compute_posterior_aghq(
-      ode_solution = ode_solution,
-      data = subject_data,
-      b_hat_init = b_hat[i],
-      measurement_error_sd = measurement_error_sd,
-      random_effect_sd = random_effect_sd
+    # 1. E-step: Compute posterior distributions given current parameters
+    parameters <- list(
+      coef = list(
+        baseline = baseline_spline_coefficients,
+        hazard = hazard_coefficients,
+        index_g = index_spline_coefficients,
+        index_beta = index_coefficients
+      ),
+      config = list(
+        baseline = spline_baseline_config,
+        index = spline_index_config
+      )
     )
+
+    posteriors <- list()
+    for (i in seq_len(n_subjects)) {
+      subject_data <- data_process[[i]]
+      subject_id <- names(data_process)[i]
+      ode_solution <- .solve_joint_ode(subject_data, parameters)
+      posteriors[[subject_id]] <- .compute_posterior_aghq(
+        ode_solution = ode_solution,
+        data = subject_data,
+        b_hat_init = b_hat[i],
+        measurement_error_sd = measurement_error_sd,
+        random_effect_sd = random_effect_sd
+      )
+      b_hat[i] <- posteriors[[subject_id]]$b_hat
+    }
+
+    # 2. M-step: Optimize parameters based on posteriors
+    par <- c(
+      baseline_spline_coefficients,
+      hazard_coefficients
+    )
+
+    # 2.1 Optimize hazard coefficients
+    res_hazard <- optim(
+      par = par,
+      fn = .compute_q_eta_alpha_phi,
+      gr = .compute_q_eta_alpha_phi_grad,
+      data_list = data_process,
+      posteriors = posteriors,
+      config = list(
+        baseline = spline_baseline_config,
+        index = spline_index_config
+      ),
+      fixed_params = list(
+        index_g = index_spline_coefficients,
+        index_beta = index_coefficients
+      ),
+      method = control_settings$method,
+      control = list(trace = 1, REPORT = 1, pgtol = 1e-6)
+    )
+    baseline_spline_coefficients <- res_hazard$par[
+      1:spline_baseline_config$df
+    ]
+    hazard_coefficients <- res_hazard$par[
+      (spline_baseline_config$df + 1):
+        (spline_baseline_config$df + n_survival_covariates + 3)
+    ]
+    cat("Lambda0:", baseline_spline_coefficients, "\n")
+    cat("(alpha,eta):", hazard_coefficients, "\n")
+    # 2.2 Optimize index coefficients
+
+    # 2.3 Optimize measurement error and random effect SDs
+
+    # For now, we just break after one iteration
   }
-
-  # Placeholder M-Step (currently just adds small increments)
-  # TODO: Replace with proper optimization
-  theta <- c(
-    baseline_spline_coefficients, hazard_coefficients,
-    index_spline_coefficients, index_coefficients
-  )
-  optim(.compute_q_function,
-    par = theta, data_list = data_process,
-    posteriors = posteriors,
-    config = list(
-      baseline = spline_baseline_config,
-      index = spline_index_config
-    ),
-    measurement_error_sd = measurement_error_sd,
-    random_effect_sd = random_effect_sd,
-    method = control_settings$method,
-    control = list(trace = 2, maxit = control_settings$maxit)
-  )
 
   # TODO: Add EM iteration loop here
   # TODO: Add convergence checking
