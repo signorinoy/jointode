@@ -88,7 +88,71 @@ differential equation (ODE) system.</p>
 <h2 id="model-framework">Model Framework<a class="anchor" aria-label="anchor" href="#model-framework"></a>
 </h2>
 <div class="section level3">
-<h3 id="state-variables">State Variables<a class="anchor" aria-label="anchor" href="#state-variables"></a>
+<h3 id="longitudinal-model">Longitudinal Model<a class="anchor" aria-label="anchor" href="#longitudinal-model"></a>
+</h3>
+<p>The observed biomarker measurements are modeled as: <span class="math display">
+V_{ij}=m_i(T_{ij})+b_i+\varepsilon_{ij},\quad i=1,\ldots,n,\quad
+j=1,\ldots,n_i
+</span></p>
+<p>where:</p>
+<ul>
+<li>
+<span class="math inline">V_{ij}</span>: Observed biomarker value
+for subject <span class="math inline">i</span> at time <span class="math inline">T_{ij}</span>
+</li>
+<li>
+<span class="math inline">m_i(t)</span>: True underlying biomarker
+trajectory</li>
+<li>
+<span class="math inline">b_i\sim\mathcal{N}(0,\sigma_{b}^{2})</span>:
+Subject-specific random intercept</li>
+<li>
+<span class="math inline">\varepsilon_{ij}\sim\mathcal{N}(0,\sigma_{e}^{2})</span>:
+Measurement error</li>
+</ul>
+<p>The biomarker trajectory evolution is characterized by the following
+second-order differential equation:</p>
+<p><span class="math display">
+\ddot{m}_i(t) = f\big(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t\big)
+</span></p>
+<p>where <span class="math inline">f: \mathbb{R} \times \mathbb{R}
+\times \mathbb{R}^p \times \mathbb{R}^+ \to \mathbb{R}</span> is a
+smooth function modeling the biomarker acceleration as a function of its
+current value <span class="math inline">m_i(t)</span>, velocity <span class="math inline">\dot{m}_i(t)</span>, time-varying covariates <span class="math inline">\mathbf{X}_i(t) \in \mathbb{R}^p</span>, and time
+<span class="math inline">t</span>.</p>
+</div>
+<div class="section level3">
+<h3 id="survival-model">Survival Model<a class="anchor" aria-label="anchor" href="#survival-model"></a>
+</h3>
+<p>The hazard function incorporates biomarker dynamics:</p>
+<p><span class="math display">
+\lambda_i(t) =
+\lambda_{0}(t)\exp\left[\mathbf{m}_i(t)^{\top}\boldsymbol{\alpha}+\mathbf{W}_i^{\top}\boldsymbol{\phi}+b_{i}\right]
+</span></p>
+<p>where:</p>
+<ul>
+<li>
+<span class="math inline">\lambda_{0}(t)</span>: Baseline hazard
+(e.g., Weibull, piecewise constant)</li>
+<li>
+<span class="math inline">\mathbf{m}_i(t)=\left(m_i(t),
+\dot{m}_i(t), \ddot{m}_i(t)\right)^{\top}</span>: Biomarker value and
+derivatives</li>
+<li>
+<span class="math inline">\boldsymbol{\alpha}=(\alpha_0, \alpha_1,
+\alpha_2)^{\top}</span>: Association parameters for value, velocity, and
+acceleration</li>
+<li>
+<span class="math inline">\mathbf{W}_i</span>: Baseline covariates
+with coefficients <span class="math inline">\boldsymbol{\phi}</span>
+</li>
+<li>
+<span class="math inline">b_i</span>: Subject-specific random
+intercept</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="ode-system">ODE System<a class="anchor" aria-label="anchor" href="#ode-system"></a>
 </h3>
 <p>The model tracks three state variables for each subject <span class="math inline">i</span>:</p>
 <ul>
@@ -101,10 +165,6 @@ hazard</li>
 <span class="math inline">\dot{m}_i(t)</span>: Biomarker velocity
 (rate of change)</li>
 </ul>
-</div>
-<div class="section level3">
-<h3 id="ode-system">ODE System<a class="anchor" aria-label="anchor" href="#ode-system"></a>
-</h3>
 <p>The state vector <span class="math inline">\mathbf{s}_i(t) =
 (\Lambda_i(t), m_i(t), \dot{m}_i(t))^{\top}</span> evolves according
 to:</p>
@@ -316,9 +376,18 @@ expressions:</p>
 <span class="math inline">\boldsymbol{\eta}</span> and <span class="math inline">\boldsymbol{\alpha}</span> through the hazard, their
 gradients are:</p>
 <ul>
-<li>$=_{0}^{T_i},t</li>
-<li>$=_{0}^{T_i},t</li>
-<li>$=_{0}^{T_i},t</li>
+<li><span class="math inline">\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\eta}}=\int_{0}^{T_i}\frac{\partial\exp\left\{\boldsymbol{\eta}^{\top}
+\mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) +
+b_{i} +
+\mathbf{W}_i^{\top}\boldsymbol{\phi}\right\}}{\partial\boldsymbol{\eta}}\,\mathrm{d}t</span></li>
+<li><span class="math inline">\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\alpha}}=\int_{0}^{T_i}\frac{\partial\exp\left\{\boldsymbol{\eta}^{\top}
+\mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) +
+b_{i} +
+\mathbf{W}_i^{\top}\boldsymbol{\phi}\right\}}{\partial\boldsymbol{\alpha}}\,\mathrm{d}t</span></li>
+<li><span class="math inline">\frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\phi}}=\int_{0}^{T_i}\frac{\partial\exp\left\{\boldsymbol{\eta}^{\top}
+\mathbf{B}^{(\lambda)}(t) + \boldsymbol{\alpha}^{\top}\mathbf{m}_i(t) +
+b_{i} +
+\mathbf{W}_i^{\top}\boldsymbol{\phi}\right\}}{\partial\boldsymbol{\phi}}\,\mathrm{d}t</span></li>
 </ul>
 <p>The computation of these gradients requires solving an augmented ODE
 system:</p>
@@ -351,6 +420,20 @@ m_i(T_{ij})}{\partial \boldsymbol{\theta}} + \sum_i \left[\delta_i
 </ul>
 <p>where <span class="math inline">r_{ij} = V_{ij} - m_i(T_{ij}) -
 \hat{b}_i</span> denotes the residual.</p>
+<p>Since <span class="math inline">m_i(t)</span> depends on <span class="math inline">\boldsymbol{\beta}</span> and <span class="math inline">\boldsymbol{\theta}</span>, their gradients are:</p>
+<p><span class="math display">\frac{\partial m_i(t)}{\partial
+\boldsymbol{\beta}} = \int_{0}^{t} \frac{\partial\dot{m}_i(s)}{\partial
+\boldsymbol{\beta}} \,\mathrm{d}s,\quad
+\frac{\partial\dot{m}_i(t)}{\partial \boldsymbol{\beta}} =
+\frac{\partial g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t))}{\partial
+\boldsymbol{\beta}} = \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u)
+\mathbf{Z}(t)</span></p>
+<p><span class="math display">\frac{\partial m_i(t)}{\partial
+\boldsymbol{\theta}} = \int_{0}^{t} \frac{\partial\dot{m}_i(s)}{\partial
+\boldsymbol{\theta}} \,\mathrm{d}s,\quad
+\frac{\partial\dot{m}_i(t)}{\partial \boldsymbol{\theta}} =
+\frac{\partial g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t))}{\partial
+\boldsymbol{\theta}} = \mathbf{B}_g(u)</span></p>
 <p>The gradients with respect to <span class="math inline">\boldsymbol{\beta}</span> and <span class="math inline">\boldsymbol{\theta}</span> similarly require solving
 augmented ODE systems that track sensitivities.</p>
 <p>For <span class="math inline">\boldsymbol{\beta}</span>
