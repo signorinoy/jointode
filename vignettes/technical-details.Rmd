@@ -154,7 +154,7 @@ where:
 2. **Trajectory parameters** $(\boldsymbol{\beta}, \boldsymbol{\theta})$:
    - Alternating optimization with constraint $\|\boldsymbol{\beta}\| = 1$
    - Iterate until convergence:
-     - Fix $\boldsymbol{\theta}$, optimize $\boldsymbol{\beta}$
+     - Fix $\boldsymbol{\theta}$, optimize $\boldsymbol{\beta}$: After each optimization step, normalize $\boldsymbol{\beta} \leftarrow \boldsymbol{\beta}/\|\boldsymbol{\beta}\|$
      - Fix $\boldsymbol{\beta}$, optimize $\boldsymbol{\theta}$
 3. **Variance components** (closed-form):
    - $\sigma_e^2 = \frac{1}{N}\sum_{i,j}[(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i]$
@@ -224,14 +224,14 @@ For $\boldsymbol{\beta}$ sensitivities:
 $$\frac{d}{dt}\begin{bmatrix}
 \Lambda_i \\ m_i \\ \dot{m}_i \\ \partial m_{i,\beta} \\ \partial\dot{m}_{i,\beta} \\ \partial\Lambda_{\beta,i}
 \end{bmatrix} = \begin{bmatrix}
-\lambda_i(t|0) \\ \dot{m}_i(t) \\ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial \dot{m}_{i,\beta} \\ \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u) \mathbf{Z}(t) \\ \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}} \lambda_i(t|0)
+\lambda_i(t|0) \\ \dot{m}_i(t) \\ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial \dot{m}_{i,\beta} \\ \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u) \left(\mathbf{Z}(t) + \boldsymbol{\beta}^{\top}\frac{\partial\mathbf{Z}(t)}{\partial\boldsymbol{\beta}}\right) \\ \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}} \lambda_i(t|0)
 \end{bmatrix}$$
 
 For $\boldsymbol{\theta}$ sensitivities:
 $$\frac{d}{dt}\begin{bmatrix}
 \Lambda_i \\ m_i \\ \dot{m}_i \\ \partial m_{i,\theta} \\ \partial\dot{m}_{i,\theta} \\ \partial\Lambda_{\theta,i}
 \end{bmatrix} = \begin{bmatrix}
-\lambda_i(t|0) \\ \dot{m}_i(t) \\ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial\dot{m}_{i,\theta} \\ \mathbf{B}_g(u) \\ \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}} \lambda_i(t|0)
+\lambda_i(t|0) \\ \dot{m}_i(t) \\ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial\dot{m}_{i,\theta} \\ \mathbf{B}_g(u) + \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u) \boldsymbol{\beta}^{\top}\frac{\partial\mathbf{Z}(t)}{\partial\boldsymbol{\theta}} \\ \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\theta}} \lambda_i(t|0)
 \end{bmatrix}$$
 
 where $\mathbf{B}'_g(u) = \frac{d\mathbf{B}_g(u)}{du}$ denotes the B-spline derivative basis.
