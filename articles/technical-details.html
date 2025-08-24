@@ -328,7 +328,9 @@ E[e^{b_i}|\mathcal{O}_i]\Lambda_i(T_i|0)]</span></li>
 <li>Iterate until convergence:
 <ul>
 <li>Fix <span class="math inline">\boldsymbol{\theta}</span>, optimize
-<span class="math inline">\boldsymbol{\beta}</span>
+<span class="math inline">\boldsymbol{\beta}</span>: After each
+optimization step, normalize <span class="math inline">\boldsymbol{\beta} \leftarrow
+\boldsymbol{\beta}/\|\boldsymbol{\beta}\|</span>
 </li>
 <li>Fix <span class="math inline">\boldsymbol{\beta}</span>, optimize
 <span class="math inline">\boldsymbol{\theta}</span>
@@ -470,7 +472,9 @@ sensitivities: <span class="math display">\frac{d}{dt}\begin{bmatrix}
 \end{bmatrix} = \begin{bmatrix}
 \lambda_i(t|0) \\ \dot{m}_i(t) \\
 g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial \dot{m}_{i,\beta}
-\\ \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u) \mathbf{Z}(t) \\
+\\ \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u) \left(\mathbf{Z}(t) +
+\boldsymbol{\beta}^{\top}\frac{\partial\mathbf{Z}(t)}{\partial\boldsymbol{\beta}}\right)
+\\
 \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}}
 \lambda_i(t|0)
 \end{bmatrix}</span></p>
@@ -481,8 +485,10 @@ sensitivities: <span class="math display">\frac{d}{dt}\begin{bmatrix}
 \end{bmatrix} = \begin{bmatrix}
 \lambda_i(t|0) \\ \dot{m}_i(t) \\
 g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial\dot{m}_{i,\theta}
-\\ \mathbf{B}_g(u) \\
-\boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}}
+\\ \mathbf{B}_g(u) + \boldsymbol{\theta}^{\top}\mathbf{B}'_g(u)
+\boldsymbol{\beta}^{\top}\frac{\partial\mathbf{Z}(t)}{\partial\boldsymbol{\theta}}
+\\
+\boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\theta}}
 \lambda_i(t|0)
 \end{bmatrix}</span></p>
 <p>where <span class="math inline">\mathbf{B}'_g(u) =
