@@ -323,15 +323,19 @@ E[e^{b_i}|\mathcal{O}_i]\Lambda_i(T_i|0)]</span></li>
 <li>
 <strong>Trajectory parameters</strong> <span class="math inline">(\boldsymbol{\beta}, \boldsymbol{\theta})</span>:
 <ul>
-<li>Alternating optimization with constraint <span class="math inline">\|\boldsymbol{\beta}\| = 1</span>
+<li>Spherical parameterization enforces constraint <span class="math inline">\|\boldsymbol{\beta}\| = 1</span>
+</li>
+<li>Transform <span class="math inline">\boldsymbol{\beta} \in
+\mathbb{S}^{n-1}</span> to spherical coordinates <span class="math inline">\boldsymbol{\varphi} \in
+\mathbb{R}^{n-1}</span>
 </li>
 <li>Iterate until convergence:
 <ul>
 <li>Fix <span class="math inline">\boldsymbol{\theta}</span>, optimize
-<span class="math inline">\boldsymbol{\beta}</span>: After each
-optimization step, normalize <span class="math inline">\boldsymbol{\beta} \leftarrow
-\boldsymbol{\beta}/\|\boldsymbol{\beta}\|</span>
-</li>
+<span class="math inline">\boldsymbol{\varphi}</span> (unconstrained
+optimization)</li>
+<li>Convert <span class="math inline">\boldsymbol{\varphi} \to
+\boldsymbol{\beta}</span> via spherical transformation</li>
 <li>Fix <span class="math inline">\boldsymbol{\beta}</span>, optimize
 <span class="math inline">\boldsymbol{\theta}</span>
 </li>
@@ -404,8 +408,11 @@ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \mathbf{B}^{(\lambda)}(t)
 <p>where <span class="math inline">\partial\Lambda_{\eta,i}</span> and
 <span class="math inline">\partial\Lambda_{\alpha,i}</span> are
 sensitivities with respect to <span class="math inline">\boldsymbol{\eta}</span> and <span class="math inline">\boldsymbol{\alpha}</span>, respectively.</p>
-<p><strong>Trajectory parameters</strong> (<span class="math inline">\boldsymbol{\beta}</span>, <span class="math inline">\boldsymbol{\theta}</span>) have gradient
+<p><strong>Trajectory parameters</strong> (<span class="math inline">\boldsymbol{\varphi}</span>, <span class="math inline">\boldsymbol{\theta}</span>) have gradient
 expressions involving sensitivities:</p>
+<ul>
+<li>For <span class="math inline">\boldsymbol{\beta}</span> parameters
+(optimized via spherical coordinates <span class="math inline">\boldsymbol{\varphi}</span>):
 <ul>
 <li><span class="math inline">\nabla_{\boldsymbol{\beta}} Q = \sum_{i,j}
 \frac{r_{ij}}{\sigma_e^2} \frac{\partial m_i(T_{ij})}{\partial
@@ -413,6 +420,13 @@ expressions involving sensitivities:</p>
 \frac{\partial \mathbf{m}_i(T_i)}{\partial \boldsymbol{\beta}} -
 E[e^{b_i}|\mathcal{O}_i] \frac{\partial \Lambda_i(T_i|0)}{\partial
 \boldsymbol{\beta}}\right]</span></li>
+<li>
+<span class="math inline">\nabla_{\boldsymbol{\varphi}} Q =
+\mathbf{J}^{\top} \nabla_{\boldsymbol{\beta}} Q</span> where <span class="math inline">\mathbf{J} = \frac{\partial
+\boldsymbol{\beta}}{\partial \boldsymbol{\varphi}}</span> is the
+spherical Jacobian</li>
+</ul>
+</li>
 <li><span class="math inline">\nabla_{\boldsymbol{\theta}} Q =
 \sum_{i,j} \frac{r_{ij}}{\sigma_e^2} \frac{\partial
 m_i(T_{ij})}{\partial \boldsymbol{\theta}} + \sum_i \left[\delta_i
@@ -494,6 +508,145 @@ g(\boldsymbol{\beta}^{\top}\mathbf{Z}(t)) \\ \partial\dot{m}_{i,\theta}
 <p>where <span class="math inline">\mathbf{B}'_g(u) =
 \frac{d\mathbf{B}_g(u)}{du}</span> denotes the B-spline derivative
 basis.</p>
+</div>
+<div class="section level3">
+<h3 id="adjoint-sensitivity-analysis">Adjoint Sensitivity Analysis<a class="anchor" aria-label="anchor" href="#adjoint-sensitivity-analysis"></a>
+</h3>
+<p>While the forward sensitivity approach above requires solving
+augmented ODE systems with dimension proportional to the number of
+parameters, the adjoint method offers a more efficient alternative for
+gradient computation, especially when the number of parameters is
+large.</p>
+<div class="section level4">
+<h4 id="adjoint-method-formulation">Adjoint Method Formulation<a class="anchor" aria-label="anchor" href="#adjoint-method-formulation"></a>
+</h4>
+<p>For a general objective function <span class="math inline">J</span>
+that depends on the ODE solution: <span class="math display">J =
+\int_0^T L(t, \mathbf{s}(t), \boldsymbol{\theta}) \, dt +
+G(\mathbf{s}(T), \boldsymbol{\theta})</span></p>
+<p>where <span class="math inline">\mathbf{s}(t)</span> satisfies the
+ODE system <span class="math inline">\dot{\mathbf{s}} = f(t, \mathbf{s},
+\boldsymbol{\theta})</span>, the gradient with respect to parameters
+<span class="math inline">\boldsymbol{\theta}</span> can be computed by
+solving the adjoint equation backward in time:</p>
+<p><span class="math display">\frac{d\boldsymbol{\lambda}}{dt} =
+-\left(\frac{\partial f}{\partial \mathbf{s}}\right)^T
+\boldsymbol{\lambda} - \left(\frac{\partial L}{\partial
+\mathbf{s}}\right)^T</span></p>
+<p>with terminal condition: <span class="math display">\boldsymbol{\lambda}(T) = \left(\frac{\partial
+G}{\partial \mathbf{s}}\right)^T_{t=T}</span></p>
+<p>The gradient is then: <span class="math display">\frac{dJ}{d\boldsymbol{\theta}} = \int_0^T
+\left[\boldsymbol{\lambda}^T \frac{\partial f}{\partial
+\boldsymbol{\theta}} + \frac{\partial L}{\partial
+\boldsymbol{\theta}}\right] dt + \frac{\partial G}{\partial
+\boldsymbol{\theta}}</span></p>
+</div>
+<div class="section level4">
+<h4 id="application-to-jointode-model">Application to JointODE Model<a class="anchor" aria-label="anchor" href="#application-to-jointode-model"></a>
+</h4>
+<p>For our model, the objective function components are:</p>
+<p><strong>Longitudinal contribution:</strong> <span class="math display">J_{\text{long}} = \sum_{j=1}^{n_i}
+\frac{1}{2\sigma_e^2} (V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2</span></p>
+<p><strong>Survival contribution:</strong> <span class="math display">J_{\text{surv}} = -\delta_i \log \lambda_i(T_i|0) +
+E[e^{b_i}|\mathcal{O}_i] \Lambda_i(T_i|0)</span></p>
+<p>The adjoint equations for computing gradients with respect to <span class="math inline">\boldsymbol{\beta}</span> become:</p>
+<p><span class="math display">\frac{d\boldsymbol{\lambda}}{dt} =
+-\begin{bmatrix}
+0 &amp; 0 &amp; 0 \\
+0 &amp; -\frac{\partial g}{\partial m} \lambda_3 - \alpha_0 \lambda_1
+\lambda_i(t|0) &amp; -\lambda_2 - \frac{\partial g}{\partial \dot{m}}
+\lambda_3 - \alpha_1 \lambda_1 \lambda_i(t|0) \\
+0 &amp; 0 &amp; 0
+\end{bmatrix} \boldsymbol{\lambda} - \boldsymbol{r}(t)</span></p>
+<p>where <span class="math inline">\boldsymbol{r}(t)</span> represents
+the contribution from observation times: <span class="math display">\boldsymbol{r}(t) = \sum_{j: T_{ij} = t}
+\frac{1}{\sigma_e^2} (V_{ij} - m_i(t) - \hat{b}_i) \begin{bmatrix} 0 \\
+1 \\ 0 \end{bmatrix} \delta(t - T_{ij})</span></p>
+<p>with terminal condition at <span class="math inline">t = T_i</span>:
+<span class="math display">\boldsymbol{\lambda}(T_i) = \begin{bmatrix}
+E[e^{b_i}|\mathcal{O}_i] \\
+-\delta_i \alpha_0 / \lambda_i(T_i|0) \\
+-\delta_i \alpha_1 / \lambda_i(T_i|0)
+\end{bmatrix}</span></p>
+</div>
+<div class="section level4">
+<h4 id="advantages-of-the-adjoint-method">Advantages of the Adjoint Method<a class="anchor" aria-label="anchor" href="#advantages-of-the-adjoint-method"></a>
+</h4>
+<ol style="list-style-type: decimal">
+<li>
+<strong>Memory efficiency</strong>: Only requires storing the
+forward trajectory and adjoint variables, not sensitivities for all
+parameters</li>
+<li>
+<strong>Computational efficiency</strong>: For <span class="math inline">p</span> parameters, forward sensitivity requires
+solving <span class="math inline">3(1 + p)</span> ODEs, while adjoint
+only requires <span class="math inline">3 + 3 = 6</span> ODEs</li>
+<li>
+<strong>Numerical stability</strong>: Avoids potential numerical
+issues from simultaneously tracking many sensitivities</li>
+<li>
+<strong>Checkpointing</strong>: Can use checkpointing strategies to
+trade computation for memory</li>
+</ol>
+</div>
+<div class="section level4">
+<h4 id="implementation-considerations">Implementation Considerations<a class="anchor" aria-label="anchor" href="#implementation-considerations"></a>
+</h4>
+<p>The adjoint method requires: 1. <strong>Forward pass</strong>: Solve
+the original ODE system and store the trajectory 2. <strong>Backward
+pass</strong>: Solve the adjoint equations backward in time 3.
+<strong>Quadrature</strong>: Integrate to compute the gradient</p>
+<p>For stiff problems, implicit methods can be used for both forward and
+backward passes. The adjoint equations inherit the stiffness properties
+of the forward system, so similar numerical methods apply.</p>
+</div>
+<div class="section level4">
+<h4 id="comparison-with-forward-sensitivity">Comparison with Forward Sensitivity<a class="anchor" aria-label="anchor" href="#comparison-with-forward-sensitivity"></a>
+</h4>
+<table class="table">
+<colgroup>
+<col width="18%">
+<col width="44%">
+<col width="37%">
+</colgroup>
+<thead><tr class="header">
+<th>Aspect</th>
+<th>Forward Sensitivity</th>
+<th>Adjoint Method</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>ODEs to solve</td>
+<td><span class="math inline">3(1 + p)</span></td>
+<td><span class="math inline">3 + 3</span></td>
+</tr>
+<tr class="even">
+<td>Memory requirement</td>
+<td><span class="math inline">O(pNT)</span></td>
+<td><span class="math inline">O(NT)</span></td>
+</tr>
+<tr class="odd">
+<td>Best for</td>
+<td>Few parameters, many objectives</td>
+<td>Many parameters, few objectives</td>
+</tr>
+<tr class="even">
+<td>Implementation</td>
+<td>Simpler, single forward pass</td>
+<td>More complex, forward + backward</td>
+</tr>
+<tr class="odd">
+<td>Gradient accuracy</td>
+<td>Direct computation</td>
+<td>Requires accurate interpolation</td>
+</tr>
+</tbody>
+</table>
+<p>For the JointODE model with many spline coefficients and trajectory
+parameters, the adjoint method can provide significant computational
+savings, especially during the M-step optimization where gradients are
+computed repeatedly.</p>
+</div>
 </div>
 <div class="section level3">
 <h3 id="convergence">Convergence<a class="anchor" aria-label="anchor" href="#convergence"></a>
