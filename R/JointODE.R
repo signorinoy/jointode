@@ -140,9 +140,9 @@ JointODE <- function(
   # 1.3 Extract properties
   event_times <- vapply(data_process, `[[`, numeric(1), "time")
   n_subjects <- attr(data_process, "n_subjects")
+  n_observations <- sum(sapply(data_process, function(s) s$longitudinal$n_obs))
   subjects_with_long <- Filter(
-    function(s) s$longitudinal$n_obs > 0,
-    data_process
+    function(s) s$longitudinal$n_obs > 0, data_process
   )
   n_longitudinal_covariates <- ncol(
     subjects_with_long[[1]]$longitudinal$covariates
@@ -170,35 +170,52 @@ JointODE <- function(
   )
 
   # 2.2 Initialize coefficients
-  baseline_spline_coefficients <- numeric(spline_baseline_config$df)
-  hazard_coefficients <- numeric(n_survival_covariates + 3)
-  index_spline_coefficients <- numeric(spline_index_config$df)
-  index_coefficients <- rep(1, n_longitudinal_covariates + 3)
-  index_coefficients <- index_coefficients / sqrt(sum(index_coefficients^2))
-  measurement_error_sd <- 1e-2
-  random_effect_sd <- 1e-2
+  baseline_spline_coefficients <- rep(0, spline_baseline_config$df)
+  hazard_coefficients <- rep(0, n_survival_covariates + 3)
+  index_spline_coefficients <- rep(0, spline_index_config$df)
 
-  b_hat <- numeric(n_subjects)
+  # Initialize beta as unit vector, then convert to spherical coordinates
+  index_coefficients_init <- rnorm(n_longitudinal_covariates + 3)
+  norm_factor <- sqrt(sum(index_coefficients_init^2))
+  if (norm_factor > 1e-10) {
+    index_coefficients_init <- index_coefficients_init / norm_factor
+  } else {
+    index_coefficients_init[1] <- 1  # Default to first unit vector
+  }
+
+  # Convert to spherical coordinates for optimization
+  index_theta <- .beta_to_spherical(index_coefficients_init)
+  index_coefficients <- index_coefficients_init  # Keep beta for initial E-step
+
+  measurement_error_sd <- 1
+  random_effect_sd <- 1
+
 
   # Set control defaults
   control_settings <- list(
     method = "L-BFGS-B",
     maxit = 1000,
-    tol = 1e-6,
+    tol = 1e-2,
     verbose = FALSE
   )
   control_settings[names(control)] <- control
+  b_hat <- numeric(n_subjects)
 
-  # TODO: Implement EM algorithm for parameter estimation
-  # The following is a placeholder implementation that demonstrates the
-  # structure but does not perform actual parameter optimization
+  # Track convergence
+  old_params <- NULL
+  converged <- FALSE
+  actual_iter <- 0
+
+  # EM algorithm implementation
 
   for (iter in seq_len(control_settings$maxit)) {
+    actual_iter <- iter
     if (control_settings$verbose) {
-      message(sprintf("Iteration %d/%d", iter, control_settings$maxit))
+      print(sprintf("Iteration %d/%d", iter, control_settings$maxit))
     }
 
-    # 1. E-step: Compute posterior distributions given current parameters
+    # E-step
+    # Use current beta (already converted from theta if from M-step)
     parameters <- list(
       coef = list(
         baseline = baseline_spline_coefficients,
@@ -212,6 +229,7 @@ JointODE <- function(
       )
     )
 
+    residuals <- list()
     posteriors <- list()
     for (i in seq_len(n_subjects)) {
       subject_data <- data_process[[i]]
@@ -224,48 +242,21 @@ JointODE <- function(
         measurement_error_sd = measurement_error_sd,
         random_effect_sd = random_effect_sd
       )
+      if (subject_data$longitudinal$n_obs > 0) {
+        residuals[[subject_id]] <- subject_data$longitudinal$measurements -
+          ode_solution$biomarker
+      } else {
+        residuals[[subject_id]] <- numeric(0)
+      }
       b_hat[i] <- posteriors[[subject_id]]$b_hat
     }
 
-    # 2. M-step: Optimize parameters based on posteriors
-    par <- c(
-      baseline_spline_coefficients,
-      hazard_coefficients
-    )
+    # M-step
 
-    # 2.1 Optimize hazard coefficients
-    res_hazard <- optim(
-      par = par,
-      fn = .compute_q_eta_alpha_phi,
-      gr = .compute_q_eta_alpha_phi_grad,
-      data_list = data_process,
-      posteriors = posteriors,
-      config = list(
-        baseline = spline_baseline_config,
-        index = spline_index_config
-      ),
-      fixed_params = list(
-        index_g = index_spline_coefficients,
-        index_beta = index_coefficients
-      ),
-      method = control_settings$method,
-      control = list(trace = 1, REPORT = 1, pgtol = 1e-6, maxit = 1)
-    )
-    baseline_spline_coefficients <- res_hazard$par[
-      1:spline_baseline_config$df
-    ]
-    hazard_coefficients <- res_hazard$par[
-      (spline_baseline_config$df + 1):
-        (spline_baseline_config$df + n_survival_covariates + 3)
-    ]
-    cat("Lambda0:", baseline_spline_coefficients, "\n")
-    cat("(alpha,eta):", hazard_coefficients, "\n")
-
-    # 2.2 Optimize index coefficients
     res_index <- optim(
-      par = index_coefficients,
-      fn = .compute_q_beta,
-      gr = .compute_q_beta_grad,
+      par = index_theta,
+      fn = .compute_q_beta_constrained,
+      gr = function(p, ...) attr(.compute_q_beta_constrained(p, ...), "gradient"),
       data_list = data_process,
       posteriors = posteriors,
       config = list(
@@ -278,23 +269,97 @@ JointODE <- function(
         index_g = index_spline_coefficients,
         measurement_error_sd = measurement_error_sd
       ),
-      method = control_settings$method,
-      control = list(trace = 1, REPORT = 1, pgtol = 1e-6, maxit = 1)
+      method = "L-BFGS-B",
+      control = list(
+        maxit = 10,
+        trace = 6,
+        REPORT = 1
+      )
     )
-    index_coefficients <- res_index$par / sqrt(sum(res_index$par^2))
+    index_theta <- res_index$par
+    index_coefficients <- .spherical_to_beta(index_theta)
     cat("Beta:", index_coefficients, "\n")
 
-    # 2.3 Optimize measurement error and random effect SDs
+    # Optimize hazard coefficients
+    res_hazard <- nlm(
+      p = c(baseline_spline_coefficients, hazard_coefficients),
+      f = .compute_q_eta_alpha_phi,
+      data_list = data_process,
+      posteriors = posteriors,
+      config = list(
+        baseline = spline_baseline_config,
+        index = spline_index_config
+      ),
+      fixed_params = list(
+        index_g = index_spline_coefficients,
+        index_beta = index_coefficients
+      ),
+      iterlim = 10,
+      print.level = 2,
+      gradtol = 1e-1,
+      steptol = 1e-1,
+      check.analyticals = FALSE
+    )
+    baseline_spline_coefficients <- res_hazard$estimate[
+      1:spline_baseline_config$df
+    ]
+    hazard_coefficients <- res_hazard$estimate[
+      (spline_baseline_config$df + 1):
+        (spline_baseline_config$df + n_survival_covariates + 3)
+    ]
+    cat("Lambda0:", baseline_spline_coefficients, "\n")
+    cat("alpha:", hazard_coefficients[1:3], "\n")
+    cat("eta:", hazard_coefficients[-(1:3)], "\n")
 
-    # For now, we just break after one iteration
+    # Optimize variance components
+    measurement_error_sd <- 0
+    random_effect_sd <- 0
+    for (i in seq_len(n_subjects)) {
+      subject_data <- data_process[[i]]
+      subject_id <- names(data_process)[i]
+      residuals_i <- residuals[[subject_id]]
+      n_i <- length(residuals_i)
+      if (n_i > 0) {
+        measurement_error_sd <- measurement_error_sd +
+          sum(residuals_i^2) + n_i * posteriors[[subject_id]]$v_hat
+      }
+      random_effect_sd <- random_effect_sd +
+        posteriors[[subject_id]]$b_hat^2 + posteriors[[subject_id]]$v_hat
+    }
+    measurement_error_sd <- sqrt(measurement_error_sd / n_observations)
+    random_effect_sd <- sqrt(random_effect_sd / n_subjects)
+    cat("Sigma_e:", measurement_error_sd, "Sigma_b:", random_effect_sd, "\n")
+
+    # Check convergence
+    if (!is.null(old_params)) {
+      param_diff <- sqrt(
+        sum((baseline_spline_coefficients - old_params$baseline)^2) +
+          sum((hazard_coefficients - old_params$hazard)^2) +
+          sum((index_coefficients - old_params$index_beta)^2) +
+          (measurement_error_sd - old_params$sigma_e)^2 +
+          (random_effect_sd - old_params$sigma_b)^2
+      )
+
+      if (!is.na(param_diff) && param_diff < control_settings$tol) {
+        converged <- TRUE
+        if (control_settings$verbose) {
+          cat("Converged at iteration", iter, "\n")
+        }
+        break
+      }
+    }
+
+    # Store current parameters for next iteration
+    old_params <- list(
+      baseline = baseline_spline_coefficients,
+      hazard = hazard_coefficients,
+      index_beta = index_coefficients,
+      sigma_e = measurement_error_sd,
+      sigma_b = random_effect_sd
+    )
   }
 
-  # TODO: Add EM iteration loop here
-  # TODO: Add convergence checking
-  # TODO: Calculate final log-likelihood, AIC, BIC
-
-  # Return structure with placeholder values
-  # TODO: Populate with actual fitted values after EM convergence
+  # Return fitted model
   structure(
     list(
       coefficients = list(
@@ -309,21 +374,25 @@ JointODE <- function(
         baseline = spline_baseline_config,
         index = spline_index_config
       ),
-      logLik = NA_real_, # TODO: Calculate final log-likelihood
-      AIC = NA_real_, # TODO: Calculate AIC = -2*logLik + 2*n_params
-      BIC = NA_real_, # TODO: Calculate BIC = -2*logLik + log(n)*n_params
+      logLik = NA_real_,
+      AIC = NA_real_,
+      BIC = NA_real_,
       convergence = list(
-        converged = FALSE, # TODO: Set based on convergence criteria
-        iterations = 0, # TODO: Track actual iterations
-        message = "EM algorithm not yet implemented" # TODO: Update message
+        converged = converged,
+        iterations = actual_iter,
+        message = if (converged) {
+          "Algorithm converged"
+        } else {
+          "Maximum iterations reached"
+        }
       ),
       fitted = list(
-        longitudinal = NULL, # TODO: Store fitted longitudinal trajectories
-        survival = NULL # TODO: Store fitted survival probabilities
+        longitudinal = NULL,
+        survival = NULL
       ),
       residuals = list(
-        longitudinal = NULL, # TODO: Calculate longitudinal residuals
-        martingale = NULL # TODO: Calculate martingale residuals
+        longitudinal = residuals,
+        martingale = NULL
       ),
       random_effects = list(
         estimates = vapply(posteriors, `[[`, numeric(1), "b_hat"),
