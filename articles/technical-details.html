@@ -309,28 +309,30 @@ Q(\boldsymbol{\theta};\widehat{\boldsymbol{\psi}},
 <h2 id="computational-details">Computational Details<a class="anchor" aria-label="anchor" href="#computational-details"></a>
 </h2>
 <div class="section level3">
-<h3 id="sensitivity-analysis-forward-method">Sensitivity Analysis (Forward Method)<a class="anchor" aria-label="anchor" href="#sensitivity-analysis-forward-method"></a>
+<h3 id="sensitivity-analysis-via-forward-method">Sensitivity Analysis via Forward Method<a class="anchor" aria-label="anchor" href="#sensitivity-analysis-via-forward-method"></a>
 </h3>
-<p>The M-step requires maximization of the expected complete-data
-log-likelihood <span class="math inline">Q(\boldsymbol{\theta},\boldsymbol{\beta})</span> via
-gradient-based optimization. The gradient of the objective function
-admits an additive decomposition:</p>
+<p>The M-step in the EM algorithm requires maximization of the expected
+complete-data log-likelihood <span class="math inline">Q(\boldsymbol{\theta},\boldsymbol{\beta})</span>.
+This optimization is performed using gradient-based methods, where the
+gradient of the objective function admits a natural additive
+decomposition corresponding to the longitudinal and survival
+components:</p>
 <p><span class="math display">\nabla Q = \nabla Q_{\text{long}} + \nabla
 Q_{\text{surv}}</span></p>
 <div class="section level4">
-<h4 id="gradients">Gradients<a class="anchor" aria-label="anchor" href="#gradients"></a>
+<h4 id="gradient-computation">Gradient Computation<a class="anchor" aria-label="anchor" href="#gradient-computation"></a>
 </h4>
 <div class="section level5">
-<h5 id="gradients-with-respect-to-boldsymboltheta">Gradients with Respect to <span class="math inline">\boldsymbol{\theta}</span><a class="anchor" aria-label="anchor" href="#gradients-with-respect-to-boldsymboltheta"></a>
+<h5 id="parameter-vector-boldsymboltheta">Parameter Vector <span class="math inline">\boldsymbol{\theta}</span><a class="anchor" aria-label="anchor" href="#parameter-vector-boldsymboltheta"></a>
 </h5>
-<p>The gradient components with respect to the parameter vector <span class="math inline">\boldsymbol{\theta} = (\boldsymbol{\eta},
-\boldsymbol{\phi}, \boldsymbol{\alpha}, \boldsymbol{\gamma})</span> are
-given by:</p>
+<p>The gradient components with respect to <span class="math inline">\boldsymbol{\theta} = (\boldsymbol{\eta},
+\boldsymbol{\phi}, \boldsymbol{\alpha}, \boldsymbol{\gamma})</span>
+decompose as follows:</p>
 <p><strong>Baseline hazard coefficients</strong> (<span class="math inline">\boldsymbol{\eta}</span>): <span class="math display">\nabla_{\boldsymbol{\eta}} Q = \sum_{i=1}^{n}
 \left[\delta_i \mathbf{B}^{(\lambda)}(T_i) - E[e^{b_i}|\mathcal{O}_i]
 \frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\eta}}\right]</span></p>
 <p><strong>Baseline covariate effects</strong> (<span class="math inline">\boldsymbol{\phi}</span>): <span class="math display">\nabla_{\boldsymbol{\phi}} Q = \sum_{i=1}^{n}
-\left[\delta_i - E[e^{b_i}|\mathcal{O}_i]\Lambda_i(T_i|0)\right]
+\left[\delta_i - E[e^{b_i}|\mathcal{O}_i] \cdot \Lambda_i(T_i|0)\right]
 \mathbf{W}_i</span></p>
 <p><strong>Association parameters</strong> (<span class="math inline">\boldsymbol{\alpha}</span>): <span class="math display">\nabla_{\boldsymbol{\alpha}} Q = \sum_{i=1}^{n}
 \left[\delta_i \mathbf{m}_i(T_i) - E[e^{b_i}|\mathcal{O}_i]
@@ -346,9 +348,11 @@ E[e^{b_i}|\mathcal{O}_i] \frac{\partial \Lambda_i(T_i|0)}{\partial
 \hat{b}_i</span> denotes the residual from the longitudinal model.</p>
 </div>
 <div class="section level5">
-<h5 id="gradients-with-respect-to-boldsymbolbeta">Gradients with Respect to <span class="math inline">\boldsymbol{\beta}</span><a class="anchor" aria-label="anchor" href="#gradients-with-respect-to-boldsymbolbeta"></a>
+<h5 id="single-index-coefficients-boldsymbolbeta">Single-Index Coefficients <span class="math inline">\boldsymbol{\beta}</span><a class="anchor" aria-label="anchor" href="#single-index-coefficients-boldsymbolbeta"></a>
 </h5>
-<p>The gradient with respect to the single-index coefficients is:</p>
+<p>The gradient with respect to the constrained single-index
+coefficients (<span class="math inline">\|\boldsymbol{\beta}\|=1</span>)
+is:</p>
 <p><span class="math display">\nabla_{\boldsymbol{\beta}} Q =
 \sum_{i=1}^{n}\sum_{j=1}^{n_i} \frac{r_{ij}}{\sigma_e^2} \frac{\partial
 m_i(T_{ij})}{\partial \boldsymbol{\beta}} + \sum_{i=1}^{n}
@@ -359,7 +363,7 @@ E[e^{b_i}|\mathcal{O}_i] \frac{\partial \Lambda_i(T_i|0)}{\partial
 </div>
 </div>
 <div class="section level4">
-<h4 id="forward-sensitivity-equations">Forward Sensitivity Equations<a class="anchor" aria-label="anchor" href="#forward-sensitivity-equations"></a>
+<h4 id="sensitivity-propagation">Sensitivity Propagation<a class="anchor" aria-label="anchor" href="#sensitivity-propagation"></a>
 </h4>
 <div class="section level5">
 <h5 id="cumulative-hazard-sensitivities">Cumulative Hazard Sensitivities<a class="anchor" aria-label="anchor" href="#cumulative-hazard-sensitivities"></a>
@@ -380,9 +384,11 @@ directly, the sensitivities are computed as:</p>
 <div class="section level5">
 <h5 id="trajectory-sensitivities">Trajectory Sensitivities<a class="anchor" aria-label="anchor" href="#trajectory-sensitivities"></a>
 </h5>
-<p>The sensitivities of the biomarker trajectory with respect to model
-parameters satisfy recursive integral relationships arising from the
-hierarchical structure of the differential equation system.</p>
+<p>The biomarker trajectory sensitivities satisfy recursive integral
+relationships that arise naturally from the hierarchical structure of
+the second-order differential equation system. These sensitivities must
+be computed through the forward propagation method due to the coupling
+between trajectory dynamics and parameter dependencies.</p>
 <p><strong>Single-index coefficients (<span class="math inline">\boldsymbol{\beta}</span>):</strong></p>
 <p>The trajectory sensitivities evolve according to:</p>
 <p><span class="math display">
@@ -400,16 +406,20 @@ u}{\partial\boldsymbol{\beta}}
 </span></p>
 <p>Here, <span class="math inline">u =
 \boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)</span> denotes the single-index
-value, <span class="math inline">\mathbf{B}'_g(u) =
+value with <span class="math inline">\mathbf{Z}_i(t) = [m_i(t),
+\dot{m}_i(t), \mathbf{X}_i^{\top}(t), t]^{\top}</span> being the feature
+vector. The derivative <span class="math inline">\mathbf{B}'_g(u) =
 \frac{d\mathbf{B}_g(u)}{du}</span> represents the derivative of the
-B-spline basis, and the sensitivity of the index is:</p>
+B-spline basis. The sensitivity of the index is:</p>
 <p><span class="math display">\frac{\partial
 u}{\partial\boldsymbol{\beta}} = \mathbf{Z}_i(t) +
-\boldsymbol{\beta}^{\top} \begin{bmatrix}
-\frac{\partial m_i(t)}{\partial \boldsymbol{\beta}} &amp; \frac{\partial
-\dot{m}_i(t)}{\partial \boldsymbol{\beta}} &amp; \mathbf{0} &amp;
-\mathbf{0}
-\end{bmatrix}^{\top}</span></p>
+\boldsymbol{\beta}^{\top} \frac{\partial
+\mathbf{Z}_i(t)}{\partial\boldsymbol{\beta}}</span></p>
+<p>where <span class="math inline">\frac{\partial
+\mathbf{Z}_i(t)}{\partial\boldsymbol{\beta}} = \begin{bmatrix}
+\frac{\partial m_i(t)}{\partial \boldsymbol{\beta}} \\ \frac{\partial
+\dot{m}_i(t)}{\partial \boldsymbol{\beta}} \\ \mathbf{0} \\ 0
+\end{bmatrix}</span> since the covariates <span class="math inline">\mathbf{X}_i(t)</span> and time <span class="math inline">t</span> do not depend on <span class="math inline">\boldsymbol{\beta}</span>.</p>
 <p><strong>Acceleration spline coefficients (<span class="math inline">\boldsymbol{\gamma}</span>):</strong></p>
 <p>Similarly, the sensitivities with respect to <span class="math inline">\boldsymbol{\gamma}</span> follow:</p>
 <p><span class="math display">
@@ -420,24 +430,42 @@ u}{\partial\boldsymbol{\beta}} = \mathbf{Z}_i(t) +
 \frac{\partial \ddot{m}_i(s)}{\partial \boldsymbol{\gamma}}
 \,\mathrm{d}s
 </span></p>
-<p>The acceleration sensitivity simplifies to:</p>
+<p>The acceleration sensitivity is:</p>
 <p><span class="math display">
 \frac{\partial \ddot{m}_i(t)}{\partial \boldsymbol{\gamma}} =
-\mathbf{B}_g(u)
+\mathbf{B}_g(u) + \boldsymbol{\gamma}^{\top}\mathbf{B}'_g(u)
+\frac{\partial u}{\partial \boldsymbol{\gamma}}
 </span></p>
-<p>since the B-spline basis enters linearly in the acceleration function
-<span class="math inline">g(u) =
-\boldsymbol{\gamma}^{\top}\mathbf{B}_g(u)</span>.</p>
+<p>This expression reveals two distinct contributions: - <strong>Direct
+effect</strong>: <span class="math inline">\mathbf{B}_g(u)</span>
+captures the explicit linear dependence of the acceleration function on
+<span class="math inline">\boldsymbol{\gamma}</span> - <strong>Indirect
+effect</strong>: <span class="math inline">\boldsymbol{\gamma}^{\top}\mathbf{B}'_g(u)
+\frac{\partial u}{\partial \boldsymbol{\gamma}}</span> accounts for the
+implicit dependence through the feedback of trajectory states</p>
+<p>The index sensitivity is:</p>
+<p><span class="math display">\frac{\partial u}{\partial
+\boldsymbol{\gamma}} = \boldsymbol{\beta}^{\top} \frac{\partial
+\mathbf{Z}_i(t)}{\partial \boldsymbol{\gamma}} =
+\boldsymbol{\beta}^{\top} \begin{bmatrix}
+\frac{\partial m_i(t)}{\partial \boldsymbol{\gamma}} \\ \frac{\partial
+\dot{m}_i(t)}{\partial \boldsymbol{\gamma}} \\ \mathbf{0} \\ 0
+\end{bmatrix}</span></p>
+<p>This dual dependence structure—explicit through the linear
+combination and implicit through the state feedback—is a key feature of
+the single-index acceleration model.</p>
 </div>
 </div>
 <div class="section level4">
-<h4 id="augmented-ode-systems">Augmented ODE Systems<a class="anchor" aria-label="anchor" href="#augmented-ode-systems"></a>
+<h4 id="computational-implementation-via-augmented-ode-systems">Computational Implementation via Augmented ODE Systems<a class="anchor" aria-label="anchor" href="#computational-implementation-via-augmented-ode-systems"></a>
 </h4>
-<p>The computation of these gradients requires solving augmented ODE
-systems that simultaneously track the state variables and their
-sensitivities.</p>
-<p><strong>Combined system for <span class="math inline">\boldsymbol{\theta}</span>
-sensitivities:</strong></p>
+<p>The practical computation of these gradients necessitates solving
+augmented ordinary differential equation systems that simultaneously
+evolve both the primary state variables and their parameter
+sensitivities. This approach, known as the forward sensitivity method,
+extends the original three-dimensional state space to include
+sensitivity trajectories.</p>
+<p><strong>Augmented system for <span class="math inline">\boldsymbol{\theta}</span> components:</strong></p>
 <p><span class="math display">\frac{d}{dt}\begin{bmatrix}
 \Lambda_i \\ m_i \\ \dot{m}_i \\ \partial\Lambda_{\eta,i} \\
 \partial\Lambda_{\alpha,i} \\ \partial m_{i,\gamma} \\
@@ -449,11 +477,12 @@ g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t))  \\
 \mathbf{B}^{(\lambda)}(t) \lambda_i(t|0) \\
 \mathbf{m}_i(t) \lambda_i(t|0) \\
 \partial\dot{m}_{i,\gamma} \\
-\mathbf{B}_g(u) \\
+\mathbf{B}_g(u) + \boldsymbol{\gamma}^{\top}\mathbf{B}'_g(u) \cdot
+\frac{\partial u}{\partial \boldsymbol{\gamma}} \\
 \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\gamma}}
 \lambda_i(t|0)
 \end{bmatrix}</span></p>
-<p><strong>Combined system for <span class="math inline">\boldsymbol{\beta}</span>
+<p><strong>Augmented system for <span class="math inline">\boldsymbol{\beta}</span>
 sensitivities:</strong></p>
 <p><span class="math display">\frac{d}{dt}\begin{bmatrix}
 \Lambda_i \\ m_i \\ \dot{m}_i \\ \partial m_{i,\beta} \\
@@ -463,16 +492,19 @@ sensitivities:</strong></p>
 \dot{m}_i(t) \\
 g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)) \\
 \partial \dot{m}_{i,\beta} \\
-\boldsymbol{\gamma}^{\top}\mathbf{B}'_g(u) \left(\mathbf{Z}_i(t) +
-\boldsymbol{\beta}^{\top}\frac{\partial\mathbf{Z}_i(t)}{\partial\boldsymbol{\beta}}\right)
-\\
+\boldsymbol{\gamma}^{\top}\mathbf{B}'_g(u) \cdot \frac{\partial
+u}{\partial\boldsymbol{\beta}} \\
 \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}}
-\lambda_i(t|0)
+\cdot \lambda_i(t|0)
 \end{bmatrix}</span></p>
-<p>where <span class="math inline">\partial\Lambda_{\eta,i}</span>,
+<p>Here, <span class="math inline">\partial\Lambda_{\eta,i}</span>,
 <span class="math inline">\partial\Lambda_{\alpha,i}</span>, <span class="math inline">\partial\Lambda_{\gamma,i}</span>, and <span class="math inline">\partial\Lambda_{\beta,i}</span> denote the
-sensitivities of the cumulative hazard with respect to the corresponding
-parameters.</p>
+cumulative hazard sensitivities with respect to the corresponding
+parameter groups, while <span class="math inline">\frac{\partial
+u}{\partial\boldsymbol{\beta}}</span> follows the recursive relationship
+defined previously. These augmented systems must be integrated from
+<span class="math inline">t=0</span> to <span class="math inline">t=T_i</span> for each subject to obtain the complete
+sensitivity information required for gradient computation.</p>
 </div>
 </div>
 <div class="section level3">
@@ -529,10 +561,13 @@ the contribution from observation times: <span class="math display">\boldsymbol{
 \frac{1}{\sigma_e^2} (V_{ij} - m_i(t) - \hat{b}_i) \begin{bmatrix} 0 \\
 1 \\ 0 \end{bmatrix} \delta(t - T_{ij})</span></p>
 <p>with terminal condition at <span class="math inline">t = T_i</span>:
-<span class="math display">\boldsymbol{\lambda}(T_i) = \begin{bmatrix}
+<span class="math display">\boldsymbol{\lambda}(T_i) =
+\frac{\partial}{\partial \mathbf{s}} \left[-\delta_i \log
+\lambda_i(T_i|0) + E[e^{b_i}|\mathcal{O}_i]
+\Lambda_i(T_i|0)\right]_{t=T_i} = \begin{bmatrix}
 E[e^{b_i}|\mathcal{O}_i] \\
--\delta_i \alpha_0 / \lambda_i(T_i|0) \\
--\delta_i \alpha_1 / \lambda_i(T_i|0)
+-\delta_i \frac{\alpha_0}{\lambda_i(T_i|0)} \\
+-\delta_i \frac{\alpha_1}{\lambda_i(T_i|0)}
 \end{bmatrix}</span></p>
 </div>
 </div>
