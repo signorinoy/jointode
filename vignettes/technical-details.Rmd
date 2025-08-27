@@ -154,11 +154,21 @@ $$
 
 ## Computational Details
 
+### Overview of Gradient Computation
+
+The M-step in the EM algorithm requires maximization of the expected complete-data log-likelihood $Q(\boldsymbol{\psi})$ where $\boldsymbol{\psi} = (\boldsymbol{\theta}, \boldsymbol{\beta})$. The gradient is:
+
+$$\nabla_{\boldsymbol{\psi}} Q = \sum_{j=1}^{n_i} \frac{r_{ij}}{\sigma_e^2} \frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\psi}} - E[e^{b_i}|\mathcal{O}_i] \frac{\partial \Lambda_i(T_i)}{\partial \boldsymbol{\psi}}$$
+
+where $r_{ij} = V_{ij} - m_i(T_{ij}) - \hat{b}_i$ is the residual.
+
+The key computational challenge is obtaining the state sensitivities:
+- $\frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\psi}}$ at each observation time $T_{ij}$
+- $\frac{\partial \Lambda_i(T_i)}{\partial \boldsymbol{\psi}}$ at the event time $T_i$
+
+Two approaches are available: the forward sensitivity method and the adjoint method.
+
 ### Sensitivity Analysis via Forward Method
-
-The M-step in the EM algorithm requires maximization of the expected complete-data log-likelihood $Q(\boldsymbol{\theta},\boldsymbol{\beta})$. This optimization is performed using gradient-based methods, where the gradient of the objective function admits a natural additive decomposition corresponding to the longitudinal and survival components:
-
-$$\nabla Q = \nabla Q_{\text{long}} + \nabla Q_{\text{surv}}$$
 
 #### Gradient Computation
 
@@ -294,47 +304,66 @@ Here, $\partial\Lambda_{\eta,i}$, $\partial\Lambda_{\alpha,i}$, $\partial\Lambda
 
 ### Adjoint Sensitivity Analysis
 
-While the forward sensitivity approach above requires solving augmented ODE systems with dimension proportional to the number of parameters, the adjoint method offers a more efficient alternative for gradient computation, especially when the number of parameters is large.
+The adjoint method provides an alternative, more memory-efficient approach to compute the same state sensitivities, especially when the number of parameters is large.
 
-#### Adjoint Method Formulation
+#### Mathematical Foundation
 
-For a general objective function $J$ that depends on the ODE solution:
-$$J = \int_0^T L(t, \mathbf{s}(t), \boldsymbol{\theta}) \, dt + G(\mathbf{s}(T), \boldsymbol{\theta})$$
+Given the ODE system $\frac{d\mathbf{s}}{dt} = f(t, \mathbf{s}; \boldsymbol{\psi})$ with $\mathbf{s}(0) = \mathbf{s}_0$, we derive the adjoint sensitivity formula.
 
-where $\mathbf{s}(t)$ satisfies the ODE system $\dot{\mathbf{s}} = f(t, \mathbf{s}, \boldsymbol{\theta})$, the gradient with respect to parameters $\boldsymbol{\theta}$ can be computed by solving the adjoint equation backward in time:
+Since $\mathbf{s}(t)$ satisfies the ODE, for any function $\boldsymbol{\kappa}(t)$:
+$$\mathbf{s}(T) = \mathbf{s}(T) - \int_0^T \boldsymbol{\kappa}^{\top} \left[\frac{d\mathbf{s}}{dt} - f\right] dt$$
 
-$$\frac{d\boldsymbol{\lambda}}{dt} = -\left(\frac{\partial f}{\partial \mathbf{s}}\right)^T \boldsymbol{\lambda} - \left(\frac{\partial L}{\partial \mathbf{s}}\right)^T$$
+Differentiating with respect to $\boldsymbol{\psi}$ and using integration by parts:
+$$\frac{\partial \mathbf{s}(T)}{\partial \boldsymbol{\psi}} = \int_0^T \boldsymbol{\kappa}^{\top} \frac{\partial f}{\partial \boldsymbol{\psi}} dt - \boldsymbol{\kappa}(T)^{\top} \frac{\partial \mathbf{s}(T)}{\partial \boldsymbol{\psi}} + \int_0^T \left[\frac{d\boldsymbol{\kappa}}{dt} + \left(\frac{\partial f}{\partial \mathbf{s}}\right)^{\top} \boldsymbol{\kappa}\right]^{\top} \frac{\partial \mathbf{s}}{\partial \boldsymbol{\psi}} dt$$
 
-with terminal condition:
-$$\boldsymbol{\lambda}(T) = \left(\frac{\partial G}{\partial \mathbf{s}}\right)^T_{t=T}$$
+Define $\tilde{\boldsymbol{\kappa}} = \boldsymbol{\kappa} + \mathbf{e}_k$ and choose it to satisfy:
+$$\frac{d\tilde{\boldsymbol{\kappa}}}{dt} = -\left(\frac{\partial f}{\partial \mathbf{s}}\right)^{\top} \tilde{\boldsymbol{\kappa}}, \quad \tilde{\boldsymbol{\kappa}}(T) = \mathbf{e}_k$$
 
-The gradient is then:
-$$\frac{dJ}{d\boldsymbol{\theta}} = \int_0^T \left[\boldsymbol{\lambda}^T \frac{\partial f}{\partial \boldsymbol{\theta}} + \frac{\partial L}{\partial \boldsymbol{\theta}}\right] dt + \frac{\partial G}{\partial \boldsymbol{\theta}}$$
+This choice eliminates the $\frac{\partial \mathbf{s}}{\partial \boldsymbol{\psi}}$ terms, yielding:
+$$\frac{\partial \mathbf{s}_k(T)}{\partial \boldsymbol{\psi}} = \int_0^T \tilde{\boldsymbol{\kappa}}^{\top} \frac{\partial f}{\partial \boldsymbol{\psi}}\bigg|_{\mathbf{s}} dt$$
 
-#### Application to JointODE Model
+where $\mathbf{e}_k$ is the $k$-th unit vector (i.e., a vector with 1 in the $k$-th position and 0 elsewhere).
 
-For our model, the objective function components are:
+#### Application to JointODE
 
-**Longitudinal contribution:**
-$$J_{\text{long}} = \sum_{j=1}^{n_i} \frac{1}{2\sigma_e^2} (V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2$$
+For the state vector $\mathbf{s} = [\Lambda_i, m_i, \dot{m}_i]^{\top}$, we need:
+1. $\frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\psi}}$ for each observation time $T_{ij}$
+2. $\frac{\partial \Lambda_i(T_i)}{\partial \boldsymbol{\psi}}$ for the event time $T_i$
 
-**Survival contribution:**
-$$J_{\text{surv}} = -\delta_i \log \lambda_i(T_i|0) + E[e^{b_i}|\mathcal{O}_i] \Lambda_i(T_i|0)$$
+##### Adjoint System
 
-The adjoint equations for computing gradients with respect to $\boldsymbol{\beta}$ become:
-
-$$\frac{d\boldsymbol{\lambda}}{dt} = -\begin{bmatrix}
+The transposed Jacobian for the JointODE dynamics is:
+$$\left(\frac{\partial f}{\partial \mathbf{s}}\right)^{\top} = \begin{bmatrix}
 0 & 0 & 0 \\
-0 & -\frac{\partial g}{\partial m} \lambda_3 - \alpha_0 \lambda_1 \lambda_i(t|0) & -\lambda_2 - \frac{\partial g}{\partial \dot{m}} \lambda_3 - \alpha_1 \lambda_1 \lambda_i(t|0) \\
-0 & 0 & 0
-\end{bmatrix} \boldsymbol{\lambda} - \boldsymbol{r}(t)$$
-
-where $\boldsymbol{r}(t)$ represents the contribution from observation times:
-$$\boldsymbol{r}(t) = \sum_{j: T_{ij} = t} \frac{1}{\sigma_e^2} (V_{ij} - m_i(t) - \hat{b}_i) \begin{bmatrix} 0 \\ 1 \\ 0 \end{bmatrix} \delta(t - T_{ij})$$
-
-with terminal condition at $t = T_i$:
-$$\boldsymbol{\lambda}(T_i) = \frac{\partial}{\partial \mathbf{s}} \left[-\delta_i \log \lambda_i(T_i|0) + E[e^{b_i}|\mathcal{O}_i] \Lambda_i(T_i|0)\right]_{t=T_i} = \begin{bmatrix}
-E[e^{b_i}|\mathcal{O}_i] \\
--\delta_i \frac{\alpha_0}{\lambda_i(T_i|0)} \\
--\delta_i \frac{\alpha_1}{\lambda_i(T_i|0)}
+\alpha_0 \lambda_i(t|0) & 0 & g'(u) \beta_1 \\
+\alpha_1 \lambda_i(t|0) & 1 & g'(u) \beta_2
 \end{bmatrix}$$
+
+where $g'(u) = \boldsymbol{\gamma}^{\top}\mathbf{B}'_g(u)$ denotes the derivative of the acceleration function at $u = \boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)$.
+
+This yields the adjoint differential equations (solved backward in time):
+$$\begin{aligned}
+\frac{d\tilde{\kappa}_1}{dt} &= 0 \\
+\frac{d\tilde{\kappa}_2}{dt} &= -\alpha_0 \lambda_i(t|0) \tilde{\kappa}_1 - \tilde{\kappa}_3 \\
+\frac{d\tilde{\kappa}_3}{dt} &= -\alpha_1 \lambda_i(t|0) \tilde{\kappa}_1 - g'(u) \beta_1 \tilde{\kappa}_2 - g'(u) \beta_2 \tilde{\kappa}_3
+\end{aligned}$$
+
+with terminal conditions:
+
+- For $m_i(T_{ij})$ sensitivity: $\tilde{\boldsymbol{\kappa}}(T_{ij}) = [0, 1, 0]^{\top}$
+- For $\Lambda_i(T_i)$ sensitivity: $\tilde{\boldsymbol{\kappa}}(T_i) = [1, 0, 0]^{\top}$
+
+##### Parameter Derivatives
+
+The partial derivatives $\frac{\partial f}{\partial \boldsymbol{\psi}}\bigg|_{\mathbf{s}}$ needed for the sensitivity integrals:
+
+**Trajectory parameters:**
+
+- Single-index coefficients: $\frac{\partial f}{\partial \boldsymbol{\beta}} = [0, 0, g'(u) \mathbf{Z}_i(t)]^{\top}$
+- Acceleration basis coefficients: $\frac{\partial f}{\partial \boldsymbol{\gamma}} = [0, 0, \mathbf{B}_g(u)]^{\top}$
+
+**Survival parameters:**
+
+- Baseline hazard coefficients: $\frac{\partial f}{\partial \boldsymbol{\eta}} = [\mathbf{B}^{(\lambda)}(t) \lambda_i(t|0), 0, 0]^{\top}$
+- Association parameters: $\frac{\partial f}{\partial \boldsymbol{\alpha}} = [\mathbf{m}_i(t) \lambda_i(t|0), 0, 0]^{\top}$
+- Baseline covariate effects: $\frac{\partial f}{\partial \boldsymbol{\phi}} = [\mathbf{W}_i \lambda_i(t|0), 0, 0]^{\top}$
