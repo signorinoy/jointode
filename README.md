@@ -7,9 +7,9 @@
 
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
-[![R-CMD-check](https://github.com/signorinoy/JointODE/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/signorinoy/JointODE/actions/workflows/R-CMD-check.yaml)
+[![R-CMD-check](https://github.com/ziyangg98/JointODE/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ziyangg98/JointODE/actions/workflows/R-CMD-check.yaml)
 [![Codecov test
-coverage](https://codecov.io/gh/signorinoy/JointODE/graph/badge.svg)](https://app.codecov.io/gh/signorinoy/JointODE)
+coverage](https://codecov.io/gh/ziyangg98/JointODE/graph/badge.svg)](https://app.codecov.io/gh/ziyangg98/JointODE)
 
 <!-- badges: end -->
 
@@ -73,7 +73,7 @@ You can install the development version of JointODE from
 
 ``` r
 # install.packages("pak")
-pak::pak("signorinoy/JointODE")
+pak::pak("ziyangg98/JointODE")
 ```
 
 ## Example

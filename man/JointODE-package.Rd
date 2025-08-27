@@ -10,9 +10,9 @@ Implements joint modeling of longitudinal biomarker trajectories and time-to-eve
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/signorinoy/JointODE}
+  \item \url{https://github.com/ziyangg98/JointODE}
   \item \url{http://gongziyang.com/JointODE/}
-  \item Report bugs at \url{https://github.com/signorinoy/JointODE/issues}
+  \item Report bugs at \url{https://github.com/ziyangg98/JointODE/issues}
 }
 
 }

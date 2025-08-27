@@ -23,7 +23,7 @@ The `JointODE` package implements joint modeling of longitudinal biomarker traje
 
 ```{r setup}
 # Install from GitHub
-devtools::install_github("signorinoy/JointODE")
+devtools::install_github("ziyangg98/JointODE")
 
 # Load the package
 library(JointODE)
