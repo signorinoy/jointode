@@ -71,7 +71,7 @@ with initial conditions $\mathbf{s}_i(0) = (0, m_{i0}, \dot{m}_{i0})^{\top}$, wh
 
 ## Statistical Inference
 
-For parameter estimation, we need to specify parametric forms for the model components. 
+For parameter estimation, we need to specify parametric forms for the model components.
 
 ### Model Parameterization
 
@@ -107,13 +107,13 @@ where $\boldsymbol{\psi} = (\boldsymbol{\theta}, \boldsymbol{\beta})$, with $\bo
 
 **Likelihood Components:**
 
-1. **Longitudinal:** 
+1. **Longitudinal:**
    $$p(\mathbf{V}_i | b_i) = \prod_{j=1}^{n_i} \mathcal{N}(V_{ij}; m_i(T_{ij}) + b_i, \sigma_e^2)$$
-   
-2. **Survival:** 
+
+2. **Survival:**
    $$p(T_i, \delta_i | b_i) = [\lambda_i(T_i|b_i)]^{\delta_i} \exp[-\Lambda_i(T_i|b_i)]$$
-   
-3. **Random Effect:** 
+
+3. **Random Effect:**
    $$p(b_i) \sim \mathcal{N}(0, \sigma_b^2)$$
 
 ### EM Algorithm
@@ -308,13 +308,13 @@ The forward method extends the original three-dimensional state space to include
 $$\frac{d}{dt}\begin{bmatrix}
 \Lambda_i \\ m_i \\ \dot{m}_i \\ \partial\Lambda_{\eta,i} \\ \partial\Lambda_{\alpha,i} \\ \partial m_{i,\gamma} \\ \partial\dot{m}_{i,\gamma} \\ \partial\Lambda_{\gamma,i}
 \end{bmatrix} = \begin{bmatrix}
-\lambda_i(t|0) \\ 
-\dot{m}_i(t) \\ 
-g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t))  \\ 
-\mathbf{B}^{(\lambda)}(t) \lambda_i(t|0) \\ 
-\mathbf{m}_i(t) \lambda_i(t|0) \\ 
-\partial\dot{m}_{i,\gamma} \\ 
-\mathbf{B}_g(u) + \boldsymbol{\gamma}^{\top}\mathbf{B}'_g(u) \cdot \frac{\partial u}{\partial \boldsymbol{\gamma}} \\ 
+\lambda_i(t|0) \\
+\dot{m}_i(t) \\
+g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t))  \\
+\mathbf{B}^{(\lambda)}(t) \lambda_i(t|0) \\
+\mathbf{m}_i(t) \lambda_i(t|0) \\
+\partial\dot{m}_{i,\gamma} \\
+\mathbf{B}_g(u) + \boldsymbol{\gamma}^{\top}\mathbf{B}'_g(u) \cdot \frac{\partial u}{\partial \boldsymbol{\gamma}} \\
 \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\gamma}} \lambda_i(t|0)
 \end{bmatrix}$$
 
@@ -323,11 +323,11 @@ g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t))  \\
 $$\frac{d}{dt}\begin{bmatrix}
 \Lambda_i \\ m_i \\ \dot{m}_i \\ \partial m_{i,\beta} \\ \partial\dot{m}_{i,\beta} \\ \partial\Lambda_{\beta,i}
 \end{bmatrix} = \begin{bmatrix}
-\lambda_i(t|0) \\ 
-\dot{m}_i(t) \\ 
-g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)) \\ 
-\partial \dot{m}_{i,\beta} \\ 
-\boldsymbol{\gamma}^{\top}\mathbf{B}'_g(u) \cdot \frac{\partial u}{\partial\boldsymbol{\beta}} \\ 
+\lambda_i(t|0) \\
+\dot{m}_i(t) \\
+g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)) \\
+\partial \dot{m}_{i,\beta} \\
+\boldsymbol{\gamma}^{\top}\mathbf{B}'_g(u) \cdot \frac{\partial u}{\partial\boldsymbol{\beta}} \\
 \boldsymbol{\alpha}^{\top}\frac{\partial\mathbf{m}_i(t)}{\partial\boldsymbol{\beta}} \cdot \lambda_i(t|0)
 \end{bmatrix}$$
 
