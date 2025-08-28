@@ -144,9 +144,11 @@ JointODE <- function(
   subjects_with_long <- Filter(
     function(s) s$longitudinal$n_obs > 0, data_process
   )
-  n_longitudinal_covariates <- ncol(
-    subjects_with_long[[1]]$longitudinal$covariates
-  )
+  n_longitudinal_covariates <- if (length(subjects_with_long) > 0) {
+    ncol(subjects_with_long[[1]]$longitudinal$covariates)
+  } else {
+    0
+  }
   n_survival_covariates <- ncol(data_process[[1]]$covariates)
 
   # 2. Initialize parameters
@@ -180,12 +182,12 @@ JointODE <- function(
   if (norm_factor > 1e-10) {
     index_coefficients_init <- index_coefficients_init / norm_factor
   } else {
-    index_coefficients_init[1] <- 1  # Default to first unit vector
+    index_coefficients_init[1] <- 1 # Default to first unit vector
   }
 
   # Convert to spherical coordinates for optimization
   index_theta <- .beta_to_spherical(index_coefficients_init)
-  index_coefficients <- index_coefficients_init  # Keep beta for initial E-step
+  index_coefficients <- index_coefficients_init # Keep beta for initial E-step
 
   measurement_error_sd <- 1
   random_effect_sd <- 1
@@ -231,6 +233,12 @@ JointODE <- function(
 
     residuals <- list()
     posteriors <- list()
+
+    # Pre-allocate vectors for posterior quantities
+    posterior_mean_b <- numeric(n_subjects)
+    posterior_variance_b <- numeric(n_subjects)
+    posterior_expectation_exp_b <- numeric(n_subjects)
+
     for (i in seq_len(n_subjects)) {
       subject_data <- data_process[[i]]
       subject_id <- names(data_process)[i]
@@ -248,17 +256,29 @@ JointODE <- function(
       } else {
         residuals[[subject_id]] <- numeric(0)
       }
-      b_hat[i] <- posteriors[[subject_id]]$b_hat
+
+      # Store posterior quantities in vectors
+      posterior_mean_b[i] <- posteriors[[subject_id]]$b_hat
+      posterior_variance_b[i] <- posteriors[[subject_id]]$v_hat
+      posterior_expectation_exp_b[i] <- posteriors[[subject_id]]$exp_b
+      b_hat[i] <- posterior_mean_b[i]
     }
+
+    # Create posteriors structure for efficient access (all subjects)
+    posteriors_summary <- list(
+      mean_b = posterior_mean_b,
+      variance_b = posterior_variance_b,
+      expectation_exp_b = posterior_expectation_exp_b
+    )
 
     # M-step
 
     res_index <- optim(
       par = index_theta,
-      fn = .compute_q_beta_constrained,
-      gr = function(p, ...) attr(.compute_q_beta_constrained(p, ...), "gradient"),
+      fn = .compute_objective_beta,
+      grad = .compute_grad_beta_forward,
       data_list = data_process,
-      posteriors = posteriors,
+      posteriors = posteriors_summary,
       config = list(
         baseline = spline_baseline_config,
         index = spline_index_config
@@ -272,20 +292,40 @@ JointODE <- function(
       method = "L-BFGS-B",
       control = list(
         maxit = 10,
-        trace = 6,
-        REPORT = 1
+        trace = if (control_settings$verbose) 1 else 0,
+        REPORT = if (control_settings$verbose) 1 else 10
       )
     )
     index_theta <- res_index$par
     index_coefficients <- .spherical_to_beta(index_theta)
-    cat("Beta:", index_coefficients, "\n")
+
+    # Validate beta constraint ||beta|| = 1
+    beta_norm <- sqrt(sum(index_coefficients^2))
+    if (abs(beta_norm - 1) > 1e-10) {
+      warning(
+        sprintf(
+          "Beta constraint violation: ||beta|| = %.6f, expected 1.0", beta_norm
+        )
+      )
+      index_coefficients <- index_coefficients / beta_norm  # Normalize
+    }
+
+    if (control_settings$verbose) {
+      cat("Beta:", index_coefficients, "\n")
+    }
 
     # Optimize hazard coefficients
-    res_hazard <- nlm(
-      p = c(baseline_spline_coefficients, hazard_coefficients),
-      f = .compute_q_eta_alpha_phi,
+    par <- c(
+      baseline_spline_coefficients,
+      hazard_coefficients,
+      index_spline_coefficients
+    )
+    res_hazard <- optim(
+      par = par,
+      fn = .compute_objective_theta,
+      gr = .compute_grad_theta_forward,
       data_list = data_process,
-      posteriors = posteriors,
+      posteriors = posteriors_summary,
       config = list(
         baseline = spline_baseline_config,
         index = spline_index_config
@@ -294,41 +334,51 @@ JointODE <- function(
         index_g = index_spline_coefficients,
         index_beta = index_coefficients
       ),
-      iterlim = 10,
-      print.level = 2,
-      gradtol = 1e-1,
-      steptol = 1e-1,
-      check.analyticals = FALSE
+      method = "L-BFGS-B",
+      control = list(
+        maxit = 10,
+        trace = if (control_settings$verbose) 1 else 0,
+        REPORT = if (control_settings$verbose) 1 else 10
+      )
     )
-    baseline_spline_coefficients <- res_hazard$estimate[
+    baseline_spline_coefficients <- res_hazard$par[
       1:spline_baseline_config$df
     ]
-    hazard_coefficients <- res_hazard$estimate[
+    hazard_coefficients <- res_hazard$par[
       (spline_baseline_config$df + 1):
         (spline_baseline_config$df + n_survival_covariates + 3)
     ]
-    cat("Lambda0:", baseline_spline_coefficients, "\n")
-    cat("alpha:", hazard_coefficients[1:3], "\n")
-    cat("eta:", hazard_coefficients[-(1:3)], "\n")
+    if (control_settings$verbose) {
+      cat("Lambda0:", baseline_spline_coefficients, "\n")
+      cat("alpha:", hazard_coefficients[1:3], "\n")
+      cat("eta:", hazard_coefficients[-(1:3)], "\n")
+    }
 
     # Optimize variance components
-    measurement_error_sd <- 0
-    random_effect_sd <- 0
+    measurement_error_variance <- 0
+    random_effect_variance <- 0
     for (i in seq_len(n_subjects)) {
       subject_data <- data_process[[i]]
       subject_id <- names(data_process)[i]
       residuals_i <- residuals[[subject_id]]
       n_i <- length(residuals_i)
       if (n_i > 0) {
-        measurement_error_sd <- measurement_error_sd +
+        measurement_error_variance <- measurement_error_variance +
           sum(residuals_i^2) + n_i * posteriors[[subject_id]]$v_hat
       }
-      random_effect_sd <- random_effect_sd +
-        posteriors[[subject_id]]$b_hat^2 + posteriors[[subject_id]]$v_hat
+      random_effect_variance <- random_effect_variance +
+        posterior_mean_b[i]^2 + posterior_variance_b[i]
     }
-    measurement_error_sd <- sqrt(measurement_error_sd / n_observations)
-    random_effect_sd <- sqrt(random_effect_sd / n_subjects)
-    cat("Sigma_e:", measurement_error_sd, "Sigma_b:", random_effect_sd, "\n")
+    measurement_error_sd <- sqrt(
+      measurement_error_variance / max(n_observations, 1)
+    )
+    random_effect_sd <- sqrt(random_effect_variance / n_subjects)
+    if (control_settings$verbose) {
+      cat(
+        "Sigma_e:", measurement_error_sd,
+        "Sigma_b:", random_effect_sd, "\n"
+      )
+    }
 
     # Check convergence
     if (!is.null(old_params)) {
