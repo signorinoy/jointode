@@ -4,7 +4,6 @@
 .validate <- function(
     longitudinal_formula, longitudinal_data, survival_formula, survival_data,
     id, time, spline_baseline = list(), spline_index = list()) {
-  # Validate input types
   stopifnot(
     "longitudinal_formula must be a formula" =
       inherits(longitudinal_formula, "formula"),
@@ -22,13 +21,11 @@
     "spline_index must be a list" = is.list(spline_index)
   )
 
-  # Validate data dimensions
   stopifnot(
     "Longitudinal data has no rows" = nrow(longitudinal_data) > 0,
     "Survival data has no rows" = nrow(survival_data) > 0
   )
 
-  # Check required variables
   if (!id %in% names(longitudinal_data)) {
     stop(sprintf("ID variable '%s' not found in longitudinal data", id))
   }
@@ -40,7 +37,6 @@
     stop(sprintf("ID variable '%s' not found in survival data", id))
   }
 
-  # Parse survival formula
   surv_response <- survival_formula[[2]]
   if (!inherits(surv_response, "call") ||
         !identical(as.character(surv_response[[1]]), "Surv")) {
@@ -55,8 +51,6 @@
   time_var <- surv_call_vars[1]
   status_var <- surv_call_vars[2]
 
-  # === Step 5: Validate formula variables exist in data ===
-  # Check longitudinal formula variables
   long_vars <- all.vars(longitudinal_formula)
   missing_long_vars <- setdiff(long_vars, names(longitudinal_data))
   if (length(missing_long_vars) > 0) {
@@ -66,7 +60,6 @@
     ))
   }
 
-  # Check survival formula variables
   surv_vars <- all.vars(survival_formula)
   missing_surv_vars <- setdiff(surv_vars, names(survival_data))
   if (length(missing_surv_vars) > 0) {
@@ -76,9 +69,7 @@
     ))
   }
 
-  # === Step 6: Validate data integrity ===
 
-  # Check for missing values in critical columns
   critical_cols <- list(
     "ID in longitudinal data" = longitudinal_data[[id]],
     "Time in longitudinal data" = longitudinal_data[[time]],
@@ -91,7 +82,6 @@
     }
   }
 
-  # Check for duplicate survival records
   if (any(duplicated(survival_data[[id]]))) {
     stop(paste(
       "Duplicate IDs found in survival data -",
@@ -99,11 +89,9 @@
     ))
   }
 
-  # === Step 7: Validate ID consistency ===
   long_ids <- unique(longitudinal_data[[id]])
   surv_ids <- unique(survival_data[[id]])
 
-  # Check for orphaned longitudinal data
   orphaned_ids <- setdiff(long_ids, surv_ids)
   if (length(orphaned_ids) > 0) {
     stop(sprintf(
@@ -112,7 +100,6 @@
     ))
   }
 
-  # Warn about missing longitudinal data
   missing_long <- setdiff(surv_ids, long_ids)
   if (length(missing_long) > 0) {
     warning(sprintf(
@@ -121,19 +108,15 @@
     ))
   }
 
-  # === Step 8: Validate time values ===
 
-  # Check longitudinal times are non-negative
   if (any(longitudinal_data[[time]] < 0, na.rm = TRUE)) {
     stop("Negative time values found in longitudinal data")
   }
 
-  # Check survival times are positive
   if (any(survival_data[[time_var]] <= 0, na.rm = TRUE)) {
     stop("Invalid observation times in survival data (must be positive)")
   }
 
-  # Check for measurements beyond observation time
   subjects_with_late_obs <- character()
   for (subject_id in long_ids) {
     if (subject_id %in% surv_ids) {
@@ -155,7 +138,6 @@
     ))
   }
 
-  # === Step 9: Validate status values ===
   unique_status <- unique(survival_data[[status_var]])
   invalid_status <- setdiff(unique_status, c(0, 1, NA))
 
@@ -170,7 +152,6 @@
     stop("Missing values in status variable")
   }
 
-  # === Step 10: Check observation frequency ===
   observations_per_subject <- table(longitudinal_data[[id]])
   if (all(observations_per_subject == 1)) {
     warning(paste(
@@ -179,8 +160,6 @@
     ))
   }
 
-  # === Step 11: Validate spline parameters ===
-  # Validate spline_baseline
   valid_baseline_params <- c(
     "degree", "n_knots", "knot_placement", "boundary_knots"
   )
@@ -308,13 +287,11 @@
 .process <- function(
     longitudinal_formula, longitudinal_data, survival_formula, survival_data,
     id, time) {
-  # Pre-allocate with unique IDs
   unique_ids <- unique(survival_data[[id]])
   n_subjects <- length(unique_ids)
   data_process <- vector("list", n_subjects)
   names(data_process) <- as.character(unique_ids)
 
-  # Parse survival model once
   surv_frame <- model.frame(survival_formula, data = survival_data)
   surv_response_matrix <- model.response(surv_frame)
   has_surv_covs <- length(all.vars(survival_formula[[3]])) > 0 &&
@@ -326,7 +303,6 @@
   }
 
 
-  # Build index maps for O(1) lookup
   survival_index_map <- match(unique_ids, survival_data[[id]])
   long_id_groups <- split(
     seq_len(nrow(longitudinal_data)), longitudinal_data[[id]]
@@ -335,18 +311,13 @@
   for (i in seq_along(unique_ids)) {
     sid <- as.character(unique_ids[i])
 
-    # Process longitudinal data if exists
     long_rows <- long_id_groups[[sid]]
     if (!is.null(long_rows) && length(long_rows) > 0) {
       long_subset <- longitudinal_data[long_rows, , drop = FALSE]
-
-      # Sort once by time
       ord <- order(long_subset[[time]])
       if (!identical(ord, seq_along(ord))) {
         long_subset <- long_subset[ord, , drop = FALSE]
       }
-
-      # Extract model components
       long_frame <- model.frame(longitudinal_formula, data = long_subset)
       long_times <- long_subset[[time]]
       long_measurements <- model.response(long_frame)
@@ -359,7 +330,6 @@
       long_covariates <- data.frame()
     }
 
-    # Extract survival components (already pre-computed)
     survival_row <- survival_index_map[i]
     event_time <- surv_response_matrix[survival_row, 1]
     event_status <- surv_response_matrix[survival_row, 2]
@@ -369,7 +339,6 @@
       data.frame()
     }
 
-    # Build subject data structure
     data_process[[i]] <- list(
       id = unique_ids[i],
       time = event_time,
@@ -384,7 +353,6 @@
     )
   }
 
-  # Compute summary statistics efficiently
   statuses <- vapply(data_process, `[[`, numeric(1), "status")
   attr(data_process, "n_subjects") <- n_subjects
   attr(data_process, "n_observations") <- nrow(longitudinal_data)
@@ -393,24 +361,19 @@
   data_process
 }
 
-# Numerical Computation
 .get_spline_config <- function(
     x, degree = 3, n_knots = 5, knot_placement = "quantile",
     boundary_knots = NULL) {
-  # Calculate boundary knots
   if (is.null(boundary_knots)) {
     boundary_knots <- range(x, na.rm = TRUE)
   } else {
     boundary_knots <- boundary_knots
   }
 
-  # Calculate internal knots based on placement strategy
   if (knot_placement == "quantile") {
-    # Quantile-based knot placement
     probs <- seq(0, 1, length.out = n_knots + 2)[-c(1, n_knots + 2)]
     knots <- quantile(x, probs = probs, na.rm = TRUE, names = FALSE)
   } else if (knot_placement == "equal") {
-    # Equally spaced knot placement
     knots <- seq(boundary_knots[1], boundary_knots[2],
       length.out = n_knots + 2
     )[-c(1, n_knots + 2)]
@@ -418,7 +381,6 @@
     stop("knot_placement must be 'quantile' or 'equal'")
   }
 
-  # Return configuration list
   list(
     degree = degree, knots = knots, boundary_knots = boundary_knots,
     df = length(knots) + degree + 1
@@ -448,16 +410,13 @@
   )
 }
 
-# ODE Solving
 
 .get_longitudinal_covariates <- function(data, time = NULL, row_index = NULL) {
-  # Fast return for empty case
   long_cov <- data$longitudinal$covariates
   if (is.null(long_cov) || nrow(long_cov) == 0) {
     return(numeric(0))
   }
 
-  # If time is provided, find nearest time point
   if (is.null(row_index)) {
     if (!is.null(time) && !is.null(data$longitudinal$times)) {
       row_index <- which.min(abs(data$longitudinal$times - time))
@@ -475,7 +434,6 @@
   z <- as.vector(c(biomarker, velocity, long_cov, time))
   index_value <- sum(coefficients$index_beta * z)
 
-  # Compute basis and return
   basis_g <- .compute_spline_basis(index_value, config$index)
   sum(basis_g * coefficients$index_g)
 }
@@ -483,13 +441,11 @@
 .compute_acceleration_deriv <- function(
     biomarker, velocity, time, data, coefficients, config, type = "beta",
     dbiomarker = NULL, dvelocity = NULL) {
-  # Get longitudinal covariates
   long_cov <- .get_longitudinal_covariates(data, time)
 
   # Construct Z vector: [m(t), m_dot(t), X(t), t]
   z_vec <- c(biomarker, velocity, long_cov, time)
 
-  # Get parameters
   beta <- coefficients$index_beta
   theta <- coefficients$index_g
 
@@ -528,22 +484,36 @@
     dacceleration_dbeta <- sum(theta * basis_g_deriv) * du_dbeta
 
     return(dacceleration_dbeta)
-
   } else if (type == "theta") {
-    # Compute d(acceleration)/dtheta
-    # d(ddot{m})/dtheta = B_g(u) + theta' * B'_g(u) * du/dtheta
-    # where du/dtheta = beta' * dZ/dtheta
+    # Compute d(acceleration)/dgamma for gamma parameters
+    # (theta in this context)
+    # acceleration = gamma' * B_g(u) where u = beta' * Z
+    # For each gamma_j:
+    # d(acceleration)/dgamma_j = B_g_j(u) + gamma' * B'_g(u) * du/dgamma_j
+    # where du/dgamma_j = beta[1] * dm/dgamma_j + beta[2] * dṁ/dgamma_j
 
-    du_dtheta <- beta[1] * dbiomarker + beta[2] * dvelocity
+    # Note: dbiomarker and dvelocity are vectors of length n_gamma
+    # Each element j represents ∂m/∂gamma_j and ∂ṁ/∂gamma_j
 
-    # Total derivative:
-    # d(acceleration)/dtheta = B_g(u) + theta' * B'_g(u) * du/dtheta
-    dacceleration_dtheta <- as.vector(basis_g) +
-      sum(theta * basis_g_deriv) * du_dtheta
+    # Compute the coefficient for the indirect effect
+    indirect_coef <- sum(theta * basis_g_deriv)
 
+    # Initialize result vector
+    n_gamma <- length(dbiomarker)
+    dacceleration_dgamma <- numeric(n_gamma)
 
-    return(dacceleration_dtheta)
+    # For each gamma component
+    for (j in 1:n_gamma) {
+      # du/dgamma_j for this specific gamma_j
+      du_dgamma_j <- beta[1] * dbiomarker[j] + beta[2] * dvelocity[j]
 
+      # Total derivative for gamma_j
+      # Direct effect: B_g_j(u) (only non-zero for component j)
+      # Indirect effect: gamma' * B'_g(u) * du/dgamma_j
+      dacceleration_dgamma[j] <- basis_g[j] + indirect_coef * du_dgamma_j
+    }
+
+    return(dacceleration_dgamma)
   } else {
     stop("Invalid type. Must be one of: 'beta', 'theta'")
   }
@@ -555,11 +525,11 @@
   basis_lambda <- .compute_spline_basis(time, config$baseline)
   log_baseline <- sum(basis_lambda * coefficients$baseline)
 
-  # Biomarker effects
+  # Biomarker effects: m_i(t)' * α
   biomarker_vec <- c(biomarker, velocity, acceleration)
   log_biomarker <- sum(biomarker_vec * coefficients$hazard[1:3])
 
-  # Covariate effects
+  # Covariate effects: W_i' * φ
   n_hazard <- length(coefficients$hazard)
   log_covariate <- if (n_hazard > 3 && !is.null(data$covariates)) {
     w <- data$covariates
@@ -580,19 +550,49 @@
     stop("biomarker_initial must be a numeric vector of length 2")
   }
 
+  # Basic state: [Λ(t), m(t), ṁ(t)]
+  basic_state <- c(0, biomarker_initial)
+
   switch(sensitivity_type,
-    basic = c(0, biomarker_initial),
-    eta_alpha = {
-      n_basis <- coefficients$config$baseline$df
-      c(0, biomarker_initial, rep(0, n_basis + 3))
+    basic = basic_state,
+    forward_beta = {
+      # Augmented for β sensitivities:
+      # [Λ, m, ṁ, ∂m/∂β, ∂ṁ/∂β, ∂Λ/∂β]
+      n_beta <- length(coefficients$coef$index_beta)
+      c(
+        basic_state,
+        rep(0, n_beta), # ∂m/∂β
+        rep(0, n_beta), # ∂ṁ/∂β
+        rep(0, n_beta)  # ∂Λ/∂β
+      )
     },
-    beta = {
-      n_index_beta <- length(coefficients$coef$index_beta)
-      c(0, biomarker_initial, rep(0, 3 * n_index_beta))
+    forward_theta = {
+      # Combined augmented system for θ = (η, α, γ) sensitivities:
+      # [Λ, m, ṁ, ∂Λ/∂η, ∂Λ/∂α, ∂m/∂γ, ∂ṁ/∂γ, ∂Λ/∂γ]
+      n_eta <- coefficients$config$baseline$df
+      n_alpha <- 3 # [α₀, α₁, α₂] for biomarker, velocity, acceleration
+      n_gamma <- length(coefficients$coef$index_g)
+      c(
+        basic_state,
+        rep(0, n_eta),   # ∂Λ/∂η
+        rep(0, n_alpha), # ∂Λ/∂α
+        rep(0, n_gamma), # ∂m/∂γ
+        rep(0, n_gamma), # ∂ṁ/∂γ
+        rep(0, n_gamma)  # ∂Λ/∂γ
+      )
     },
-    theta = {
-      n_index_basis <- length(coefficients$coef$index_g)
-      c(0, biomarker_initial, rep(0, 3 * n_index_basis))
+    adjoint_beta = {
+      # For adjoint method (future implementation)
+      # Initial conditions will be set at terminal time
+      basic_state
+    },
+    adjoint_theta = {
+      # For adjoint method (future implementation)
+      # Initial conditions will be set at terminal time
+      basic_state
+    },
+    {
+      stop("Invalid sensitivity_type: ", sensitivity_type)
     }
   )
 }
@@ -616,7 +616,7 @@
     acceleration_final, data, parameters$coef, parameters$config
   )
 
-  # Extract biomarker trajectory
+  # Extract biomarker trajectory at observation times
   biomarker_values <- if (length(data$longitudinal$times) > 0) {
     obs_indices <- match(data$longitudinal$times, solution[, 1])
     solution[obs_indices, 3]
@@ -652,34 +652,92 @@
   )
 
   # Add sensitivity-specific outputs
-  if (sensitivity_type == "eta_alpha") {
-    n_basis <- parameters$config$baseline$df
+  if (sensitivity_type == "forward_theta") {
+    # Combined θ = (η, α, γ) sensitivities
+    n_eta <- parameters$config$baseline$df
+    n_alpha <- 3
+    n_gamma <- length(parameters$coef$index_g)
+
+    # Extract sensitivities from final state (matching ODE output order)
+    # State order: [Λ, m, ṁ, ∂Λ/∂η, ∂Λ/∂α, ∂m/∂γ, ∂ṁ/∂γ, ∂Λ/∂γ]
+    idx <- 4
+    dcumhazard_deta <- final_state[idx:(idx + n_eta - 1)]
+    idx <- idx + n_eta
+    dcumhazard_dalpha <- final_state[idx:(idx + n_alpha - 1)]
+    idx <- idx + n_alpha
+    dbiomarker_dgamma <- final_state[idx:(idx + n_gamma - 1)]
+    idx <- idx + n_gamma
+    dvelocity_dgamma <- final_state[idx:(idx + n_gamma - 1)]
+    idx <- idx + n_gamma
+    dcumhazard_dgamma <- final_state[idx:(idx + n_gamma - 1)]
+
+    # Extract γ sensitivities at observation times
+    dbiomarker_dgamma_values <- if (length(data$longitudinal$times) > 0) {
+      obs_indices <- match(data$longitudinal$times, solution[, 1])
+      # Column 1 is time, columns 2-4 are [Λ, m, ṁ]
+      # Columns 5-(4+n_eta) are ∂Λ/∂η
+      # Columns (5+n_eta)-(4+n_eta+n_alpha) are ∂Λ/∂α
+      # Columns (5+n_eta+n_alpha)-(4+n_eta+n_alpha+n_gamma) are ∂m/∂γ
+      col_start <- 5 + n_eta + n_alpha  # Adjust for time column (column 1)
+      col_end <- col_start + n_gamma - 1
+      solution[obs_indices, col_start:col_end, drop = FALSE]
+    } else {
+      NULL
+    }
+
+    # Compute acceleration sensitivity at event time
+    dacceleration_dgamma <- .compute_acceleration_deriv(
+      biomarker_final, velocity_final, event_time,
+      data, parameters$coef, parameters$config,
+      type = "theta",
+      dbiomarker = dbiomarker_dgamma,
+      dvelocity = dvelocity_dgamma
+    )
+
     result <- list(
       log_hazard = log_hazard_final,
       cum_hazard = final_state[1],
       biomarker_at_event = final_state[2],
       velocity_at_event = final_state[3],
       acceleration_at_event = acceleration_final,
-      dcum_hazard_deta_at_event = final_state[4:(4 + n_basis - 1)],
-      dcum_hazard_dalpha_at_event = final_state[(4 + n_basis):(4 + n_basis + 2)]
+      biomarker = biomarker_values,
+      # η sensitivities
+      dcumhazard_deta_at_event = dcumhazard_deta,
+      # α sensitivities
+      dcumhazard_dalpha_at_event = dcumhazard_dalpha,
+      # γ sensitivities
+      dbiomarker_dgamma = dbiomarker_dgamma_values,
+      dbiomarker_dgamma_at_event = dbiomarker_dgamma,
+      dvelocity_dgamma_at_event = dvelocity_dgamma,
+      dacceleration_dgamma_at_event = dacceleration_dgamma,
+      dcumhazard_dgamma_at_event = dcumhazard_dgamma
     )
-  } else if (sensitivity_type == "beta") {
+  } else if (sensitivity_type == "forward_beta") {
+    # β sensitivities
     n_beta <- length(parameters$coef$index_beta)
+
+    # Extract β sensitivities at observation times
     dbiomarker_dbeta_values <- if (length(data$longitudinal$times) > 0) {
       obs_indices <- match(data$longitudinal$times, solution[, 1])
       solution[obs_indices, 5:(4 + n_beta), drop = FALSE]
     } else {
       NULL
     }
+
+    # Extract final sensitivities
+    dbiomarker_dbeta_final <- final_state[4:(3 + n_beta)]
     dvelocity_dbeta_final <- final_state[(4 + n_beta):(3 + 2 * n_beta)]
+    dcumhazard_dbeta_final <- final_state[(4 + 2 * n_beta):(3 + 3 * n_beta)]
+
+    # Compute acceleration sensitivity at event time
     dacceleration_dbeta_final <- .compute_acceleration_deriv(
       biomarker_final, velocity_final, event_time,
-      data, parameters$coef, parameters$config, type = "beta",
-      dbiomarker = final_state[4:(3 + n_beta)],
+      data, parameters$coef, parameters$config,
+      type = "beta",
+      dbiomarker = dbiomarker_dbeta_final,
       dvelocity = dvelocity_dbeta_final
     )
-    dcum_hazard_dbeta_final <- final_state[(4 + 2 * n_beta):(3 + 3 * n_beta)]
-    dbiomarker_dbeta_final <- final_state[4:(3 + n_beta)]
+
     result <- list(
       log_hazard = log_hazard_final,
       cum_hazard = final_state[1],
@@ -688,11 +746,8 @@
       dbiomarker_dbeta_at_event = dbiomarker_dbeta_final,
       dvelocity_dbeta_at_event = dvelocity_dbeta_final,
       dacceleration_dbeta_at_event = dacceleration_dbeta_final,
-      dcum_hazard_dbeta_at_event = dcum_hazard_dbeta_final
+      dcumhazard_dbeta_at_event = dcumhazard_dbeta_final
     )
-  } else if (sensitivity_type == "theta") {
-    n_theta <- length(parameters$coef$index_g)
-    return(n_theta)
   }
 
   result
@@ -700,7 +755,11 @@
 
 .solve_joint_ode <- function(data, parameters, sensitivity_type = "basic") {
   # Validate sensitivity_type
-  valid_types <- c("basic", "eta_alpha", "beta", "theta")
+  valid_types <- c(
+    "basic",
+    "forward_beta", "forward_theta",
+    "adjoint_beta", "adjoint_theta"
+  )
   if (!sensitivity_type %in% valid_types) {
     stop(
       "Invalid sensitivity_type. Must be one of: ",
@@ -724,21 +783,72 @@
       time, biomarker, velocity, acceleration,
       parameters$data, parameters$coef, parameters$config
     )
-    hazard <- exp(log_hazard)
+    # Cap log_hazard to prevent numerical overflow
+    log_hazard_capped <- pmin(log_hazard, 50) # exp(50) ≈ 5e21
+    hazard <- exp(log_hazard_capped)
 
     # Basic derivatives: [dΛ/dt, dm/dt, dṁ/dt]
     basic_derivs <- c(hazard, velocity, acceleration)
 
     if (parameters$sensitivity_type == "basic") {
       list(basic_derivs)
-    } else if (parameters$sensitivity_type == "eta_alpha") {
+    } else if (parameters$sensitivity_type == "forward_theta") {
+      # Combined forward sensitivity for θ = (η, α, γ)
+      n_eta <- parameters$config$baseline$df
+      n_alpha <- 3
+      n_gamma <- length(parameters$coef$index_g)
+
+      # Compute ∂Λ/∂η and ∂Λ/∂α (direct effects on hazard)
       basis_lambda <- .compute_spline_basis(time, parameters$config$baseline)
       m_vec <- c(biomarker, velocity, acceleration)
-      list(c(basic_derivs, as.numeric(basis_lambda) * hazard, m_vec * hazard))
-    } else if (parameters$sensitivity_type == "beta") {
+
+      # Extract γ sensitivities from state
+      idx <- 4 + n_eta + n_alpha
+      dbiomarker_dgamma <- state[idx:(idx + n_gamma - 1)]
+      idx <- idx + n_gamma
+      dvelocity_dgamma <- state[idx:(idx + n_gamma - 1)]
+
+      # Compute acceleration sensitivity w.r.t. γ
+      dacceleration_dgamma <- .compute_acceleration_deriv(
+        biomarker, velocity, time,
+        parameters$data, parameters$coef, parameters$config,
+        type = "theta",
+        dbiomarker = dbiomarker_dgamma,
+        dvelocity = dvelocity_dgamma
+      )
+
+      # Compute ∂λ/∂γ (hazard sensitivity w.r.t. gamma) using chain rule
+      alpha <- parameters$coef$hazard[1:3]
+      dm_vec_dgamma <- rbind(
+        dbiomarker_dgamma,
+        dvelocity_dgamma,
+        dacceleration_dgamma
+      )
+      dhazard_dgamma <- as.vector(
+        crossprod(alpha, dm_vec_dgamma)
+      ) * hazard
+
+      # Return augmented derivatives
+      # State order: [Λ, m, ṁ, ∂Λ/∂η, ∂Λ/∂α, ∂m/∂γ, ∂ṁ/∂γ, ∂Λ/∂γ]
+      # Derivative order: [dΛ/dt, dm/dt, dṁ/dt, d(∂Λ/∂η)/dt, d(∂Λ/∂α)/dt,
+      #                    d(∂m/∂γ)/dt, d(∂ṁ/∂γ)/dt, d(∂Λ/∂γ)/dt]
+      list(c(
+        basic_derivs, # [dΛ/dt, dm/dt, dṁ/dt]
+        as.numeric(basis_lambda) * hazard, # d(∂Λ/∂η)/dt = ∂λ/∂η
+        m_vec * hazard, # d(∂Λ/∂α)/dt = ∂λ/∂α
+        dvelocity_dgamma, # d(∂m/∂γ)/dt = ∂ṁ/∂γ (since dm/dt = ṁ)
+        dacceleration_dgamma, # d(∂ṁ/∂γ)/dt = ∂m̈/∂γ (since dṁ/dt = m̈)
+        dhazard_dgamma # d(∂Λ/∂γ)/dt = ∂λ/∂γ
+      ))
+    } else if (parameters$sensitivity_type == "forward_beta") {
+      # Forward sensitivity for single-index coefficients (β)
       n_beta <- length(parameters$coef$index_beta)
+
+      # Extract sensitivity states
       dbiomarker_dbeta <- state[4:(3 + n_beta)]
       dvelocity_dbeta <- state[(4 + n_beta):(3 + 2 * n_beta)]
+
+      # Compute acceleration sensitivity
       dacceleration_dbeta <- .compute_acceleration_deriv(
         biomarker, velocity, time,
         parameters$data, parameters$coef, parameters$config,
@@ -746,47 +856,24 @@
         dbiomarker = dbiomarker_dbeta,
         dvelocity = dvelocity_dbeta
       )
-      # Compute dLambda/dbeta derivative
+
+      # Compute ∂λ/∂β (hazard sensitivity) using chain rule
       alpha <- parameters$coef$hazard[1:3]
       dm_vec_dbeta <- rbind(
         dbiomarker_dbeta,
         dvelocity_dbeta,
         dacceleration_dbeta
       )
-      d_lambda_dt_dbeta <- as.vector(
+      dhazard_dbeta <- as.vector(
         crossprod(alpha, dm_vec_dbeta)
       ) * hazard
 
-      # Return derivatives
+      # Return augmented derivatives: [basic; ∂ṁ/∂β; ∂m̈/∂β; ∂Λ/∂β]
       list(c(
-        basic_derivs, dvelocity_dbeta, dacceleration_dbeta, d_lambda_dt_dbeta
-      ))
-    } else if (sensitivity_type == "theta") {
-      n_theta <- length(parameters$coef$index_g)
-      dbiomarker_dtheta <- state[4:(3 + n_theta)]
-      dvelocity_dtheta <- state[(4 + n_theta):(3 + 2 * n_theta)]
-      dacceleration_dtheta <- .compute_acceleration_deriv(
-        biomarker, velocity, time,
-        parameters$data, parameters$coef, parameters$config,
-        type = "theta",
-        dbiomarker = dbiomarker_dtheta,
-        dvelocity = dvelocity_dtheta
-      )
-
-      # Compute dLambda/dtheta derivative
-      alpha <- parameters$coef$hazard[1:3]
-      dm_vec_dtheta <- rbind(
-        dbiomarker_dtheta,
-        dvelocity_dtheta,
-        dacceleration_dtheta
-      )
-      d_lambda_dt_dtheta <- as.vector(
-        crossprod(alpha, dm_vec_dtheta)
-      ) * hazard
-
-      # Return derivatives
-      list(c(
-        basic_derivs, dvelocity_dtheta, dacceleration_dtheta, d_lambda_dt_dtheta
+        basic_derivs, # [dΛ/dt, dm/dt, dṁ/dt]
+        dvelocity_dbeta, # ∂ṁ/∂β
+        dacceleration_dbeta, # ∂m̈/∂β
+        dhazard_dbeta # ∂λ/∂β
       ))
     } else {
       stop("Unknown sensitivity type: ", sensitivity_type)
@@ -808,33 +895,318 @@
   event_time <- data$time
   times <- sort(unique(c(0, data$longitudinal$times, event_time)))
 
-  n_timepoints <- length(times)
-
-  # Simple and robust: use RK4 with adaptive step size
-  solution <- tryCatch({
-    deSolve::ode(
-      y = initial_extended,
-      times = times,
-      func = ode_derivatives,
-      parms = ode_parameters,
-      method = "rk4",
-      hini = 0.01  # Fixed initial step size
-    )
-  }, error = function(e) {
-    # If RK4 fails, try with smaller steps
-    deSolve::ode(
-      y = initial_extended,
-      times = times,
-      func = ode_derivatives,
-      parms = ode_parameters,
-      method = "rk4",
-      hini = 0.001
-    )
-  })
+  # Solve ODE with robust error handling and higher precision
+  solution <- deSolve::ode(
+    y = initial_extended,
+    times = times,
+    func = ode_derivatives,
+    parms = ode_parameters,
+    method = "ode45",
+    atol = 1e-8,  # Increased precision (was 1e-3)
+    rtol = 1e-9   # Increased precision (was 1e-4)
+  )
 
   # Extract and return results
   .extract_ode_results(solution, data, parameters, sensitivity_type)
 }
+
+# Helper Functions for Objective and Gradient Computation
+.parse_theta_parameters <- function(params, config, n_surv_covariates) {
+  # Parse θ = (η, α, φ, γ) parameters
+  n_eta <- config$baseline$df
+  n_alpha <- 3
+  n_phi <- n_surv_covariates
+  n_gamma <- config$index$df
+
+  idx <- 1
+  eta <- params[idx:(idx + n_eta - 1)]
+  idx <- idx + n_eta
+  alpha <- params[idx:(idx + n_alpha - 1)]
+  idx <- idx + n_alpha
+  phi <- if (n_phi > 0) params[idx:(idx + n_phi - 1)] else numeric(0)
+  idx <- idx + n_phi
+  gamma <- params[idx:(idx + n_gamma - 1)]
+
+  list(
+    eta = eta, alpha = alpha, phi = phi, gamma = gamma,
+    n_eta = n_eta, n_alpha = n_alpha, n_phi = n_phi, n_gamma = n_gamma
+  )
+}
+
+# Objective Function and Gradient Computation
+
+.compute_objective_theta <- function(
+    params, data_list, posteriors, config, fixed_params) {
+  # Compute objective function for θ = (η, α, φ, γ)
+  # Returns negative expected complete-data log-likelihood (for minimization)
+
+  n_subjects <- length(data_list)
+  n_surv_covariates <- ncol(data_list[[1]]$covariates)
+
+  # Parse parameters using helper
+  theta_params <- .parse_theta_parameters(params, config, n_surv_covariates)
+
+  # Build parameters structure
+  parameters <- list(
+    coef = list(
+      baseline = theta_params$eta,
+      hazard = c(theta_params$alpha, theta_params$phi),
+      index_g = theta_params$gamma,
+      index_beta = fixed_params$index_beta
+    ),
+    config = config
+  )
+
+  # Measurement error variance
+  sigma_e <- fixed_params$measurement_error_sd
+  inv_sigma_e2 <- 1 / (sigma_e^2)
+
+  # Compute Q value
+  q_value <- 0
+
+  for (i in seq_len(n_subjects)) {
+    subject_data <- data_list[[i]]
+
+    # Solve basic ODE (no sensitivities needed)
+    ode_sol <- .solve_joint_ode(
+      subject_data, parameters,
+      sensitivity_type = "basic"
+    )
+
+    # Survival component
+    q_value <- q_value + data_list[[i]]$status * ode_sol$log_hazard -
+      posteriors$exp_b[i] * ode_sol$cum_hazard
+
+    # Longitudinal component
+    if (subject_data$longitudinal$n_obs > 0) {
+      residuals <- subject_data$longitudinal$measurements -
+        ode_sol$biomarker - posteriors$b[i]
+      q_value <- q_value - sum(residuals^2) * inv_sigma_e2 / 2
+    }
+  }
+
+  # Return negative Q for minimization
+  -q_value
+}
+
+.compute_objective_beta <- function(
+    params, data_list, posteriors, config, fixed_params) {
+  # Compute objective function for β (with spherical parameterization)
+
+  # Convert spherical coordinates to unit vector
+  beta <- .spherical_to_beta(params)
+
+  # Get number of subjects
+  n_subjects <- length(data_list)
+
+  # Build parameters structure
+  parameters <- list(
+    coef = list(
+      baseline = fixed_params$baseline,
+      hazard = fixed_params$hazard,
+      index_g = fixed_params$index_g,
+      index_beta = beta
+    ),
+    config = config
+  )
+
+  # Measurement error variance
+  sigma_e <- fixed_params$measurement_error_sd
+  inv_sigma_e2 <- 1 / (sigma_e^2)
+
+  # Compute Q value
+  q_value <- 0
+
+  for (i in seq_len(n_subjects)) {
+    subject_data <- data_list[[i]]
+
+    # Solve basic ODE
+    ode_sol <- .solve_joint_ode(
+      subject_data, parameters,
+      sensitivity_type = "basic"
+    )
+
+    # Longitudinal component
+    if (subject_data$longitudinal$n_obs > 0) {
+      residuals <- subject_data$longitudinal$measurements -
+        ode_sol$biomarker - posteriors$b[i]
+      q_value <- q_value - sum(residuals^2) * inv_sigma_e2 / 2
+    }
+
+    # Survival component
+    q_value <- q_value + data_list[[i]]$status * ode_sol$log_hazard -
+      posteriors$exp_b[i] * ode_sol$cum_hazard
+  }
+
+  # Return negative Q for minimization
+  -q_value
+}
+
+.compute_grad_theta_forward <- function(
+    params, data_list, posteriors, config, fixed_params) {
+  # Gradient computation for θ = (η, α, φ, γ) using forward sensitivity
+
+  n_subjects <- length(data_list)
+  n_surv_covariates <- ncol(data_list[[1]]$covariates)
+
+  # Parse parameters using helper
+  theta_params <- .parse_theta_parameters(params, config, n_surv_covariates)
+
+  # Build parameters structure
+  parameters <- list(
+    coef = list(
+      baseline = theta_params$eta,
+      hazard = c(theta_params$alpha, theta_params$phi),
+      index_g = theta_params$gamma,
+      index_beta = fixed_params$index_beta
+    ),
+    config = config
+  )
+
+  # Initialize gradient components
+  grad_eta <- numeric(theta_params$n_eta)
+  grad_alpha <- numeric(theta_params$n_alpha)
+  grad_phi <- numeric(theta_params$n_phi)
+  grad_gamma <- numeric(theta_params$n_gamma)
+
+  # Measurement error variance
+  sigma_e <- fixed_params$measurement_error_sd
+  inv_sigma_e2 <- 1 / (sigma_e^2)
+
+  # Solve ODE with forward sensitivities for each subject
+  for (i in seq_len(n_subjects)) {
+    subject_data <- data_list[[i]]
+
+    # Solve augmented ODE system
+    ode_sol <- .solve_joint_ode(
+      subject_data, parameters,
+      sensitivity_type = "forward_theta"
+    )
+
+    status_i <- subject_data$status
+    exp_b_i <- posteriors$exp_b[i]
+    b_hat_i <- posteriors$b[i]
+
+    # Longitudinal gradient (γ only)
+    if (subject_data$longitudinal$n_obs > 0) {
+      residuals <- subject_data$longitudinal$measurements -
+        ode_sol$biomarker - b_hat_i
+
+      if (theta_params$n_gamma > 0 && !is.null(ode_sol$dbiomarker_dgamma)) {
+        grad_gamma <- grad_gamma +
+          as.vector(crossprod(residuals, ode_sol$dbiomarker_dgamma)) *
+            inv_sigma_e2
+      }
+    }
+
+    # η gradient (baseline hazard)
+    if (status_i == 1) {
+      basis_at_event <- .compute_spline_basis(
+        subject_data$time, config$baseline
+      )
+      grad_eta <- grad_eta + as.vector(basis_at_event)
+    }
+    grad_eta <- grad_eta - exp_b_i * ode_sol$dcumhazard_deta_at_event
+
+    # α gradient (association parameters)
+    if (status_i == 1) {
+      m_vec_at_event <- c(
+        ode_sol$biomarker_at_event,
+        ode_sol$velocity_at_event,
+        ode_sol$acceleration_at_event
+      )
+      grad_alpha <- grad_alpha + m_vec_at_event
+    }
+    grad_alpha <- grad_alpha - exp_b_i * ode_sol$dcumhazard_dalpha_at_event
+
+    # φ gradient (survival covariates)
+    if (theta_params$n_phi > 0 && !is.null(subject_data$covariates)) {
+      covs <- as.vector(subject_data$covariates)
+      grad_phi <- grad_phi + (status_i - exp_b_i * ode_sol$cum_hazard) * covs
+    }
+
+    # γ gradient (acceleration spline) - survival contribution
+    if (theta_params$n_gamma > 0) {
+      if (status_i == 1) {
+        grad_gamma <- grad_gamma +
+          theta_params$alpha[1] * ode_sol$dbiomarker_dgamma_at_event +
+          theta_params$alpha[2] * ode_sol$dvelocity_dgamma_at_event +
+          theta_params$alpha[3] * ode_sol$dacceleration_dgamma_at_event
+      }
+      grad_gamma <- grad_gamma - exp_b_i * ode_sol$dcumhazard_dgamma_at_event
+    }
+  }
+
+  # Return negative gradient for minimization
+  grad_full <- -c(grad_eta, grad_alpha, grad_phi, grad_gamma)
+  names(grad_full) <- NULL  # Remove names to match expected format
+  grad_full
+}
+
+.compute_grad_beta_forward <- function(
+    params, data_list, posteriors, config, fixed_params) {
+  # Gradient computation for β using forward sensitivity
+  # params are spherical coordinates, we convert to unit vector
+
+  beta <- .spherical_to_beta(params)
+  n_beta <- length(beta)
+  n_subjects <- length(data_list)
+
+  # Extract fixed parameters
+  sigma_e <- fixed_params$measurement_error_sd
+  inv_sigma_e2 <- 1 / (sigma_e^2)
+  alpha <- fixed_params$hazard[1:3]
+
+  # Build parameters structure
+  parameters <- list(
+    coef = list(
+      baseline = fixed_params$baseline,
+      hazard = fixed_params$hazard,
+      index_g = fixed_params$index_g,
+      index_beta = beta
+    ),
+    config = config
+  )
+  # Initialize gradient
+  grad_beta <- numeric(n_beta)
+
+  # Process each subject
+  for (i in seq_len(n_subjects)) {
+    subject_data <- data_list[[i]]
+
+    # Solve ODE with β sensitivities
+    ode_sol <- .solve_joint_ode(
+      subject_data, parameters,
+      sensitivity_type = "forward_beta"
+    )
+
+    # Longitudinal gradient
+    if (subject_data$longitudinal$n_obs > 0) {
+      residuals <- subject_data$longitudinal$measurements -
+        ode_sol$biomarker - posteriors$b[i]
+      grad_beta <- grad_beta +
+        as.vector(crossprod(residuals, ode_sol$dbiomarker_dbeta)) * inv_sigma_e2
+    }
+
+    # Survival gradient
+    if (data_list[[i]]$status == 1) {
+      grad_beta <- grad_beta +
+        alpha[1] * ode_sol$dbiomarker_dbeta_at_event +
+        alpha[2] * ode_sol$dvelocity_dbeta_at_event +
+        alpha[3] * ode_sol$dacceleration_dbeta_at_event
+    }
+    grad_beta <- grad_beta -
+      posteriors$exp_b[i] * ode_sol$dcumhazard_dbeta_at_event
+  }
+
+  # Transform gradient from β space to spherical coordinate space
+  J <- .spherical_jacobian(params)
+  grad_spherical <- as.vector(crossprod(J, -grad_beta))
+
+  # Return negative gradient for minimization (in spherical coordinates)
+  grad_spherical
+}
+
 
 # Statistical Distributions
 
@@ -851,8 +1223,8 @@
 
   # Compute residual sum
   s_i <- sum(measurements - biomarker_0)
-  inv_measurement_error_sd2 <- 1 / (measurement_error_sd^2 + 1e-10)
-  inv_random_effect_sd2 <- 1 / (random_effect_sd^2 + 1e-10)
+  inv_measurement_error_sd2 <- 1 / measurement_error_sd^2
+  inv_random_effect_sd2 <- 1 / random_effect_sd^2
 
   # Define log-posterior function (up to normalizing constant)
   logpost <- function(b) {
@@ -904,102 +1276,6 @@
   )
 }
 
-.compute_q_eta_alpha_phi <- function(
-    params, data_list, posteriors, config, fixed_params) {
-  # Get dimensions
-  n_baseline <- config$baseline$df
-  n_surv_covariates <- ncol(data_list[[1]]$covariates)
-
-  # Parse parameter vector
-  idx <- 1
-  eta <- params[idx:(idx + n_baseline - 1)] # Baseline hazard coefficients
-  idx <- idx + n_baseline
-  alpha <- params[idx:(idx + 2)] # Biomarker hazard coefficients
-  idx <- idx + 3
-  phi <- params[idx:(idx + n_surv_covariates - 1)]
-
-  # Build parameters with fixed beta and theta
-  parameters <- list(
-    coef = list(
-      baseline = eta,
-      hazard = c(alpha, phi),
-      index_g = fixed_params$index_g, # Fixed g(u) coefficients
-      index_beta = fixed_params$index_beta # Fixed index coefficients
-    ),
-    config = config
-  )
-
-  # Pre-extract all data for vectorized operations
-  n_subjects <- length(data_list)
-  subject_ids <- names(data_list)
-
-  # Batch extract all data
-  times <- vapply(data_list, `[[`, numeric(1), "time")
-  status_vec <- vapply(data_list, `[[`, numeric(1), "status")
-  exp_b_vec <- vapply(
-    subject_ids, function(id) posteriors[[id]]$exp_b, numeric(1)
-  )
-
-  # Extract covariates as matrix
-  covariates_mat <- do.call(rbind, lapply(data_list, `[[`, "covariates"))
-
-  # Compute basis once for all subjects
-  basis_lambda <- .compute_spline_basis(times, config$baseline)
-
-  # Pre-allocate storage for ODE results
-  log_hazard_vec <- numeric(n_subjects)
-  cum_hazard_vec <- numeric(n_subjects)
-  biomarkers_mat <- matrix(0, n_subjects, 3)
-  dcum_hazard_deta_mat <- matrix(0, n_subjects, n_baseline)
-  dcum_hazard_dalpha_mat <- matrix(0, n_subjects, 3)
-
-  # Compute all ODE solutions with optimized batch processing
-  # Group subjects by number of time points for batch optimization
-  n_timepoints_vec <- vapply(
-    data_list, function(d) length(d$longitudinal$times), integer(1)
-  )
-  subject_order <- order(n_timepoints_vec)
-
-  for (idx in seq_len(n_subjects)) {
-    i <- subject_order[idx]
-    ode_sol <- .solve_joint_ode(
-      data_list[[i]], parameters,
-      sensitivity_type = "eta_alpha"
-    )
-    log_hazard_vec[i] <- ode_sol$log_hazard
-    cum_hazard_vec[i] <- ode_sol$cum_hazard
-    biomarkers_mat[i, ] <- c(
-      ode_sol$biomarker_at_event,
-      ode_sol$velocity_at_event,
-      ode_sol$acceleration_at_event
-    )
-    dcum_hazard_deta_mat[i, ] <- ode_sol$dcum_hazard_deta_at_event
-    dcum_hazard_dalpha_mat[i, ] <- ode_sol$dcum_hazard_dalpha_at_event
-  }
-
-  q <- sum(status_vec * log_hazard_vec) - sum(exp_b_vec * cum_hazard_vec)
-
-  # Gradient w.r.t. eta (baseline hazard)
-  grad_eta <- as.vector(crossprod(status_vec, basis_lambda)) -
-    as.vector(crossprod(exp_b_vec, dcum_hazard_deta_mat))
-
-  # Gradient w.r.t. alpha (biomarker effects)
-  grad_alpha <- as.vector(crossprod(status_vec, biomarkers_mat)) -
-    as.vector(crossprod(exp_b_vec, dcum_hazard_dalpha_mat))
-
-  # Gradient w.r.t. phi (covariate effects)
-  grad_phi <- as.vector(crossprod(status_vec, covariates_mat)) -
-    as.vector(crossprod(exp_b_vec * cum_hazard_vec, covariates_mat))
-
-  # Combine gradient components
-  q_grad <- c(grad_eta, grad_alpha, grad_phi)
-
-  # Return negative Q for minimization
-  q <- -q
-  attr(q, "gradient") <- -q_grad
-  q
-}
-
 # Convert spherical coordinates to unit vector
 # theta: vector of n-1 angles for n-dimensional unit vector
 .spherical_to_beta <- function(theta) {
@@ -1015,20 +1291,22 @@
   beta[1] <- cos(theta[1])
 
   if (n > 2) {
-    for (i in 2:(n-1)) {
-      beta[i] <- prod(sin(theta[1:(i-1)])) * cos(theta[i])
+    for (i in 2:(n - 1)) {
+      beta[i] <- prod(sin(theta[1:(i - 1)])) * cos(theta[i])
     }
   }
 
   beta[n] <- prod(sin(theta))
 
-  return(beta)
+  beta
 }
 
 # Convert unit vector to spherical coordinates
 .beta_to_spherical <- function(beta) {
   n <- length(beta)
-  if (n == 1) return(numeric(0))
+  if (n == 1) {
+    return(numeric(0))
+  }
 
   theta <- numeric(n - 1)
 
@@ -1036,8 +1314,8 @@
   theta[1] <- acos(pmin(pmax(beta[1], -1), 1))
 
   if (n > 2) {
-    for (i in 2:(n-1)) {
-      sin_prod <- prod(sin(theta[1:(i-1)]))
+    for (i in 2:(n - 1)) {
+      sin_prod <- prod(sin(theta[1:(i - 1)]))
       if (abs(sin_prod) > 1e-10) {
         theta[i] <- acos(pmin(pmax(beta[i] / sin_prod, -1), 1))
       } else {
@@ -1048,10 +1326,10 @@
 
   # Adjust last angle based on sign of last component
   if (beta[n] < 0) {
-    theta[n-1] <- 2 * pi - theta[n-1]
+    theta[n - 1] <- 2 * pi - theta[n - 1]
   }
 
-  return(theta)
+  theta
 }
 
 # Jacobian matrix: d(beta)/d(theta)
@@ -1059,297 +1337,61 @@
   n <- length(theta) + 1
   J <- matrix(0, n, length(theta))
 
-  if (n == 1) return(J)
+  if (n == 1) {
+    return(J)
+  }
 
   # First component
   J[1, 1] <- -sin(theta[1])
 
   if (n > 2) {
-    for (i in 2:(n-1)) {
+    for (i in 2:(n - 1)) {
       # Component i depends on theta[1] through theta[i]
-      for (j in 1:min(i, length(theta))) {
+      for (j in seq_len(min(i, length(theta)))) {
         if (j < i) {
           # Derivative w.r.t. theta[j] for j < i
           if (j == 1) {
-            sin_prod <- if(i > 2) prod(sin(theta[2:(i-1)])) else 1
+            sin_prod <- if (i > 2) prod(sin(theta[2:(i - 1)])) else 1
             J[i, j] <- cos(theta[1]) * sin_prod * cos(theta[i])
           } else {
-            prod_before <- if(j > 2) prod(sin(theta[1:(j-1)])) else sin(theta[1])
-            prod_after <- if(j < i-1) prod(sin(theta[(j+1):(i-1)])) else 1
+            prod_before <- if (j > 2) {
+              prod(sin(theta[1:(j - 1)]))
+            } else {
+              sin(theta[1])
+            }
+            prod_after <- if (j < i - 1) {
+              prod(sin(theta[(j + 1):(i - 1)]))
+            } else {
+              1
+            }
             J[i, j] <- prod_before * cos(theta[j]) * prod_after * cos(theta[i])
           }
         } else if (j == i) {
           # Derivative w.r.t. theta[i]
-          J[i, j] <- prod(sin(theta[1:(i-1)])) * (-sin(theta[i]))
+          J[i, j] <- prod(sin(theta[1:(i - 1)])) * (-sin(theta[i]))
         }
       }
     }
   }
 
   # Last component
-  for (j in 1:length(theta)) {
+  for (j in seq_along(theta)) {
     if (j == 1) {
-      sin_prod <- if(length(theta) > 1) prod(sin(theta[2:length(theta)])) else 1
+      sin_prod <- if (length(theta) > 1) {
+        prod(sin(theta[2:length(theta)]))
+      } else {
+        1
+      }
       J[n, j] <- cos(theta[1]) * sin_prod
     } else {
-      prod_before <- if(j > 2) prod(sin(theta[1:(j-1)])) else sin(theta[1])
-      prod_after <- if(j < length(theta)) prod(sin(theta[(j+1):length(theta)])) else 1
+      prod_before <- if (j > 2) prod(sin(theta[1:(j - 1)])) else sin(theta[1])
+      prod_after <- if (j < length(theta)) {
+        prod(sin(theta[(j + 1):length(theta)]))
+      } else {
+        1
+      }
       J[n, j] <- prod_before * cos(theta[j]) * prod_after
     }
   }
-
-  return(J)
-}
-
-# Wrapper for constrained optimization
-.compute_q_beta_constrained <- function(
-    params, data_list, posteriors, config, fixed_params) {
-  # params are now spherical coordinates (n_beta - 1 angles)
-  beta <- .spherical_to_beta(params)
-
-  # Call original function with beta
-  q_result <- .compute_q_beta_unconstrained(
-    beta, data_list, posteriors, config, fixed_params
-  )
-
-  # Transform gradient from beta space to spherical coordinate space
-  grad_beta <- attr(q_result, "gradient")
-  if (!is.null(grad_beta)) {
-    J <- .spherical_jacobian(params)
-    grad_theta <- as.vector(crossprod(J, grad_beta))
-    attr(q_result, "gradient") <- grad_theta
-  }
-  q_result
-}
-
-# Original unconstrained version (renamed)
-.compute_q_beta_unconstrained <- function(
-    params, data_list, posteriors, config, fixed_params) {
-  beta <- params
-
-  # Get dimensions
-  n_beta <- length(beta)
-  n_subjects <- length(data_list)
-
-  # Extract fixed parameters
-  measurement_error_sd <- fixed_params$measurement_error_sd
-  inv_sigma_e2 <- 1 / measurement_error_sd^2
-  alpha <- fixed_params$hazard[1:3]
-  theta <- fixed_params$index_g
-
-  # Parameters for ODE solving
-  parameters <- list(
-    coef = list(
-      baseline = fixed_params$baseline,
-      hazard = fixed_params$hazard,
-      index_g = theta,
-      index_beta = beta
-    ),
-    config = config
-  )
-
-  # Extract posterior expectations
-  subject_ids <- names(data_list)
-  b_hat_vec <- vapply(
-    subject_ids, function(id) posteriors[[id]]$b_hat, numeric(1)
-  )
-  exp_b_vec <- vapply(
-    subject_ids, function(id) posteriors[[id]]$exp_b, numeric(1)
-  )
-  status_vec <- vapply(data_list, `[[`, numeric(1), "status")
-
-  # Pre-allocate storage for ODE results
-  log_hazard_vec <- numeric(n_subjects)
-  cum_hazard_vec <- numeric(n_subjects)
-  dcum_hazard_dbeta <- matrix(0, n_subjects, n_beta)
-
-  residuals_list <- vector("list", n_subjects)
-  dbiomarker_dbeta_list <- vector("list", n_subjects)
-  dbiomarker_dbeta_final <- matrix(0, n_subjects, n_beta)
-  dvelocity_dbeta_final <- matrix(0, n_subjects, n_beta)
-  dacceleration_dbeta_final <- matrix(0, n_subjects, n_beta)
-
-  # Sort subjects by number of timepoints for efficient ODE solving
-  n_timepoints_vec <- vapply(
-    data_list, function(d) length(d$longitudinal$times), integer(1)
-  )
-  subject_order <- order(n_timepoints_vec)
-
-  # Batch solve ODEs for all subjects
-  for (idx in seq_len(n_subjects)) {
-    i <- subject_order[idx]
-    subject_data <- data_list[[i]]
-
-    # Solve ODE with beta sensitivities
-    ode_sol <- .solve_joint_ode(
-      subject_data, parameters, sensitivity_type = "beta"
-    )
-
-    # Store ODE results
-    log_hazard_vec[i] <- ode_sol$log_hazard
-    cum_hazard_vec[i] <- ode_sol$cum_hazard
-
-    # Compute and store residuals
-    measurements <- subject_data$longitudinal$measurements
-    residuals_list[[i]] <- measurements - ode_sol$biomarker - b_hat_vec[i]
-
-    # Store derivatives at observation times
-    dbiomarker_dbeta_list[[i]] <- ode_sol$dbiomarker_dbeta
-
-    # Extract derivatives at final time for survival contribution
-    # We need derivatives at event time from the ODE final state
-    dbiomarker_dbeta_final[i, ] <- ode_sol$dbiomarker_dbeta_at_event
-    dvelocity_dbeta_final[i, ] <- ode_sol$dvelocity_dbeta_at_event
-    dacceleration_dbeta_final[i, ] <- ode_sol$dacceleration_dbeta_at_event
-    dcum_hazard_dbeta[i, ] <- ode_sol$dcum_hazard_dbeta_at_event
-  }
-
-  # Compute Q value components
-  q_long <- 0
-  grad_long <- numeric(n_beta)
-  for (idx in seq_len(n_subjects)) {
-    i <- subject_order[idx]
-    residuals <- residuals_list[[i]]
-    n_obs_i <- length(residuals)
-    if (n_obs_i > 0) {
-      q_long <- q_long - sum(residuals^2) * inv_sigma_e2 / 2
-      grad_long <- grad_long + as.vector(
-        crossprod(residuals, dbiomarker_dbeta_list[[i]]) * inv_sigma_e2
-      )
-    }
-  }
-  q_surv <- sum(status_vec * log_hazard_vec - exp_b_vec * cum_hazard_vec)
-  grad_surv <- as.vector(
-    crossprod(status_vec, dbiomarker_dbeta_final) * alpha[1] +
-      crossprod(status_vec, dvelocity_dbeta_final) * alpha[2] +
-      crossprod(status_vec, dacceleration_dbeta_final) * alpha[3]
-  ) - as.vector(crossprod(exp_b_vec, dcum_hazard_dbeta))
-
-  # Combine Q components
-  q <- -(q_long + q_surv)
-  attr(q, "gradient") <- -(grad_long + grad_surv)
-  q
-}
-
-# Keep original for compatibility
-.compute_q_beta <- .compute_q_beta_constrained
-
-# Computes expected complete-data log-likelihood for EM algorithm
-.compute_q_function <- function(
-    theta, data_list, posteriors, config,
-    measurement_error_sd, random_effect_sd) {
-  # Get dimensions for each parameter group
-  n_baseline <- config$baseline$df
-  n_index_g <- config$index$df
-
-  # Find first subject with longitudinal data to get covariate dimensions
-  subject_with_long <- NULL
-  for (subject in data_list) {
-    if (subject$longitudinal$n_obs > 0) {
-      subject_with_long <- subject
-      break
-    }
-  }
-
-  # Calculate dimensions
-  n_long_covariates <- if (!is.null(subject_with_long)) {
-    ncol(subject_with_long$longitudinal$covariates)
-  } else {
-    0
-  }
-  n_surv_covariates <- ncol(data_list[[1]]$covariates)
-  n_index_beta <- n_long_covariates + 3
-  n_hazard <- n_surv_covariates + 3
-
-  # Parse parameter vector sequentially
-  idx <- 1
-  baseline_coef <- theta[idx:(idx + n_baseline - 1)]
-  idx <- idx + n_baseline
-  hazard_coef <- theta[idx:(idx + n_hazard - 1)]
-  idx <- idx + n_hazard
-  index_g_coef <- theta[idx:(idx + n_index_g - 1)]
-  idx <- idx + n_index_g
-  index_beta_coef <- theta[idx:(idx + n_index_beta - 1)]
-
-  parameters <- list(
-    coef = list(
-      baseline = baseline_coef,
-      hazard = hazard_coef,
-      index_g = index_g_coef,
-      index_beta = index_beta_coef
-    ),
-    config = config
-  )
-
-  # Pre-compute constants for efficiency
-  inv_2sigma2 <- 1 / (2 * measurement_error_sd^2)
-  log_2pi_sigma2 <- log(2 * pi * measurement_error_sd^2)
-  half_log_2pi_sigma2 <- 0.5 * log_2pi_sigma2
-
-  # Initialize Q components
-  q_long <- 0
-  q_surv <- 0
-  n_total_obs <- 0
-
-  # Vectorized computation using lapply
-  subject_ids <- names(data_list)
-
-  # Pre-extract all posterior values for efficiency
-  b_hat_all <- vapply(
-    subject_ids, function(id) posteriors[[id]]$b_hat, numeric(1)
-  )
-  v_hat_all <- vapply(
-    subject_ids, function(id) posteriors[[id]]$v_hat, numeric(1)
-  )
-  exp_b_all <- vapply(
-    subject_ids, function(id) posteriors[[id]]$exp_b, numeric(1)
-  )
-
-  # Compute all ODE solutions
-  ode_solutions <- lapply(data_list, function(subject_data) {
-    .solve_joint_ode(subject_data, parameters)
-  })
-
-  # Process each subject and compute Q components
-  subject_results <- mapply(function(subject_data, ode_solution, idx) {
-    b_hat <- b_hat_all[idx]
-    v_hat <- v_hat_all[idx]
-    exp_b <- exp_b_all[idx]
-
-    # Longitudinal component
-    q_long_i <- 0
-    n_obs_i <- 0
-    if (subject_data$longitudinal$n_obs > 0) {
-      residuals <- subject_data$longitudinal$measurements -
-        ode_solution$biomarker - b_hat
-      q_long_i <- -sum(residuals^2 + v_hat) * inv_2sigma2 -
-        subject_data$longitudinal$n_obs * half_log_2pi_sigma2
-      n_obs_i <- subject_data$longitudinal$n_obs
-    }
-
-    # Survival component
-    q_surv_i <- -exp_b * ode_solution$cum_hazard
-    if (subject_data$status == 1) {
-      q_surv_i <- q_surv_i + ode_solution$log_hazard + b_hat
-    }
-
-    list(q_long = q_long_i, q_surv = q_surv_i, n_obs = n_obs_i)
-  }, data_list, ode_solutions, seq_along(data_list), SIMPLIFY = FALSE)
-
-  # Sum all components
-  q_long <- sum(vapply(subject_results, `[[`, numeric(1), "q_long"))
-  q_surv <- sum(vapply(subject_results, `[[`, numeric(1), "q_surv"))
-  n_total_obs <- sum(vapply(subject_results, `[[`, numeric(1), "n_obs"))
-
-  # Adjust longitudinal component
-  q_long <- q_long - n_total_obs * half_log_2pi_sigma2
-
-  # Random effects component (use pre-extracted values)
-  inv_2tau2 <- 1 / (2 * random_effect_sd^2)
-  log_2pi_tau2 <- log(2 * pi * random_effect_sd^2)
-  q_re <- -sum((b_hat_all^2 + v_hat_all) * inv_2tau2) -
-    length(posteriors) * log_2pi_tau2 * 0.5
-
-  # Total Q function
-  q_long + q_surv + q_re
+  J
 }
