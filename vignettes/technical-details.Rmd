@@ -20,9 +20,9 @@ This vignette describes the mathematical framework and computational implementat
 
 ### Longitudinal Sub-Model
 
-The observed biomarker measurements are modeled as: $$
-V_{ij}=m_i(T_{ij})+b_i+\varepsilon_{ij},\quad i=1,\ldots,n,\quad j=1,\ldots,n_i
-$$
+The observed biomarker measurements are modeled as:
+
+$$V_{ij}=m_i(T_{ij})+b_i+\varepsilon_{ij},\quad i=1,\ldots,n,\quad j=1,\ldots,n_i$$
 
 where:
 
@@ -57,45 +57,64 @@ where:
 
 ### ODE System
 
-The state vector $\mathbf{s}_i(t) = (\Lambda_i(t), m_i(t), \dot{m}_i(t))^{\top}$ evolves according to:
+The complete system couples the biomarker trajectory dynamics with the survival process. The state vector $\mathbf{s}_i(t) = (\Lambda_i(t), m_i(t), \dot{m}_i(t))^{\top}$ evolves according to:
 
 $$
 \frac{d\mathbf{s}_i}{dt} = \begin{pmatrix}
 \lambda_i(t|b_i) \\
 \dot{m}_i(t) \\
-g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t))
+f(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t)
 \end{pmatrix}
 $$
 
-with initial conditions $\mathbf{s}_i(0) = (0, m_{i0}, \dot{m}_{i0})^{\top}$.
+with initial conditions $\mathbf{s}_i(0) = (0, m_{i0}, \dot{m}_{i0})^{\top}$, where $m_{i0}$ and $\dot{m}_{i0}$ are the initial biomarker value and velocity for subject $i$.
 
 ## Statistical Inference
 
-### Model Components
+For parameter estimation, we need to specify parametric forms for the model components. 
+
+### Model Parameterization
 
 **Hazard Function:**
+We parameterize the log baseline hazard using B-splines:
+
+$$\log\lambda_0(t) = \boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t)$$
+
+Thus, the full hazard function becomes:
+
 $$\lambda_i(t|b_i) = \exp\left[\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t) + \mathbf{W}_i^{\top}\boldsymbol{\phi} + \mathbf{m}_i(t)^{\top}\boldsymbol{\alpha} + b_{i}\right]$$
 
-where $\mathbf{B}^{(\lambda)}(t)$ is the B-spline basis for baseline hazard, and $\boldsymbol{\eta}$ are the corresponding coefficients.
+where $\mathbf{B}^{(\lambda)}(t)$ is the B-spline basis for the log baseline hazard, and $\boldsymbol{\eta}$ are the corresponding coefficients.
 
 **Acceleration Function:**
-$$g(u) = \boldsymbol{\gamma}^{\top} \mathbf{B}^{(g)}(u), \quad u = \boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)$$
+To make the model tractable, we approximate the unknown acceleration function $f$ using a single-index model:
 
-where $\mathbf{B}^{(g)}(u)$ is the B-spline basis for acceleration, $\boldsymbol{\gamma}$ are the basis coefficients, and $\boldsymbol{\beta}$ are the single-index coefficients (constrained: $\|\boldsymbol{\beta}\| = 1$).
+$$f(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t) \approx g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t))$$
+
+where:
+
+- $\mathbf{Z}_i(t) = [m_i(t), \dot{m}_i(t), \mathbf{X}_i^{\top}(t), t]^{\top}$ is the feature vector
+- $\boldsymbol{\beta}$ are the single-index coefficients (constrained: $\|\boldsymbol{\beta}\| = 1$)
+- $g(u) = \boldsymbol{\gamma}^{\top} \mathbf{B}_g(u)$ is a flexible function parameterized by B-spline basis $\mathbf{B}_g(u)$ with coefficients $\boldsymbol{\gamma}$
 
 ### Likelihood
 
 The joint likelihood for subject $i$ integrates over the random effect:
 
-$$L_i(\boldsymbol{\psi}) = \int f(\mathbf{V}_i | b_i) \cdot f(T_i, \delta_i | b_i) \cdot f(b_i) \, db_i$$
+$$L_i(\boldsymbol{\psi}) = \int p(\mathbf{V}_i | b_i) \cdot p(T_i, \delta_i | b_i) \cdot p(b_i) \, db_i$$
 
 where $\boldsymbol{\psi} = (\boldsymbol{\theta}, \boldsymbol{\beta})$, with $\boldsymbol{\theta} = (\boldsymbol{\eta}, \boldsymbol{\phi}, \boldsymbol{\alpha}, \boldsymbol{\gamma}, \sigma_e^2, \sigma_b^2)$.
 
 **Likelihood Components:**
 
-1. **Longitudinal:** $$f(\mathbf{V}_i | b_i) = \prod_{j=1}^{n_i} \mathcal{N}(V_{ij}; m_i(T_{ij}) + b_i, \sigma_e^2)$$
-2. **Survival:** $$f(T_i, \delta_i | b_i) = [\lambda_i(T_i|b_i)]^{\delta_i} \exp[-\Lambda_i(T_i|b_i)]$$
-3. **Random Effect:** $$f(b_i) \sim \mathcal{N}(0, \sigma_b^2)$$
+1. **Longitudinal:** 
+   $$p(\mathbf{V}_i | b_i) = \prod_{j=1}^{n_i} \mathcal{N}(V_{ij}; m_i(T_{ij}) + b_i, \sigma_e^2)$$
+   
+2. **Survival:** 
+   $$p(T_i, \delta_i | b_i) = [\lambda_i(T_i|b_i)]^{\delta_i} \exp[-\Lambda_i(T_i|b_i)]$$
+   
+3. **Random Effect:** 
+   $$p(b_i) \sim \mathcal{N}(0, \sigma_b^2)$$
 
 ### EM Algorithm
 
@@ -129,7 +148,7 @@ $$Q(\boldsymbol{\psi}) = Q_{\text{long}} + Q_{\text{surv}} + Q_{\text{RE}}$$
 
 where:
 
-- $Q_{\text{long}} = -\frac{1}{2\sigma_e^2}\sum_{i,j} [(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i] - \frac{N}{2}\log(2\pi\sigma_e^2)$
+- $Q_{\text{long}} = -\frac{1}{2\sigma_e^2}\sum_{i,j} [(V_{ij} - m_i(T_{ij}) - \hat{b}_i)^2 + \hat{v}_i] - \frac{N}{2}\log(2\pi\sigma_e^2)$, where $N = \sum_{i=1}^n n_i$ is the total number of observations
 - $Q_{\text{surv}} = \sum_i [\delta_i(\log\lambda_i(T_i|0) + \hat{b}_i) - E[e^{b_i}|\mathcal{O}_i]\Lambda_i(T_i|0)]$
 - $Q_{\text{RE}} = -\frac{1}{2\sigma_b^2}\sum_i (\hat{b}_i^2 + \hat{v}_i) - \frac{n}{2}\log(2\pi\sigma_b^2)$
 
@@ -144,7 +163,7 @@ $$
 2. Update $\boldsymbol{\theta}$:
 
 $$
-\hat{\boldsymbol{\theta}} = \arg\max_{\boldsymbol{\theta}} Q(\boldsymbol{\theta};\widehat{\boldsymbol{\psi}}, \hat{\boldsymbol{\gamma}})
+\hat{\boldsymbol{\theta}} = \arg\max_{\boldsymbol{\theta}} Q(\boldsymbol{\theta};\widehat{\boldsymbol{\beta}})
 $$
 
 3. Update $\boldsymbol{\sigma}$:
@@ -156,49 +175,57 @@ $$
 
 ### Overview of Gradient Computation
 
-The M-step in the EM algorithm requires maximization of the expected complete-data log-likelihood $Q(\boldsymbol{\psi})$ where $\boldsymbol{\psi} = (\boldsymbol{\theta}, \boldsymbol{\beta})$. The gradient is:
+The M-step of the EM algorithm requires maximization of the expected complete-data log-likelihood $Q(\boldsymbol{\psi})$ with respect to the parameter vector $\boldsymbol{\psi} = (\boldsymbol{\theta}, \boldsymbol{\beta})$, where $\boldsymbol{\theta}$ encompasses the hazard model parameters and $\boldsymbol{\beta}$ represents the single-index coefficients. To perform this optimization efficiently, gradient-based methods necessitate the computation of:
 
-$$\nabla_{\boldsymbol{\psi}} Q = \sum_{j=1}^{n_i} \frac{r_{ij}}{\sigma_e^2} \frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\psi}} - E[e^{b_i}|\mathcal{O}_i] \frac{\partial \Lambda_i(T_i)}{\partial \boldsymbol{\psi}}$$
+$$\nabla_{\boldsymbol{\psi}} Q = \sum_{i=1}^{n}\sum_{j=1}^{n_i} \frac{r_{ij}}{\sigma_e^2} \frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\psi}} + \sum_{i=1}^{n} \left[\delta_i \frac{\partial \log\lambda_i(T_i|0)}{\partial \boldsymbol{\psi}} - E[e^{b_i}|\mathcal{O}_i] \frac{\partial \Lambda_i(T_i|0)}{\partial \boldsymbol{\psi}}\right]$$
 
-where $r_{ij} = V_{ij} - m_i(T_{ij}) - \hat{b}_i$ is the residual.
+where $r_{ij} = V_{ij} - m_i(T_{ij}) - \hat{b}_i$ denotes the residual between observed and fitted longitudinal values.
 
-The key computational challenge is obtaining the state sensitivities:
-- $\frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\psi}}$ at each observation time $T_{ij}$
-- $\frac{\partial \Lambda_i(T_i)}{\partial \boldsymbol{\psi}}$ at the event time $T_i$
+This gradient formula reveals the fundamental computational challenge: we must evaluate the sensitivities of both the biomarker trajectory $m_i(t)$ and the hazard functions with respect to all model parameters. Specifically, we require:
 
-Two approaches are available: the forward sensitivity method and the adjoint method.
+- $\frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\psi}}$: trajectory sensitivities at observation times
+- $\frac{\partial \log\lambda_i(T_i|0)}{\partial \boldsymbol{\psi}}$: log hazard sensitivities at event times
+- $\frac{\partial \Lambda_i(T_i|0)}{\partial \boldsymbol{\psi}}$: cumulative hazard sensitivities at event times
 
-### Sensitivity Analysis via Forward Method
+These sensitivities depend on the solution of the nonlinear second-order ODE system and cannot be derived in closed form. We first present the explicit forms of these gradients, then discuss numerical methods for their computation.
 
-#### Gradient Computation
+### Explicit Forms of Gradient Components
 
-##### Parameter Vector $\boldsymbol{\theta}$
+The parameter vector $\boldsymbol{\psi} = (\boldsymbol{\theta}, \boldsymbol{\beta})$ consists of the hazard model parameters $\boldsymbol{\theta} = (\boldsymbol{\eta}, \boldsymbol{\phi}, \boldsymbol{\alpha}, \boldsymbol{\gamma})$ and the single-index coefficients $\boldsymbol{\beta}$. We derive the gradient with respect to each component.
+
+#### Gradients with Respect to $\boldsymbol{\theta}$
 
 The gradient components with respect to $\boldsymbol{\theta} = (\boldsymbol{\eta}, \boldsymbol{\phi}, \boldsymbol{\alpha}, \boldsymbol{\gamma})$ decompose as follows:
 
 **Baseline hazard coefficients** ($\boldsymbol{\eta}$):
+
 $$\nabla_{\boldsymbol{\eta}} Q = \sum_{i=1}^{n} \left[\delta_i \mathbf{B}^{(\lambda)}(T_i) - E[e^{b_i}|\mathcal{O}_i] \frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\eta}}\right]$$
 
 **Baseline covariate effects** ($\boldsymbol{\phi}$):
+
 $$\nabla_{\boldsymbol{\phi}} Q = \sum_{i=1}^{n} \left[\delta_i - E[e^{b_i}|\mathcal{O}_i] \cdot \Lambda_i(T_i|0)\right] \mathbf{W}_i$$
 
 **Association parameters** ($\boldsymbol{\alpha}$):
+
 $$\nabla_{\boldsymbol{\alpha}} Q = \sum_{i=1}^{n} \left[\delta_i \mathbf{m}_i(T_i) - E[e^{b_i}|\mathcal{O}_i] \frac{\partial\Lambda_i(T_i|0)}{\partial\boldsymbol{\alpha}}\right]$$
 
 **Acceleration spline coefficients** ($\boldsymbol{\gamma}$):
+
 $$\nabla_{\boldsymbol{\gamma}} Q = \sum_{i=1}^{n}\sum_{j=1}^{n_i} \frac{r_{ij}}{\sigma_e^2} \frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\gamma}} + \sum_{i=1}^{n} \left[\delta_i \boldsymbol{\alpha}^{\top} \frac{\partial \mathbf{m}_i(T_i)}{\partial \boldsymbol{\gamma}} - E[e^{b_i}|\mathcal{O}_i] \frac{\partial \Lambda_i(T_i|0)}{\partial \boldsymbol{\gamma}}\right]$$
 
-where $r_{ij} = V_{ij} - m_i(T_{ij}) - \hat{b}_i$ denotes the residual from the longitudinal model.
-
-##### Single-Index Coefficients $\boldsymbol{\beta}$
+#### Gradient with Respect to Single-Index Coefficients $\boldsymbol{\beta}$
 
 The gradient with respect to the constrained single-index coefficients ($\|\boldsymbol{\beta}\|=1$) is:
 
 $$\nabla_{\boldsymbol{\beta}} Q = \sum_{i=1}^{n}\sum_{j=1}^{n_i} \frac{r_{ij}}{\sigma_e^2} \frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\beta}} + \sum_{i=1}^{n} \left[\delta_i \boldsymbol{\alpha}^{\top} \frac{\partial \mathbf{m}_i(T_i)}{\partial \boldsymbol{\beta}} - E[e^{b_i}|\mathcal{O}_i] \frac{\partial \Lambda_i(T_i|0)}{\partial \boldsymbol{\beta}}\right]$$
 
-#### Sensitivity Propagation
+where $r_{ij} = V_{ij} - m_i(T_{ij}) - \hat{b}_i$ denotes the residual between observed and fitted values.
 
-##### Cumulative Hazard Sensitivities
+### Computing the Required Sensitivities
+
+The gradient expressions above involve two types of sensitivities that must be computed numerically:
+
+#### Cumulative Hazard Sensitivities
 
 The cumulative hazard function $\Lambda_i(T_i|0)$ depends on parameters through the instantaneous hazard. For parameters affecting the hazard directly, the sensitivities are computed as:
 
@@ -216,9 +243,9 @@ $$
 
 ##### Trajectory Sensitivities
 
-The biomarker trajectory sensitivities satisfy recursive integral relationships that arise naturally from the hierarchical structure of the second-order differential equation system. These sensitivities must be computed through the forward propagation method due to the coupling between trajectory dynamics and parameter dependencies.
+The trajectory sensitivities with respect to parameters affecting the ODE system are more complex and must be computed numerically. These sensitivities satisfy the following relationships:
 
-**Single-index coefficients ($\boldsymbol{\beta}$):**
+**For single-index coefficients ($\boldsymbol{\beta}$):**
 
 The trajectory sensitivities evolve according to:
 
@@ -241,9 +268,7 @@ where $\frac{\partial \mathbf{Z}_i(t)}{\partial\boldsymbol{\beta}} = \begin{bmat
 \frac{\partial m_i(t)}{\partial \boldsymbol{\beta}} \\ \frac{\partial \dot{m}_i(t)}{\partial \boldsymbol{\beta}} \\ \mathbf{0} \\ 0
 \end{bmatrix}$ since the covariates $\mathbf{X}_i(t)$ and time $t$ do not depend on $\boldsymbol{\beta}$.
 
-**Acceleration spline coefficients ($\boldsymbol{\gamma}$):**
-
-Similarly, the sensitivities with respect to $\boldsymbol{\gamma}$ follow:
+**For acceleration spline coefficients ($\boldsymbol{\gamma}$):**
 
 $$
 \frac{\partial m_i(t)}{\partial \boldsymbol{\gamma}} = \int_{0}^{t} \frac{\partial\dot{m}_i(s)}{\partial \boldsymbol{\gamma}} \,\mathrm{d}s,\quad
@@ -266,11 +291,17 @@ $$\frac{\partial u}{\partial \boldsymbol{\gamma}} = \boldsymbol{\beta}^{\top} \f
 \frac{\partial m_i(t)}{\partial \boldsymbol{\gamma}} \\ \frac{\partial \dot{m}_i(t)}{\partial \boldsymbol{\gamma}} \\ \mathbf{0} \\ 0
 \end{bmatrix}$$
 
-This dual dependence structure—explicit through the linear combination and implicit through the state feedback—is a key feature of the single-index acceleration model.
 
-#### Computational Implementation via Augmented ODE Systems
+### Numerical Methods for Sensitivity Computation
 
-The practical computation of these gradients necessitates solving augmented ordinary differential equation systems that simultaneously evolve both the primary state variables and their parameter sensitivities. This approach, known as the forward sensitivity method, extends the original three-dimensional state space to include sensitivity trajectories.
+Since the sensitivities cannot be obtained analytically due to the nonlinear nature of the acceleration function $g(\cdot)$, we employ numerical methods. Two computational strategies are available:
+
+1. **Forward Sensitivity Method**: Augments the original ODE system with sensitivity equations that are integrated simultaneously with the state equations
+2. **Adjoint Method**: Solves a backward-in-time adjoint system, offering computational advantages when the number of parameters exceeds the number of objective function evaluations
+
+#### Forward Sensitivity Method
+
+The forward method extends the original three-dimensional state space to include sensitivity trajectories, solving augmented ODE systems that simultaneously evolve both the primary state variables and their parameter sensitivities.
 
 **Augmented system for $\boldsymbol{\theta}$ components:**
 
@@ -302,29 +333,29 @@ g(\boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)) \\
 
 Here, $\partial\Lambda_{\eta,i}$, $\partial\Lambda_{\alpha,i}$, $\partial\Lambda_{\gamma,i}$, and $\partial\Lambda_{\beta,i}$ denote the cumulative hazard sensitivities with respect to the corresponding parameter groups, while $\frac{\partial u}{\partial\boldsymbol{\beta}}$ follows the recursive relationship defined previously. These augmented systems must be integrated from $t=0$ to $t=T_i$ for each subject to obtain the complete sensitivity information required for gradient computation.
 
-### Adjoint Sensitivity Analysis
+#### Adjoint Method
 
-The adjoint method provides an alternative, more memory-efficient approach to compute the same state sensitivities, especially when the number of parameters is large.
+The adjoint method provides an alternative, more memory-efficient approach for computing gradients, particularly advantageous when the number of parameters substantially exceeds the number of objective function components. Instead of propagating sensitivities forward in time, this method solves a backward-in-time adjoint system.
 
-#### Mathematical Foundation
+**Mathematical Foundation**
 
-Given the ODE system $\frac{d\mathbf{s}}{dt} = f(t, \mathbf{s}; \boldsymbol{\psi})$ with $\mathbf{s}(0) = \mathbf{s}_0$, we derive the adjoint sensitivity formula.
+Given the ODE system $\frac{d\mathbf{s}}{dt} = F(t, \mathbf{s}; \boldsymbol{\psi})$ with $\mathbf{s}(0) = \mathbf{s}_0$, we derive the adjoint sensitivity formula.
 
 Since $\mathbf{s}(t)$ satisfies the ODE, for any function $\boldsymbol{\kappa}(t)$:
-$$\mathbf{s}(T) = \mathbf{s}(T) - \int_0^T \boldsymbol{\kappa}^{\top} \left[\frac{d\mathbf{s}}{dt} - f\right] dt$$
+$$\mathbf{s}(T) = \mathbf{s}(T) - \int_0^T \boldsymbol{\kappa}^{\top} \left[\frac{d\mathbf{s}}{dt} - F\right] dt$$
 
 Differentiating with respect to $\boldsymbol{\psi}$ and using integration by parts:
-$$\frac{\partial \mathbf{s}(T)}{\partial \boldsymbol{\psi}} = \int_0^T \boldsymbol{\kappa}^{\top} \frac{\partial f}{\partial \boldsymbol{\psi}} dt - \boldsymbol{\kappa}(T)^{\top} \frac{\partial \mathbf{s}(T)}{\partial \boldsymbol{\psi}} + \int_0^T \left[\frac{d\boldsymbol{\kappa}}{dt} + \left(\frac{\partial f}{\partial \mathbf{s}}\right)^{\top} \boldsymbol{\kappa}\right]^{\top} \frac{\partial \mathbf{s}}{\partial \boldsymbol{\psi}} dt$$
+$$\frac{\partial \mathbf{s}(T)}{\partial \boldsymbol{\psi}} = \int_0^T \boldsymbol{\kappa}^{\top} \frac{\partial F}{\partial \boldsymbol{\psi}} dt - \boldsymbol{\kappa}(T)^{\top} \frac{\partial \mathbf{s}(T)}{\partial \boldsymbol{\psi}} + \int_0^T \left[\frac{d\boldsymbol{\kappa}}{dt} + \left(\frac{\partial F}{\partial \mathbf{s}}\right)^{\top} \boldsymbol{\kappa}\right]^{\top} \frac{\partial \mathbf{s}}{\partial \boldsymbol{\psi}} dt$$
 
 Define $\tilde{\boldsymbol{\kappa}} = \boldsymbol{\kappa} + \mathbf{e}_k$ and choose it to satisfy:
-$$\frac{d\tilde{\boldsymbol{\kappa}}}{dt} = -\left(\frac{\partial f}{\partial \mathbf{s}}\right)^{\top} \tilde{\boldsymbol{\kappa}}, \quad \tilde{\boldsymbol{\kappa}}(T) = \mathbf{e}_k$$
+$$\frac{d\tilde{\boldsymbol{\kappa}}}{dt} = -\left(\frac{\partial F}{\partial \mathbf{s}}\right)^{\top} \tilde{\boldsymbol{\kappa}}, \quad \tilde{\boldsymbol{\kappa}}(T) = \mathbf{e}_k$$
 
 This choice eliminates the $\frac{\partial \mathbf{s}}{\partial \boldsymbol{\psi}}$ terms, yielding:
-$$\frac{\partial \mathbf{s}_k(T)}{\partial \boldsymbol{\psi}} = \int_0^T \tilde{\boldsymbol{\kappa}}^{\top} \frac{\partial f}{\partial \boldsymbol{\psi}}\bigg|_{\mathbf{s}} dt$$
+$$\frac{\partial \mathbf{s}_k(T)}{\partial \boldsymbol{\psi}} = \int_0^T \tilde{\boldsymbol{\kappa}}^{\top} \frac{\partial F}{\partial \boldsymbol{\psi}}\bigg|_{\mathbf{s}} dt$$
 
 where $\mathbf{e}_k$ is the $k$-th unit vector (i.e., a vector with 1 in the $k$-th position and 0 elsewhere).
 
-#### Application to JointODE
+**Application to JointODE**
 
 For the state vector $\mathbf{s} = [\Lambda_i, m_i, \dot{m}_i]^{\top}$, we need:
 1. $\frac{\partial m_i(T_{ij})}{\partial \boldsymbol{\psi}}$ for each observation time $T_{ij}$
@@ -333,13 +364,13 @@ For the state vector $\mathbf{s} = [\Lambda_i, m_i, \dot{m}_i]^{\top}$, we need:
 ##### Adjoint System
 
 The transposed Jacobian for the JointODE dynamics is:
-$$\left(\frac{\partial f}{\partial \mathbf{s}}\right)^{\top} = \begin{bmatrix}
+$$\left(\frac{\partial F}{\partial \mathbf{s}}\right)^{\top} = \begin{bmatrix}
 0 & 0 & 0 \\
 \alpha_0 \lambda_i(t|0) & 0 & g'(u) \beta_1 \\
 \alpha_1 \lambda_i(t|0) & 1 & g'(u) \beta_2
 \end{bmatrix}$$
 
-where $g'(u) = \boldsymbol{\gamma}^{\top}\mathbf{B}'_g(u)$ denotes the derivative of the acceleration function at $u = \boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)$.
+where $g'(u) = \boldsymbol{\gamma}^{\top}\mathbf{B}'_g(u)$ denotes the derivative of the acceleration function at $u = \boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)$, and $\beta_1$ and $\beta_2$ are the first two components of the single-index coefficient vector $\boldsymbol{\beta}$ corresponding to $m_i(t)$ and $\dot{m}_i(t)$, respectively.
 
 This yields the adjoint differential equations (solved backward in time):
 $$\begin{aligned}
@@ -355,15 +386,15 @@ with terminal conditions:
 
 ##### Parameter Derivatives
 
-The partial derivatives $\frac{\partial f}{\partial \boldsymbol{\psi}}\bigg|_{\mathbf{s}}$ needed for the sensitivity integrals:
+The partial derivatives $\frac{\partial F}{\partial \boldsymbol{\psi}}\bigg|_{\mathbf{s}}$ needed for the sensitivity integrals:
 
 **Trajectory parameters:**
 
-- Single-index coefficients: $\frac{\partial f}{\partial \boldsymbol{\beta}} = [0, 0, g'(u) \mathbf{Z}_i(t)]^{\top}$
-- Acceleration basis coefficients: $\frac{\partial f}{\partial \boldsymbol{\gamma}} = [0, 0, \mathbf{B}_g(u)]^{\top}$
+- Single-index coefficients: $\frac{\partial F}{\partial \boldsymbol{\beta}} = [0, 0, g'(u) \mathbf{Z}_i(t)]^{\top}$
+- Acceleration basis coefficients: $\frac{\partial F}{\partial \boldsymbol{\gamma}} = [0, 0, \mathbf{B}_g(u)]^{\top}$
 
 **Survival parameters:**
 
-- Baseline hazard coefficients: $\frac{\partial f}{\partial \boldsymbol{\eta}} = [\mathbf{B}^{(\lambda)}(t) \lambda_i(t|0), 0, 0]^{\top}$
-- Association parameters: $\frac{\partial f}{\partial \boldsymbol{\alpha}} = [\mathbf{m}_i(t) \lambda_i(t|0), 0, 0]^{\top}$
-- Baseline covariate effects: $\frac{\partial f}{\partial \boldsymbol{\phi}} = [\mathbf{W}_i \lambda_i(t|0), 0, 0]^{\top}$
+- Baseline hazard coefficients: $\frac{\partial F}{\partial \boldsymbol{\eta}} = [\mathbf{B}^{(\lambda)}(t) \lambda_i(t|0), 0, 0]^{\top}$
+- Association parameters: $\frac{\partial F}{\partial \boldsymbol{\alpha}} = [\mathbf{m}_i(t) \lambda_i(t|0), 0, 0]^{\top}$
+- Baseline covariate effects: $\frac{\partial F}{\partial \boldsymbol{\phi}} = [\mathbf{W}_i \lambda_i(t|0), 0, 0]^{\top}$
