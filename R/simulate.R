@@ -38,7 +38,7 @@
 #' @param seed Integer. Random seed ensuring reproducible simulations.
 #'   Essential for method validation and comparison studies (default: 42).
 #' @param verbose Logical. Display informative progress messages during
-#'   simulation workflow (default: TRUE).
+#'   simulation workflow (default: FALSE).
 #'
 #' @return A list containing two complementary datasets:
 #'   \describe{
@@ -220,7 +220,7 @@
 simulate <- function(
     n = 50, alpha = c(0.5, 0.4, -0.5), beta = c(-0.3, -0.5, 0.2, 0.1, 0.05),
     phi = c(0.2, -0.15), weibull_shape = 1.5, weibull_scale = 8,
-    sigma_b = 0.1, sigma_e = 0.1, seed = 42, verbose = TRUE) {
+    sigma_b = 0.1, sigma_e = 0.1, seed = 42, verbose = FALSE) {
   # Validate inputs
   if (!is.numeric(n) || n <= 0 || n != as.integer(n)) {
     stop("n must be a positive integer")
@@ -648,4 +648,226 @@ simulate <- function(
       quarterly
     }
   }
+}
+
+#' Estimate B-spline Coefficients
+#'
+#' @description
+#' Internal function that estimates B-spline coefficients to approximate
+#' a given function using least squares fitting.
+#'
+#' @param x Numeric vector. Data points where the function is evaluated.
+#' @param f0 Function. Target function to approximate with B-splines.
+#' @param config List. B-spline configuration with components:
+#'   \itemize{
+#'     \item \code{degree}: Polynomial degree (default: 3)
+#'     \item \code{n_knots}: Number of interior knots
+#'     \item \code{knot_placement}: "quantile" or "equal"
+#'     \item \code{boundary_knots}: Optional boundary knot locations
+#'   }
+#'
+#' @return Numeric vector of B-spline coefficients that best approximate
+#'   the target function at the given data points.
+#'
+#' @details
+#' This function performs the following steps:
+#' \enumerate{
+#'   \item Configures the B-spline basis using the provided settings
+#'   \item Evaluates the basis functions at data points
+#'   \item Evaluates the target function at data points
+#'   \item Solves the least squares problem to find optimal coefficients
+#' }
+#'
+#' The resulting coefficients minimize
+#' \eqn{||B\theta - f_0(x)||^2} where B is the basis matrix.
+#'
+#' @examples
+#' \dontrun{
+#' # Approximate a sine function
+#' x <- seq(0, 2*pi, length.out = 100)
+#' f0 <- function(t) sin(t)
+#' config <- list(degree = 3, n_knots = 5, knot_placement = "quantile")
+#' coef <- .estimate_bspline_coef(x, f0, config)
+#' }
+#'
+#' @noRd
+.estimate_bspline_coef <- function(x, f0, config) {
+  splin_config <- .get_spline_config(
+    x = x,
+    degree = config$degree,
+    n_knots = config$n_knots,
+    knot_placement = config$knot_placement,
+    boundary_knots = config$boundary_knots
+  )
+
+  # Compute B-spline basis at grid points
+  basis_matrix <- .compute_spline_basis(x, splin_config)
+
+  # Compute target values
+  y_target <- f0(x)
+
+  # Ensure y_target is a column vector
+  if (!is.matrix(y_target)) {
+    y_target <- matrix(y_target, ncol = 1)
+  }
+
+  # Fit coefficients using least squares
+  spline_coefficients <- solve(
+    t(basis_matrix) %*% basis_matrix,
+    t(basis_matrix) %*% y_target
+  )
+  as.vector(spline_coefficients)
+}
+
+
+#' Create Example Dataset for JointODE
+#'
+#' @description
+#' Internal function that generates a complete example dataset for
+#' demonstrating and testing the JointODE package. Creates simulated
+#' data with known parameters for model validation.
+#'
+#' @param n Integer. Number of subjects to simulate (default: 50).
+#'
+#' @return A list containing:
+#'   \describe{
+#'     \item{data}{Simulated data from \code{simulate()} function:
+#'       \itemize{
+#'         \item \code{longitudinal_data}: Longitudinal measurements
+#'         \item \code{survival_data}: Survival outcomes
+#'       }
+#'     }
+#'     \item{formulas}{Model formulas:
+#'       \itemize{
+#'         \item \code{longitudinal}: v ~ x1 + x2
+#'         \item \code{survival}: Surv(time, status) ~ w1 + w2
+#'       }
+#'     }
+#'     \item{parameters}{True parameters and configurations:
+#'       \itemize{
+#'         \item \code{coefficients}: All model coefficients
+#'         \item \code{configuration}: B-spline configurations
+#'       }
+#'     }
+#'   }
+#'
+#' @details
+#' This function serves as the data generation engine for the package's
+#' example dataset. It:
+#' \enumerate{
+#'   \item Simulates data using predefined parameter values
+#'   \item Estimates B-spline coefficients for baseline hazard and
+#'     nonlinearity functions
+#'   \item Packages everything into a structured format for analysis
+#' }
+#'
+#' The generated dataset includes:
+#' \itemize{
+#'   \item Weibull baseline hazard (shape=1.5, scale=8)
+#'   \item ODE dynamics with normalized parameters
+#'   \item Measurement error SD = 0.1
+#'   \item Random effect SD = 0.1
+#'   \item B-spline approximations with degree 3
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # Generate example data for 100 subjects
+#' example_data <- .create_example_data(n = 100)
+#'
+#' # Access components
+#' head(example_data$data$longitudinal_data)
+#' example_data$formulas$longitudinal
+#' example_data$parameters$coefficients$hazard
+#' }
+#'
+#' @seealso \code{\link{simulate}} for the underlying simulation engine
+#'
+#' @noRd
+.create_example_data <- function(n = 50) {
+  # Define default configurations
+  spline_baseline <- list(
+    degree = 3,
+    n_knots = 5,
+    knot_placement = "quantile",
+    boundary_knots = NULL
+  )
+
+  spline_index <- list(
+    degree = 3,
+    n_knots = 10,
+    knot_placement = "quantile",
+    boundary_knots = NULL
+  )
+
+  # Define functions once
+  g_0 <- function(u) 2 * tanh(u / 3)
+  lambda_0 <- function(t) log((1.5 / 8) * (t / 8)^0.5)
+
+  # Generate and process data
+  data <- simulate(n = n)
+
+  # Extract times once
+  times <- data$survival_data[, "time"]
+
+  # Compute baseline spline coefficients
+  baseline_spline_coefficients <- .estimate_bspline_coef(
+    times, lambda_0, spline_baseline
+  )
+
+  # Define coefficients
+  hazard_coefficients <- c(0.5, 0.4, -0.5, 0.2, -0.15)
+  index_beta_raw <- c(-0.3, -0.5, 0, 0.2, 0.1, 0.05)
+  index_coefficients <- index_beta_raw / sqrt(sum(index_beta_raw^2))
+
+  # Compute index variable efficiently
+  z_cols <- c("biomarker", "velocity", "x1", "x2", "time")
+  z_coefs <- c(-0.3, -0.5, 0.2, 0.1, 0.05)
+  Z <- as.matrix(data$longitudinal_data[, z_cols])
+  u <- drop(Z %*% z_coefs) # drop() removes unnecessary dimensions
+
+  # Compute index spline coefficients
+  index_spline_coefficients <- .estimate_bspline_coef(
+    u, g_0, spline_index
+  )
+
+  # Create spline configurations
+  spline_baseline_config <- .get_spline_config(
+    x = times,
+    degree = spline_baseline$degree,
+    n_knots = spline_baseline$n_knots,
+    knot_placement = spline_baseline$knot_placement,
+    boundary_knots = spline_baseline$boundary_knots
+  )
+
+  spline_index_config <- .get_spline_config(
+    x = u,
+    degree = spline_index$degree,
+    n_knots = spline_index$n_knots,
+    knot_placement = spline_index$knot_placement,
+    boundary_knots = spline_index$boundary_knots
+  )
+
+  # Return organized structure
+  list(
+    data = data,
+    formulas = list(
+      longitudinal = v ~ x1 + x2,
+      survival = Surv(time, status) ~ w1 + w2
+    ),
+    parameters = list(
+      coefficients = list(
+        baseline = baseline_spline_coefficients,
+        hazard = hazard_coefficients,
+        index_g = index_spline_coefficients,
+        index_beta = index_coefficients,
+        measurement_error_sd = 0.1,
+        random_effect_sd = 0.1
+      ),
+      configurations = list(
+        baseline = spline_baseline_config,
+        index = spline_index_config
+      )
+    )
+  )
 }
