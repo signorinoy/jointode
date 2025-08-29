@@ -1,0 +1,108 @@
+#' Simulated Joint ODE Model Dataset
+#'
+#' @description
+#' Example dataset for demonstrating JointODE package capabilities.
+#' Contains simulated longitudinal biomarker trajectories and survival
+#' outcomes from a joint model framework with ODE-governed dynamics.
+#'
+#' @format A list containing multiple components:
+#' \describe{
+#'   \item{data}{Original simulated data with two data frames:
+#'     \itemize{
+#'       \item \code{longitudinal_data}: Longitudinal biomarker
+#'         measurements with columns: \code{id}, \code{time}, \code{v}
+#'         (observed value), \code{x1}, \code{x2} (covariates),
+#'         \code{biomarker}, \code{velocity}, \code{acceleration}
+#'         (true latent values)
+#'       \item \code{survival_data}: Survival outcomes (50 subjects)
+#'         with columns: \code{id}, \code{time} (event/censoring),
+#'         \code{status} (1=event, 0=censored), \code{w1}, \code{w2}
+#'         (covariates), \code{b} (random effect)
+#'     }
+#'   }
+#'   \item{formulas}{Model formulas used for data generation:
+#'     \itemize{
+#'       \item \code{longitudinal}: Formula for longitudinal model
+#'         (\code{v ~ x1 + x2})
+#'       \item \code{survival}: Formula for survival model
+#'         (\code{Surv(time, status) ~ w1 + w2})
+#'     }
+#'   }
+#'   \item{parameters}{Model parameters and configurations:
+#'     \itemize{
+#'       \item \code{coefficients}: True parameter values
+#'         \itemize{
+#'           \item \code{baseline}: B-spline coefficients for
+#'             baseline hazard
+#'           \item \code{hazard}: Association parameters
+#'             [biomarker, velocity, acceleration, w1, w2]
+#'           \item \code{index_g}: B-spline coefficients for
+#'             index transformation
+#'           \item \code{index_beta}: ODE dynamics parameters
+#'             (normalized)
+#'           \item \code{measurement_error_sd}: Measurement error
+#'             SD (0.1)
+#'           \item \code{random_effect_sd}: Random effect SD (0.1)
+#'         }
+#'       \item \code{configurations}: Spline configurations
+#'         \itemize{
+#'           \item \code{baseline}: Complete B-spline configuration
+#'             for baseline hazard including knots and degree
+#'           \item \code{index}: Complete B-spline configuration
+#'             for nonlinear index function including knots and degree
+#'         }
+#'     }
+#'   }
+#' }
+#'
+#' @details
+#' Generated using \code{.create_example_data(n = 50)} with default
+#' parameters. Features include:
+#' \itemize{
+#'   \item 50 subjects with adaptive visit schedules
+#'   \item Weibull baseline hazard (shape=1.5, scale=8)
+#'   \item 10\% random visit missingness
+#'   \item Administrative censoring between 50-95th percentiles
+#' }
+#'
+#' For detailed simulation methodology, see \code{\link{simulate}}.
+#'
+#' @source Generated using JointODE:::.create_example_data(n = 50)
+#'
+#' @examples
+#' # Load the dataset
+#' data(sim)
+#'
+#' # Examine structure
+#' str(sim$data$longitudinal_data)
+#' str(sim$data$survival_data)
+#'
+#' # Basic summary statistics
+#' cat("Number of subjects:",
+#'     length(unique(sim$data$longitudinal_data$id)), "\n")
+#' cat("Event rate:", mean(sim$data$survival_data$status), "\n")
+#' cat("Average observations per subject:",
+#'     nrow(sim$data$longitudinal_data) /
+#'     nrow(sim$data$survival_data), "\n")
+#'
+#' # Visualize longitudinal trajectories
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   library(ggplot2)
+#'
+#'   # Plot trajectories for first 9 subjects
+#'   plot_data <- subset(sim$data$longitudinal_data, id <= 9)
+#'
+#'   ggplot(plot_data, aes(x = time, y = v, group = id)) +
+#'     geom_line(alpha = 0.7) +
+#'     geom_point(size = 1) +
+#'     facet_wrap(~ id, scales = "free_y") +
+#'     theme_minimal() +
+#'     labs(x = "Time (years)", y = "Observed Biomarker Value",
+#'          title = "Simulated Longitudinal Trajectories")
+#' }
+#'
+#' @seealso
+#' \code{\link{JointODE}} for fitting joint models
+#' \code{\link{simulate}} for detailed simulation methodology
+#'
+"sim"

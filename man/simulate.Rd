@@ -14,7 +14,7 @@ simulate(
   sigma_b = 0.1,
   sigma_e = 0.1,
   seed = 42,
-  verbose = TRUE
+  verbose = FALSE
 )
 }
 \arguments{
@@ -56,7 +56,7 @@ more reliable biomarker measurements (default: 0.1).}
 Essential for method validation and comparison studies (default: 42).}
 
 \item{verbose}{Logical. Display informative progress messages during
-simulation workflow (default: TRUE).}
+simulation workflow (default: FALSE).}
 }
 \value{
 A list containing two complementary datasets:

@@ -109,7 +109,6 @@ parameters to improve convergence.
 }
 \examples{
 \dontrun{
-sim <- simulate()
 fit <- JointODE(
   longitudinal_formula = v ~ x1 + x2,
   longitudinal_data = sim$longitudinal_data,
