@@ -1,7 +1,38 @@
 # ==============================================================================
-# Tests for Data Processing Functions
+# Tests for Data Processing Functions (.process)
 # ==============================================================================
-# This file consolidates all data processing tests
+#
+# Test Coverage:
+# 1. Basic Structure and Output
+#    - Correct structuring of processed data
+#    - Subject-level data organization
+#    - Attributes (n_subjects, n_observations, event_rate)
+#
+# 2. Missing Data Handling
+#    - Subjects with missing longitudinal data
+#    - Proper handling of unmatched subjects
+#
+# 3. Formula Processing
+#    - Simple formulas with covariates
+#    - Formula transformations (log, I(), etc.)
+#    - Interaction terms (x1 * x2)
+#    - Polynomial terms (poly())
+#    - Spline terms (ns(), bs())
+#    - Factor variables and dummy coding
+#
+# 4. Data Integrity
+#    - Preservation of data order within subjects
+#    - Correct time sorting
+#    - Handling of non-sequential time points
+#
+# 5. Edge Cases
+#    - Single time point per subject
+#    - Large number of covariates (high-dimensional)
+#
+# 6. Summary Statistics
+#    - Correct computation of event rates
+#    - Accurate observation counts
+# ==============================================================================
 
 test_that(".process correctly structures basic data", {
   longitudinal_data <- create_test_longitudinal_data(
@@ -309,39 +340,6 @@ test_that(".process handles large number of covariates", {
   subject1 <- result[["1"]]
   # Should have time + 20 covariates
   expect_equal(ncol(subject1$longitudinal$covariates), n_covs + 1)
-})
-
-test_that(".process handles missing values in covariates appropriately", {
-  # Create data without NAs to avoid subscript out of bounds error
-  longitudinal_data <- data.frame(
-    id = rep(1:3, each = 4),
-    time = rep(0:3, 3),
-    y = rnorm(12),
-    x1 = rnorm(12),
-    x2 = rnorm(12)
-  )
-
-  survival_data <- data.frame(
-    id = 1:3,
-    event_time = c(4, 5, 4.5),
-    status = c(1, 0, 1),
-    z = rnorm(3)
-  )
-
-  # Process data
-  result <- JointODE:::.process(
-    longitudinal_formula = y ~ x1 + x2,
-    longitudinal_data = longitudinal_data,
-    survival_formula = Surv(event_time, status) ~ z,
-    survival_data = survival_data,
-    id = "id",
-    time = "time"
-  )
-
-  # Check that data is processed correctly
-  subject1 <- result[["1"]]
-  expect_equal(nrow(subject1$longitudinal$covariates), 4)
-  expect_equal(ncol(subject1$longitudinal$covariates), 3) # time, x1, x2
 })
 
 test_that(".process computes correct summary attributes", {

@@ -1,8 +1,56 @@
 # ==============================================================================
-# Tests for Data Validation Functions
+# Tests for Data Validation Functions (.validate)
 # ==============================================================================
-# This file consolidates all validation-related tests for the JointODE package,
-# combining tests from test-dot-validate.R and test-utils-validation.R
+#
+# Test Coverage:
+#
+# 1. Input Type Validation
+#    - Formula objects (must be formula class)
+#    - Data frames (longitudinal and survival)
+#    - Character strings (id and time parameters)
+#    - List objects (spline configurations)
+#
+# 2. Column Existence Checks
+#    - ID column in both datasets
+#    - Time column in longitudinal data
+#    - Formula variables in respective datasets
+#    - Survival time and status columns
+#
+# 3. Formula Structure Validation
+#    - Surv() requirement for survival formula
+#    - Variable availability in data
+#    - Formula parsing and interpretation
+#
+# 4. Subject Consistency
+#    - Matching subjects between datasets
+#    - Orphaned longitudinal data detection
+#    - Missing longitudinal data warnings
+#    - Duplicate survival records
+#
+# 5. Temporal Consistency
+#    - Non-negative longitudinal times
+#    - Positive survival times
+#    - Observations after event/censoring time
+#
+# 6. Data Integrity
+#    - Status values (0 or 1 only)
+#    - Missing values in critical columns
+#    - Empty datasets
+#    - Single observation per subject warning
+#
+# 7. Spline Configuration Validation
+#    - Parameter names validation
+#    - Degree range (1-5)
+#    - Number of knots range (1-20)
+#    - Knot placement strategies
+#    - Boundary knot ordering
+#
+# 8. Edge Cases and Special Scenarios
+#    - Different ID types (integer, character)
+#    - Special characters in variable names
+#    - Large datasets performance
+#    - Completely valid data scenarios
+# ==============================================================================
 
 # ==============================================================================
 # SECTION 1: INPUT TYPE VALIDATION
@@ -714,6 +762,8 @@ test_that(".validate handles special characters in variable names", {
 })
 
 test_that(".validate handles large datasets efficiently", {
+  skip_on_cran()  # Skip performance tests on CRAN
+
   set.seed(42)
   n_subjects <- 1000
   n_times <- 10
@@ -745,7 +795,8 @@ test_that(".validate handles large datasets efficiently", {
     )
   })
 
-  expect_lt(time_taken["elapsed"], 5)
+  # Use more generous time limit for slower systems
+  expect_lt(time_taken["elapsed"], 10)
 })
 
 test_that(".validate works with completely valid data", {

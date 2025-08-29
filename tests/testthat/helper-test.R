@@ -89,127 +89,107 @@ create_mismatched_test_data <- function(n_subjects_long, n_subjects_surv,
   list(longitudinal = longitudinal_data, survival = survival_data)
 }
 
+# ==============================================================================
+# Helper Functions for Gradient Tests
+# ==============================================================================
 
-estimate_bspline_coef <- function(x, f0, config) {
-  splin_config <- .get_spline_config(
-    x = x,
-    degree = config$degree,
-    n_knots = config$n_knots,
-    knot_placement = config$knot_placement,
-    boundary_knots = config$boundary_knots
+
+#' Compare gradient components with detailed diagnostics
+#' @param analytical Analytical gradient vector
+#' @param numerical Numerical gradient vector
+#' @param name Component name for error messages
+#' @param tolerance Comparison tolerance (default: 1e-4)
+compare_gradient_component <- function(
+    analytical, numerical, name, tolerance = 1e-4) {
+  max_diff <- max(abs(analytical - numerical))
+  rel_error <- max(abs((analytical - numerical) / (abs(numerical) + 1e-10)))
+
+  expect_equal(
+    analytical, numerical,
+    tolerance = tolerance,
+    label = paste0(name, " gradient"),
+    info = sprintf("Max diff: %.2e, Rel error: %.2e", max_diff, rel_error)
   )
-
-  # Compute B-spline basis at grid points
-  basis_matrix <- .compute_spline_basis(x, splin_config)
-
-  # Compute target values
-  y_target <- f0(x)
-
-  # Fit coefficients using least squares
-  spline_coefficients <- solve(
-    t(basis_matrix) %*% basis_matrix,
-    t(basis_matrix) %*% y_target
-  )
-  as.vector(spline_coefficients)
 }
 
-setup_test_environment <- function() {
-  # Define default configurations
-  spline_baseline <- list(
-    degree = 3,
-    n_knots = 5,
-    knot_placement = "quantile",
-    boundary_knots = NULL
-  )
-
-  spline_index <- list(
-    degree = 3,
-    n_knots = 10,
-    knot_placement = "quantile",
-    boundary_knots = NULL
-  )
-
-  # Define functions once
-  g_0 <- function(u) 2 * tanh(u / 3)
-  lambda_0 <- function(t) log((1.5 / 8) * (t / 8)^0.5)
-
-  # Generate and process data
-  data <- simulate()
-  data_process <- .process(
-    longitudinal_data = data$longitudinal_data,
-    longitudinal_formula = v ~ x1 + x2,
-    survival_data = data$survival_data,
-    survival_formula = Surv(time, status) ~ w1 + w2,
+#' Load and process test data from sim dataset
+#' @param n_subjects Number of subjects to use (NULL = all)
+#' @return List with data, parameters, and n_subjects
+load_test_data <- function(n_subjects = NULL) {
+  # Process data using sim dataset
+  data_processed <- .process(
+    longitudinal_data = sim$data$longitudinal_data,
+    longitudinal_formula = sim$formulas$longitudinal,
+    survival_data = sim$data$survival_data,
+    survival_formula = sim$formulas$survival,
     id = "id",
     time = "time"
   )
 
-  # Use override or computed number of subjects
-  n_subjects <- length(data_process)
+  parameters <- sim$parameters
 
-  # Extract times once
-  times <- data$survival_data[, "time"]
+  # Subset if requested for faster testing
+  if (!is.null(n_subjects)) {
+    n_subjects <- min(n_subjects, length(data_processed))
+    data_processed <- data_processed[1:n_subjects]
+  }
 
-  # Compute baseline spline coefficients
-  baseline_spline_coefficients <- estimate_bspline_coef(
-    times, lambda_0, spline_baseline
-  )
-
-  # Define coefficients
-  hazard_coefficients <- c(0.5, 0.4, -0.5, 0.2, -0.15)
-  index_beta_raw <- c(-0.3, -0.5, 0, 0.2, 0.1, 0.05)
-  index_coefficients <- index_beta_raw / sqrt(sum(index_beta_raw^2))
-
-  # Compute index variable efficiently
-  z_cols <- c("biomarker", "velocity", "x1", "x2", "time")
-  z_coefs <- c(-0.3, -0.5, 0.2, 0.1, 0.05)
-  Z <- as.matrix(data$longitudinal_data[, z_cols])
-  u <- drop(Z %*% z_coefs) # drop() removes unnecessary dimensions
-
-  # Compute index spline coefficients
-  index_spline_coefficients <- estimate_bspline_coef(
-    u, g_0, spline_index
-  )
-
-  # Create spline configurations
-  spline_baseline_config <- .get_spline_config(
-    x = times,
-    degree = spline_baseline$degree,
-    n_knots = spline_baseline$n_knots,
-    knot_placement = spline_baseline$knot_placement,
-    boundary_knots = spline_baseline$boundary_knots
-  )
-
-  spline_index_config <- .get_spline_config(
-    x = u,
-    degree = spline_index$degree,
-    n_knots = spline_index$n_knots,
-    knot_placement = spline_index$knot_placement,
-    boundary_knots = spline_index$boundary_knots
-  )
-
-  # Generate posteriors
-  posteriors <- list(
-    b = rnorm(n_subjects, 0, 0.2),
-    v = runif(n_subjects, 0.01, 0.1),
-    exp_b = exp(rnorm(n_subjects, 0, 0.2))
-  )
-
-  # Return organized structure
   list(
-    data_list = data_process,
-    config = list(
-      baseline = spline_baseline_config,
-      index = spline_index_config
-    ),
-    params = list(
-      baseline = baseline_spline_coefficients,
-      hazard = hazard_coefficients,
-      index_g = index_spline_coefficients,
-      index_beta = index_coefficients,
-      measurement_error_sd = 0.1,  # Changed from 1e-2 to avoid numerical issues
-      random_effect_sd = 0.1       # Changed from 1e-2 to avoid numerical issues
-    ),
-    posteriors = posteriors
+    data = data_processed,
+    parameters = parameters,
+    n_subjects = length(data_processed)
+  )
+}
+
+
+#' Create fixed parameters for theta optimization
+#' @param parameters Full parameter list
+#' @return List of fixed parameters
+create_fixed_params_theta <- function(parameters) {
+  list(
+    index_beta = parameters$coefficients$index_beta,
+    measurement_error_sd = parameters$coefficients$measurement_error_sd,
+    random_effect_sd = parameters$coefficients$random_effect_sd
+  )
+}
+
+#' Create fixed parameters for beta optimization
+#' @param parameters Full parameter list
+#' @return List of fixed parameters
+create_fixed_params_beta <- function(parameters) {
+  list(
+    baseline = parameters$coefficients$baseline,
+    hazard = parameters$coefficients$hazard,
+    index_g = parameters$coefficients$index_g,
+    measurement_error_sd = parameters$coefficients$measurement_error_sd,
+    random_effect_sd = parameters$coefficients$random_effect_sd
+  )
+}
+
+#' Extract theta parameters in correct order
+#' @param parameters Full parameter list
+#' @param n_surv_covariates Number of survival covariates
+#' @return Vector of theta parameters (η, α, φ, γ)
+extract_theta_params <- function(parameters, n_surv_covariates) {
+  n_phi <- n_surv_covariates
+
+  c(
+    parameters$coefficients$baseline,  # η: baseline hazard
+    parameters$coefficients$hazard[1:3],  # α: association parameters
+    if (n_phi > 0) parameters$coefficients$hazard[4:(3 + n_phi)] else NULL,  # φ: survival covariates
+    parameters$coefficients$index_g  # γ: index spline coefficients
+  )
+}
+
+#' Get parameter dimensions from configurations
+#' @param config Model configurations
+#' @param n_surv_covariates Number of survival covariates
+#' @return List with parameter dimensions
+get_param_dimensions <- function(config, n_surv_covariates) {
+  list(
+    n_eta = config$baseline$df,      # Baseline hazard dimension
+    n_alpha = 3,                      # Association parameters (fixed)
+    n_phi = n_surv_covariates,        # Survival covariates
+    n_gamma = config$index$df         # Index spline dimension
   )
 }

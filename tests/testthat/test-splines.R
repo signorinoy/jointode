@@ -1,4 +1,36 @@
-# Tests for spline utility functions
+# ==============================================================================
+# Tests for Spline Utility Functions
+# ==============================================================================
+#
+# Test Coverage:
+#
+# 1. .get_spline_config() Function Tests
+#    - Default configuration creation
+#    - Custom degree and knot specifications
+#    - Boundary knot handling
+#    - Knot placement strategies (quantile vs equal)
+#    - Edge cases (small data, single value, NA handling)
+#    - Input validation
+#
+# 2. .compute_spline_basis() Function Tests
+#    - Basis matrix dimensions
+#    - Value range validation (0 to 1)
+#    - Non-zero basis function guarantee
+#    - Extrapolation handling
+#    - Partition of unity property
+#    - Compact support verification
+#
+# 3. .compute_spline_basis_deriv() Function Tests
+#    - Derivative matrix dimensions
+#    - Finite value validation
+#    - Sign variation (positive and negative derivatives)
+#    - Linear spline (degree 1) handling
+#
+# 4. Mathematical Properties
+#    - B-spline compact support
+#    - Basis function continuity
+#    - Partition of unity (sum to 1)
+# ==============================================================================
 
 test_that(".get_spline_config creates valid configuration", {
   x <- seq(0, 10, length.out = 100)
@@ -165,4 +197,38 @@ test_that("spline basis functions have expected properties", {
   interior_idx <- seq(10, 90)
   row_sums <- rowSums(basis[interior_idx, ])
   expect_true(all(abs(row_sums - 1) < 0.1))
+})
+
+test_that(".compute_spline_basis and derivatives are consistent", {
+  # Test that derivatives computed are consistent with numerical derivatives
+  x <- seq(0.1, 9.9, length.out = 50)  # Avoid boundary issues
+  config <- JointODE:::.get_spline_config(x, degree = 3, n_knots = 4)
+
+  # Get analytical derivatives
+  deriv_basis <- JointODE:::.compute_spline_basis_deriv(x, config)
+
+  # Compute numerical derivatives
+  h <- 1e-6
+  x_plus <- pmin(x + h, max(config$boundary_knots))
+  x_minus <- pmax(x - h, min(config$boundary_knots))
+
+  basis_plus <- suppressWarnings(
+    JointODE:::.compute_spline_basis(x_plus, config)
+  )
+  basis_minus <- suppressWarnings(
+    JointODE:::.compute_spline_basis(x_minus, config)
+  )
+
+  numerical_deriv <- (basis_plus - basis_minus) / (x_plus - x_minus)
+
+  # They should be approximately equal (tolerance for numerical errors)
+  # Check a few interior points to avoid boundary effects
+  interior_points <- 10:40
+  for (j in 1:ncol(deriv_basis)) {
+    expect_equal(
+      deriv_basis[interior_points, j],
+      numerical_deriv[interior_points, j],
+      tolerance = 1e-3
+    )
+  }
 })
