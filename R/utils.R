@@ -429,32 +429,36 @@
 }
 
 .compute_acceleration <- function(
-    biomarker, velocity, time, data, coefficients, config) {
+    biomarker, velocity, time, data, parameters) {
   long_cov <- .get_longitudinal_covariates(data, time)
   z <- as.vector(c(biomarker, velocity, long_cov, time))
-  index_value <- sum(coefficients$index_beta * z)
+  index_value <- sum(parameters$coefficients$index_beta * z)
 
-  basis_g <- .compute_spline_basis(index_value, config$index)
-  sum(basis_g * coefficients$index_g)
+  basis_g <- .compute_spline_basis(index_value, parameters$configurations$index)
+  sum(basis_g * parameters$coefficients$index_g)
 }
 
 .compute_acceleration_deriv <- function(
-    biomarker, velocity, time, data, coefficients, config, type = "beta",
+    biomarker, velocity, time, data, parameters, type = "beta",
     dbiomarker = NULL, dvelocity = NULL) {
   long_cov <- .get_longitudinal_covariates(data, time)
 
   # Construct Z vector: [m(t), m_dot(t), X(t), t]
   z_vec <- c(biomarker, velocity, long_cov, time)
 
-  beta <- coefficients$index_beta
-  theta <- coefficients$index_g
+  beta <- parameters$coefficients$index_beta
+  theta <- parameters$coefficients$index_g
 
   # Compute index value u = beta' * Z
   index_value <- sum(beta * z_vec)
 
   # Compute B-spline basis and its derivative
-  basis_g <- .compute_spline_basis(index_value, config$index)
-  basis_g_deriv <- .compute_spline_basis_deriv(index_value, config$index)
+  basis_g <- .compute_spline_basis(
+    index_value, parameters$configurations$index
+  )
+  basis_g_deriv <- .compute_spline_basis_deriv(
+    index_value, parameters$configurations$index
+  )
 
   if (type == "beta") {
     # Compute d(acceleration)/dbeta
@@ -492,9 +496,6 @@
     # d(acceleration)/dgamma_j = B_g_j(u) + gamma' * B'_g(u) * du/dgamma_j
     # where du/dgamma_j = beta[1] * dm/dgamma_j + beta[2] * dṁ/dgamma_j
 
-    # Note: dbiomarker and dvelocity are vectors of length n_gamma
-    # Each element j represents ∂m/∂gamma_j and ∂ṁ/∂gamma_j
-
     # Compute the coefficient for the indirect effect
     indirect_coef <- sum(theta * basis_g_deriv)
 
@@ -520,21 +521,23 @@
 }
 
 .compute_log_hazard <- function(
-    time, biomarker, velocity, acceleration, data, coefficients, config) {
+    time, biomarker, velocity, acceleration, data, parameters) {
   # Baseline hazard
-  basis_lambda <- .compute_spline_basis(time, config$baseline)
-  log_baseline <- sum(basis_lambda * coefficients$baseline)
+  basis_lambda <- .compute_spline_basis(
+    time, parameters$configurations$baseline
+  )
+  log_baseline <- sum(basis_lambda * parameters$coefficients$baseline)
 
   # Biomarker effects: m_i(t)' * α
   biomarker_vec <- c(biomarker, velocity, acceleration)
-  log_biomarker <- sum(biomarker_vec * coefficients$hazard[1:3])
+  log_biomarker <- sum(biomarker_vec * parameters$coefficients$hazard[1:3])
 
   # Covariate effects: W_i' * φ
-  n_hazard <- length(coefficients$hazard)
+  n_hazard <- length(parameters$coefficients$hazard)
   log_covariate <- if (n_hazard > 3 && !is.null(data$covariates)) {
     w <- data$covariates
     if (nrow(w) > 0) {
-      sum(coefficients$hazard[4:n_hazard] * w)
+      sum(parameters$coefficients$hazard[4:n_hazard] * w)
     } else {
       0
     }
@@ -607,13 +610,12 @@
   velocity_final <- final_state[3]
 
   acceleration_final <- .compute_acceleration(
-    biomarker_final, velocity_final, event_time,
-    data, parameters$coef, parameters$config
+    biomarker_final, velocity_final, event_time, data, parameters
   )
 
   log_hazard_final <- .compute_log_hazard(
-    event_time, biomarker_final, velocity_final,
-    acceleration_final, data, parameters$coef, parameters$config
+    event_time, biomarker_final, velocity_final, acceleration_final,
+    data, parameters
   )
 
   # Extract biomarker trajectory at observation times
@@ -634,8 +636,7 @@
     sapply(seq_along(obs_indices), function(i) {
       idx <- obs_indices[i]
       .compute_acceleration(
-        solution[idx, 3], solution[idx, 4], solution[idx, 1],
-        data, parameters$coef, parameters$config
+        solution[idx, 3], solution[idx, 4], solution[idx, 1], data, parameters
       )
     })
   } else {
@@ -654,9 +655,9 @@
   # Add sensitivity-specific outputs
   if (sensitivity_type == "forward_theta") {
     # Combined θ = (η, α, γ) sensitivities
-    n_eta <- parameters$config$baseline$df
+    n_eta <- parameters$configurations$baseline$df
     n_alpha <- 3
-    n_gamma <- length(parameters$coef$index_g)
+    n_gamma <- length(parameters$coefficients$index_g)
 
     # Extract sensitivities from final state (matching ODE output order)
     # State order: [Λ, m, ṁ, ∂Λ/∂η, ∂Λ/∂α, ∂m/∂γ, ∂ṁ/∂γ, ∂Λ/∂γ]
@@ -687,8 +688,7 @@
 
     # Compute acceleration sensitivity at event time
     dacceleration_dgamma <- .compute_acceleration_deriv(
-      biomarker_final, velocity_final, event_time,
-      data, parameters$coef, parameters$config,
+      biomarker_final, velocity_final, event_time, data, parameters,
       type = "theta",
       dbiomarker = dbiomarker_dgamma,
       dvelocity = dvelocity_dgamma
@@ -714,7 +714,7 @@
     )
   } else if (sensitivity_type == "forward_beta") {
     # β sensitivities
-    n_beta <- length(parameters$coef$index_beta)
+    n_beta <- length(parameters$coefficients$index_beta)
 
     # Extract β sensitivities at observation times
     dbiomarker_dbeta_values <- if (length(data$longitudinal$times) > 0) {
@@ -731,8 +731,7 @@
 
     # Compute acceleration sensitivity at event time
     dacceleration_dbeta_final <- .compute_acceleration_deriv(
-      biomarker_final, velocity_final, event_time,
-      data, parameters$coef, parameters$config,
+      biomarker_final, velocity_final, event_time, data, parameters,
       type = "beta",
       dbiomarker = dbiomarker_dbeta_final,
       dvelocity = dvelocity_dbeta_final
@@ -774,14 +773,13 @@
 
     # Compute acceleration
     acceleration <- .compute_acceleration(
-      biomarker, velocity, time,
-      parameters$data, parameters$coef, parameters$config
+      biomarker, velocity, time, parameters$data, parameters$parameters
     )
 
     # Compute hazard (without random effect b)
     log_hazard <- .compute_log_hazard(
       time, biomarker, velocity, acceleration,
-      parameters$data, parameters$coef, parameters$config
+      parameters$data, parameters$parameters
     )
     # Cap log_hazard to prevent numerical overflow
     log_hazard_capped <- pmin(log_hazard, 50) # exp(50) ≈ 5e21
@@ -794,12 +792,14 @@
       list(basic_derivs)
     } else if (parameters$sensitivity_type == "forward_theta") {
       # Combined forward sensitivity for θ = (η, α, γ)
-      n_eta <- parameters$config$baseline$df
+      n_eta <- parameters$parameters$configurations$baseline$df
       n_alpha <- 3
-      n_gamma <- length(parameters$coef$index_g)
+      n_gamma <- length(parameters$parameters$coefficients$index_g)
 
       # Compute ∂Λ/∂η and ∂Λ/∂α (direct effects on hazard)
-      basis_lambda <- .compute_spline_basis(time, parameters$config$baseline)
+      basis_lambda <- .compute_spline_basis(
+        time, parameters$parameters$configurations$baseline
+      )
       m_vec <- c(biomarker, velocity, acceleration)
 
       # Extract γ sensitivities from state
@@ -810,15 +810,14 @@
 
       # Compute acceleration sensitivity w.r.t. γ
       dacceleration_dgamma <- .compute_acceleration_deriv(
-        biomarker, velocity, time,
-        parameters$data, parameters$coef, parameters$config,
+        biomarker, velocity, time, parameters$data, parameters$parameters,
         type = "theta",
         dbiomarker = dbiomarker_dgamma,
         dvelocity = dvelocity_dgamma
       )
 
       # Compute ∂λ/∂γ (hazard sensitivity w.r.t. gamma) using chain rule
-      alpha <- parameters$coef$hazard[1:3]
+      alpha <- parameters$parameters$coefficients$hazard[1:3]
       dm_vec_dgamma <- rbind(
         dbiomarker_dgamma,
         dvelocity_dgamma,
@@ -842,7 +841,7 @@
       ))
     } else if (parameters$sensitivity_type == "forward_beta") {
       # Forward sensitivity for single-index coefficients (β)
-      n_beta <- length(parameters$coef$index_beta)
+      n_beta <- length(parameters$parameters$coefficients$index_beta)
 
       # Extract sensitivity states
       dbiomarker_dbeta <- state[4:(3 + n_beta)]
@@ -850,15 +849,14 @@
 
       # Compute acceleration sensitivity
       dacceleration_dbeta <- .compute_acceleration_deriv(
-        biomarker, velocity, time,
-        parameters$data, parameters$coef, parameters$config,
+        biomarker, velocity, time, parameters$data, parameters$parameters,
         type = "beta",
         dbiomarker = dbiomarker_dbeta,
         dvelocity = dvelocity_dbeta
       )
 
       # Compute ∂λ/∂β (hazard sensitivity) using chain rule
-      alpha <- parameters$coef$hazard[1:3]
+      alpha <- parameters$parameters$coefficients$hazard[1:3]
       dm_vec_dbeta <- rbind(
         dbiomarker_dbeta,
         dvelocity_dbeta,
@@ -888,8 +886,7 @@
   # Solve ODE System
   ode_parameters <- list(
     data = data,
-    coef = parameters$coef,
-    config = parameters$config,
+    parameters = parameters,
     sensitivity_type = sensitivity_type
   )
   event_time <- data$time
@@ -902,8 +899,8 @@
     func = ode_derivatives,
     parms = ode_parameters,
     method = "ode45",
-    atol = 1e-8,  # Increased precision (was 1e-3)
-    rtol = 1e-9   # Increased precision (was 1e-4)
+    atol = 1e-10,  # Increased precision (was 1e-3)
+    rtol = 1e-12   # Increased precision (was 1e-4)
   )
 
   # Extract and return results
@@ -911,12 +908,12 @@
 }
 
 # Helper Functions for Objective and Gradient Computation
-.parse_theta_parameters <- function(params, config, n_surv_covariates) {
+.parse_theta_parameters <- function(params, configurations, n_surv_covariates) {
   # Parse θ = (η, α, φ, γ) parameters
-  n_eta <- config$baseline$df
+  n_eta <- configurations$baseline$df
   n_alpha <- 3
   n_phi <- n_surv_covariates
-  n_gamma <- config$index$df
+  n_gamma <- configurations$index$df
 
   idx <- 1
   eta <- params[idx:(idx + n_eta - 1)]
@@ -936,7 +933,7 @@
 # Objective Function and Gradient Computation
 
 .compute_objective_theta <- function(
-    params, data_list, posteriors, config, fixed_params) {
+    params, data_list, posteriors, configurations, fixed_params) {
   # Compute objective function for θ = (η, α, φ, γ)
   # Returns negative expected complete-data log-likelihood (for minimization)
 
@@ -944,17 +941,17 @@
   n_surv_covariates <- ncol(data_list[[1]]$covariates)
 
   # Parse parameters using helper
-  theta_params <- .parse_theta_parameters(params, config, n_surv_covariates)
+  theta_params <- .parse_theta_parameters(params, configurations, n_surv_covariates)
 
   # Build parameters structure
   parameters <- list(
-    coef = list(
+    coefficients = list(
       baseline = theta_params$eta,
       hazard = c(theta_params$alpha, theta_params$phi),
       index_g = theta_params$gamma,
       index_beta = fixed_params$index_beta
     ),
-    config = config
+    configurations = configurations
   )
 
   # Measurement error variance
@@ -990,7 +987,7 @@
 }
 
 .compute_objective_beta <- function(
-    params, data_list, posteriors, config, fixed_params) {
+    params, data_list, posteriors, configurations, fixed_params) {
   # Compute objective function for β (with spherical parameterization)
 
   # Convert spherical coordinates to unit vector
@@ -1001,13 +998,13 @@
 
   # Build parameters structure
   parameters <- list(
-    coef = list(
+    coefficients = list(
       baseline = fixed_params$baseline,
       hazard = fixed_params$hazard,
       index_g = fixed_params$index_g,
       index_beta = beta
     ),
-    config = config
+    configurations = configurations
   )
 
   # Measurement error variance
@@ -1043,24 +1040,26 @@
 }
 
 .compute_grad_theta_forward <- function(
-    params, data_list, posteriors, config, fixed_params) {
+    params, data_list, posteriors, configurations, fixed_params) {
   # Gradient computation for θ = (η, α, φ, γ) using forward sensitivity
 
   n_subjects <- length(data_list)
   n_surv_covariates <- ncol(data_list[[1]]$covariates)
 
   # Parse parameters using helper
-  theta_params <- .parse_theta_parameters(params, config, n_surv_covariates)
+  theta_params <- .parse_theta_parameters(
+    params, configurations, n_surv_covariates
+  )
 
   # Build parameters structure
   parameters <- list(
-    coef = list(
+    coefficients = list(
       baseline = theta_params$eta,
       hazard = c(theta_params$alpha, theta_params$phi),
       index_g = theta_params$gamma,
       index_beta = fixed_params$index_beta
     ),
-    config = config
+    configurations = configurations
   )
 
   # Initialize gradient components
@@ -1102,7 +1101,7 @@
     # η gradient (baseline hazard)
     if (status_i == 1) {
       basis_at_event <- .compute_spline_basis(
-        subject_data$time, config$baseline
+        subject_data$time, configurations$baseline
       )
       grad_eta <- grad_eta + as.vector(basis_at_event)
     }
@@ -1144,7 +1143,7 @@
 }
 
 .compute_grad_beta_forward <- function(
-    params, data_list, posteriors, config, fixed_params) {
+    params, data_list, posteriors, configurations, fixed_params) {
   # Gradient computation for β using forward sensitivity
   # params are spherical coordinates, we convert to unit vector
 
@@ -1159,13 +1158,13 @@
 
   # Build parameters structure
   parameters <- list(
-    coef = list(
+    coefficients = list(
       baseline = fixed_params$baseline,
       hazard = fixed_params$hazard,
       index_g = fixed_params$index_g,
       index_beta = beta
     ),
-    config = config
+    configurations = configurations
   )
   # Initialize gradient
   grad_beta <- numeric(n_beta)
@@ -1209,6 +1208,34 @@
 
 
 # Statistical Distributions
+
+.compute_posteriors <- function(data_list, parameters, k = 7, init = NULL) {
+  n_subjects <- length(data_list)
+  if (is.null(init)) init <- rep(0, n_subjects)
+
+  posteriors <- list(
+    b = numeric(n_subjects),
+    v = numeric(n_subjects),
+    exp_b = numeric(n_subjects)
+  )
+
+  for (i in 1:n_subjects) {
+    ode_solution <- .solve_joint_ode(data_list[[i]], parameters)
+    posterior <- .compute_posterior_aghq(
+      ode_solution = ode_solution,
+      data = data_list[[i]],
+      b_hat_init = init[i],
+      measurement_error_sd = parameters$coefficients$measurement_error_sd,
+      random_effect_sd = parameters$coefficients$random_effect_sd,
+      k = k
+    )
+    posteriors$b[i] <- posterior$b
+    posteriors$v[i] <- posterior$v
+    posteriors$exp_b[i] <- posterior$exp_b
+  }
+
+  posteriors
+}
 
 .compute_posterior_aghq <- function(
     ode_solution, data, b_hat_init, measurement_error_sd, random_effect_sd,
@@ -1270,9 +1297,38 @@
   )
 
   list(
-    b_hat = b_hat,
-    v_hat = v_hat,
+    b = b_hat,
+    v = v_hat,
     exp_b = exp_b
+  )
+}
+
+.compute_sds <- function(data_list, parameters, posteriors) {
+  n_subjects <- length(data_list)
+  n_observations <- sum(sapply(data_list, function(d) d$longitudinal$n_obs))
+  measurement_error_variance <- 0
+  random_effect_variance <- 0
+  for (i in seq_along(data_list)) {
+    n_i <- data_list[[i]]$longitudinal$n_obs
+    ode_sol <- .solve_joint_ode(data_list[[i]], parameters)
+    if (n_i > 0) {
+      residuals <- data_list[[i]]$longitudinal$measurements -
+        posteriors$b[i] -  ode_sol$biomarker
+      measurement_error_variance <- measurement_error_variance +
+        sum(residuals^2) + n_i * posteriors$v[i]
+      random_effect_variance <- random_effect_variance +
+        posteriors$b[i]^2 + posteriors$v[i]
+    } else {
+      random_effect_variance <- random_effect_variance +
+        posteriors$b[i]^2 + posteriors$v[i]
+    }
+  }
+  measurement_error_sd <- sqrt(measurement_error_variance / n_observations)
+  random_effect_sd <- sqrt(random_effect_variance / n_subjects)
+
+  list(
+    measurement_error_sd = measurement_error_sd,
+    random_effect_sd = random_effect_sd
   )
 }
 
