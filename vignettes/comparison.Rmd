@@ -51,8 +51,7 @@ set.seed(2024)
 # Generate data with known parameters
 sim_data <- JointODE::simulate(
   n = 400, # Number of subjects
-  sigma_b = 0.1, # Measurement error SD
-  verbose = FALSE
+  sigma_b = 0.1 # Measurement error SD
 )
 
 long_data <- sim_data$longitudinal_data
