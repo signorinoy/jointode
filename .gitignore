@@ -8,3 +8,7 @@ docs
 inst/doc
 /doc/
 /Meta/
+
+# Development environment
+.vscode/
+air.toml
