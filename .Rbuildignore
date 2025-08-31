@@ -16,3 +16,5 @@
 ^vignettes/\.gitignore$
 ^vignettes/.*\.html$
 ^\.pre-commit-config\.yaml$
+^[.]?air[.]toml$
+^\.vscode$
