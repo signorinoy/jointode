@@ -33,6 +33,7 @@ Suggests:
     JSM,
     nlme,
     numDeriv,
+    tibble,
     tidyr,
     patchwork
 Config/testthat/edition: 3
