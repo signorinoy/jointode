@@ -4,9 +4,14 @@
 #' @param n_subjects Number of subjects
 #' @param n_times Number of time points per subject
 #' @param seed Random seed for reproducibility
-create_test_longitudinal_data <- function(n_subjects = 3, n_times = 3,
-                                          seed = NULL) {
-  if (!is.null(seed)) set.seed(seed)
+create_test_longitudinal_data <- function(
+  n_subjects = 3,
+  n_times = 3,
+  seed = NULL
+) {
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
 
   data.frame(
     id = rep(seq_len(n_subjects), each = n_times),
@@ -21,9 +26,14 @@ create_test_longitudinal_data <- function(n_subjects = 3, n_times = 3,
 #' @param n_subjects Number of subjects
 #' @param event_rate Proportion of events (vs censored)
 #' @param seed Random seed for reproducibility
-create_test_survival_data <- function(n_subjects = 3, event_rate = 0.67,
-                                      seed = NULL) {
-  if (!is.null(seed)) set.seed(seed)
+create_test_survival_data <- function(
+  n_subjects = 3,
+  event_rate = 0.67,
+  seed = NULL
+) {
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
 
   data.frame(
     id = seq_len(n_subjects),
@@ -38,8 +48,11 @@ create_test_survival_data <- function(n_subjects = 3, event_rate = 0.67,
 #' @param n_subjects Number of subjects
 #' @param n_times Number of time points per subject
 #' @param with_covariates Whether to include covariates
-create_minimal_test_data <- function(n_subjects = 2, n_times = 2,
-                                     with_covariates = FALSE) {
+create_minimal_test_data <- function(
+  n_subjects = 2,
+  n_times = 2,
+  with_covariates = FALSE
+) {
   longitudinal_data <- data.frame(
     id = rep(seq_len(n_subjects), each = n_times),
     time = rep(seq(0, n_times - 1), n_subjects),
@@ -64,8 +77,11 @@ create_minimal_test_data <- function(n_subjects = 2, n_times = 2,
 #' @param n_subjects_long Number of subjects in longitudinal data
 #' @param n_subjects_surv Number of subjects in survival data
 #' @param n_times Number of time points per subject
-create_mismatched_test_data <- function(n_subjects_long, n_subjects_surv,
-                                        n_times = 3) {
+create_mismatched_test_data <- function(
+  n_subjects_long,
+  n_subjects_surv,
+  n_times = 3
+) {
   longitudinal_data <- if (n_subjects_long > 0) {
     data.frame(
       id = rep(seq_len(n_subjects_long), each = n_times),
@@ -93,19 +109,23 @@ create_mismatched_test_data <- function(n_subjects_long, n_subjects_surv,
 # Helper Functions for Gradient Tests
 # ==============================================================================
 
-
 #' Compare gradient components with detailed diagnostics
 #' @param analytical Analytical gradient vector
 #' @param numerical Numerical gradient vector
 #' @param name Component name for error messages
 #' @param tolerance Comparison tolerance (default: 1e-4)
 compare_gradient_component <- function(
-    analytical, numerical, name, tolerance = 1e-4) {
+  analytical,
+  numerical,
+  name,
+  tolerance = 1e-4
+) {
   max_diff <- max(abs(analytical - numerical))
   rel_error <- max(abs((analytical - numerical) / (abs(numerical) + 1e-10)))
 
   expect_equal(
-    analytical, numerical,
+    analytical,
+    numerical,
     tolerance = tolerance,
     label = paste0(name, " gradient"),
     info = sprintf("Max diff: %.2e, Rel error: %.2e", max_diff, rel_error)
@@ -136,60 +156,6 @@ load_test_data <- function(n_subjects = NULL) {
 
   list(
     data = data_processed,
-    parameters = parameters,
-    n_subjects = length(data_processed)
-  )
-}
-
-
-#' Create fixed parameters for theta optimization
-#' @param parameters Full parameter list
-#' @return List of fixed parameters
-create_fixed_params_theta <- function(parameters) {
-  list(
-    index_beta = parameters$coefficients$index_beta,
-    measurement_error_sd = parameters$coefficients$measurement_error_sd,
-    random_effect_sd = parameters$coefficients$random_effect_sd
-  )
-}
-
-#' Create fixed parameters for beta optimization
-#' @param parameters Full parameter list
-#' @return List of fixed parameters
-create_fixed_params_beta <- function(parameters) {
-  list(
-    baseline = parameters$coefficients$baseline,
-    hazard = parameters$coefficients$hazard,
-    index_g = parameters$coefficients$index_g,
-    measurement_error_sd = parameters$coefficients$measurement_error_sd,
-    random_effect_sd = parameters$coefficients$random_effect_sd
-  )
-}
-
-#' Extract theta parameters in correct order
-#' @param parameters Full parameter list
-#' @param n_surv_covariates Number of survival covariates
-#' @return Vector of theta parameters (η, α, φ, γ)
-extract_theta_params <- function(parameters, n_surv_covariates) {
-  n_phi <- n_surv_covariates
-
-  c(
-    parameters$coefficients$baseline,  # η: baseline hazard
-    parameters$coefficients$hazard[1:3],  # α: association parameters
-    if (n_phi > 0) parameters$coefficients$hazard[4:(3 + n_phi)] else NULL,  # φ: survival covariates
-    parameters$coefficients$index_g  # γ: index spline coefficients
-  )
-}
-
-#' Get parameter dimensions from configurations
-#' @param config Model configurations
-#' @param n_surv_covariates Number of survival covariates
-#' @return List with parameter dimensions
-get_param_dimensions <- function(config, n_surv_covariates) {
-  list(
-    n_eta = config$baseline$df,      # Baseline hazard dimension
-    n_alpha = 3,                      # Association parameters (fixed)
-    n_phi = n_surv_covariates,        # Survival covariates
-    n_gamma = config$index$df         # Index spline dimension
+    parameters = parameters
   )
 }

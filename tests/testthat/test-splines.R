@@ -65,7 +65,9 @@ test_that(".get_spline_config handles knot placement strategies", {
 
   # Test quantile placement (default)
   config_q <- JointODE:::.get_spline_config(
-    x = x, n_knots = 4, knot_placement = "quantile"
+    x = x,
+    n_knots = 4,
+    knot_placement = "quantile"
   )
   expect_length(config_q$knots, 4)
   # Knots should be at quantiles
@@ -74,7 +76,9 @@ test_that(".get_spline_config handles knot placement strategies", {
 
   # Test equal spacing
   config_e <- JointODE:::.get_spline_config(
-    x = x, n_knots = 4, knot_placement = "equal"
+    x = x,
+    n_knots = 4,
+    knot_placement = "equal"
   )
   expect_length(config_e$knots, 4)
   # Check knots are equally spaced
@@ -201,7 +205,7 @@ test_that("spline basis functions have expected properties", {
 
 test_that(".compute_spline_basis and derivatives are consistent", {
   # Test that derivatives computed are consistent with numerical derivatives
-  x <- seq(0.1, 9.9, length.out = 50)  # Avoid boundary issues
+  x <- seq(0.1, 9.9, length.out = 50) # Avoid boundary issues
   config <- JointODE:::.get_spline_config(x, degree = 3, n_knots = 4)
 
   # Get analytical derivatives
@@ -224,7 +228,7 @@ test_that(".compute_spline_basis and derivatives are consistent", {
   # They should be approximately equal (tolerance for numerical errors)
   # Check a few interior points to avoid boundary effects
   interior_points <- 10:40
-  for (j in 1:ncol(deriv_basis)) {
+  for (j in seq_len(ncol(deriv_basis))) {
     expect_equal(
       deriv_basis[interior_points, j],
       numerical_deriv[interior_points, j],

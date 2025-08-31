@@ -36,7 +36,9 @@
 
 test_that(".process correctly structures basic data", {
   longitudinal_data <- create_test_longitudinal_data(
-    n_subjects = 3, n_times = 4, seed = 123
+    n_subjects = 3,
+    n_times = 4,
+    seed = 123
   )
   longitudinal_data$v <- longitudinal_data$v + 10 # Adjust mean
 
@@ -76,7 +78,8 @@ test_that(".process correctly structures basic data", {
 
 test_that(".process handles missing longitudinal data", {
   test_data <- create_mismatched_test_data(
-    n_subjects_long = 2, n_subjects_surv = 3
+    n_subjects_long = 2,
+    n_subjects_surv = 3
   )
   longitudinal_data <- test_data$longitudinal
   survival_data <- test_data$survival

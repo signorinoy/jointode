@@ -1,2 +1,1 @@
-test_that("JointODE works correctly", {
-})
+test_that("JointODE works correctly", {})

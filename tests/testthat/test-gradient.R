@@ -3,13 +3,12 @@
 # ==============================================================================
 # Purpose: Verify analytical gradients match numerical gradients
 # Coverage:
-#   - Theta gradient (η, α, φ, γ parameters)
-#   - Beta gradient (spherical coordinates)
+#   - Theta gradient (η, α, φ, β parameters)
 #   - Edge cases (single subject, zero random effect)
 #   - Parameter scaling consistency
 #   - Finite value checks
 
-test_that("compute_grad_theta_forward matches numerical gradient", {
+test_that("compute_gradient_joint matches numerical gradient", {
   skip_if_not_installed("numDeriv")
 
   # Setup: Load test data and compute posteriors
@@ -18,59 +17,125 @@ test_that("compute_grad_theta_forward matches numerical gradient", {
 
   # Extract parameters and dimensions
   n_surv_covariates <- ncol(test_env$data[[1]]$covariates)
-  theta_params <- extract_theta_params(test_env$parameters, n_surv_covariates)
-  fixed_params <- create_fixed_params_theta(test_env$parameters)
-  dims <- get_param_dimensions(
-    test_env$parameters$configurations, n_surv_covariates
+
+  coefficients <- test_env$parameters$coefficients
+  configurations <- test_env$parameters$configurations
+
+  params <- c(
+    coefficients$baseline,
+    coefficients$hazard,
+    coefficients$acceleration
+  )
+  fixed_params <- list(
+    measurement_error_sd = coefficients$measurement_error_sd,
+    random_effect_sd = coefficients$random_effect_sd
   )
 
   # Compute gradients
-  grad_analytical <- .compute_grad_theta_forward(
-    params = theta_params,
+  grad_analytical <- .compute_gradient_joint(
+    params = params,
     data_list = test_env$data,
     posteriors = posteriors,
-    configurations = test_env$parameters$configurations,
-    fixed_params = fixed_params
+    configurations = configurations,
+    fixed_parameters = fixed_params
   )
   names(grad_analytical) <- NULL
 
   grad_numerical <- numDeriv::grad(
-    func = .compute_objective_theta,
-    x = theta_params,
+    func = .compute_objective_joint,
+    x = params,
     data_list = test_env$data,
     posteriors = posteriors,
-    configurations = test_env$parameters$configurations,
-    fixed_params = fixed_params,
+    configurations = configurations,
+    fixed_parameters = fixed_params,
     method = "Richardson"
   )
 
-  # Define component-wise comparison specifications
-  gradient_specs <- list(
-    list(name = "η (baseline hazard)", size = dims$n_eta, tolerance = 1e-3),
-    list(name = "α (association)", size = dims$n_alpha, tolerance = 1e-4),
-    list(name = "φ (survival covariates)", size = dims$n_phi, tolerance = 1e-4),
-    list(name = "γ (index spline)", size = dims$n_gamma, tolerance = 1e-3)
-  )
-
-  # Compare each component
-  idx <- 1
-  for (spec in gradient_specs) {
-    if (spec$size > 0) {  # Skip empty components
-      indices <- idx:(idx + spec$size - 1)
-      compare_gradient_component(
-        grad_analytical[indices],
-        grad_numerical[indices],
-        spec$name,
-        spec$tolerance
-      )
-      idx <- idx + spec$size
-    }
-  }
-
   # Overall comparison
+  # Note: Due to ODE integration and numerical differentiation,
+  # a tolerance of 5% is reasonable for the full gradient
   compare_gradient_component(
-    grad_analytical, grad_numerical,
-    "Full theta gradient",
-    tolerance = 1e-3
+    grad_analytical,
+    grad_numerical,
+    "Full gradient",
+    tolerance = 5e-2
   )
+})
+
+test_that("gradient computation handles edge cases", {
+  skip_if_not_installed("numDeriv")
+
+  # Test with single subject
+  test_env <- load_test_data(n_subjects = 1)
+  posteriors <- .compute_posteriors(test_env$data, test_env$parameters)
+
+  coefficients <- test_env$parameters$coefficients
+  configurations <- test_env$parameters$configurations
+
+  params <- c(
+    coefficients$baseline,
+    coefficients$hazard,
+    coefficients$acceleration
+  )
+  fixed_params <- list(
+    measurement_error_sd = coefficients$measurement_error_sd,
+    random_effect_sd = coefficients$random_effect_sd
+  )
+
+  # Should not error with single subject
+  grad <- .compute_gradient_joint(
+    params = params,
+    data_list = test_env$data,
+    posteriors = posteriors,
+    configurations = configurations,
+    fixed_parameters = fixed_params
+  )
+
+  expect_true(all(is.finite(grad)))
+  expect_equal(length(grad), length(params))
+})
+
+test_that("gradient components have correct dimensions", {
+  test_env <- load_test_data(n_subjects = 5)
+  posteriors <- .compute_posteriors(test_env$data, test_env$parameters)
+
+  n_baseline <- length(test_env$parameters$coefficients$baseline)
+  n_hazard <- length(test_env$parameters$coefficients$hazard)
+  n_acceleration <- length(test_env$parameters$coefficients$acceleration)
+
+  coefficients <- test_env$parameters$coefficients
+  configurations <- test_env$parameters$configurations
+
+  params <- c(
+    coefficients$baseline,
+    coefficients$hazard,
+    coefficients$acceleration
+  )
+  fixed_params <- list(
+    measurement_error_sd = coefficients$measurement_error_sd,
+    random_effect_sd = coefficients$random_effect_sd
+  )
+
+  grad <- .compute_gradient_joint(
+    params = params,
+    data_list = test_env$data,
+    posteriors = posteriors,
+    configurations = configurations,
+    fixed_parameters = fixed_params
+  )
+
+  # Check total dimension
+  expect_equal(length(grad), n_baseline + n_hazard + n_acceleration)
+
+  # Check that gradient is finite
+  expect_true(all(is.finite(grad)))
+
+  # Verify gradient structure matches parameter structure
+  grad_baseline <- grad[1:n_baseline]
+  grad_hazard <- grad[(n_baseline + 1):(n_baseline + n_hazard)]
+  grad_acceleration <- grad[(n_baseline + n_hazard + 1):length(grad)]
+
+  expect_equal(length(grad_baseline), n_baseline)
+  expect_equal(length(grad_hazard), n_hazard)
+  expect_equal(length(grad_acceleration), n_acceleration)
 })

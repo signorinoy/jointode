@@ -59,11 +59,14 @@
 test_that(".validate checks all input types correctly", {
   # Create valid test data
   long_data <- create_test_longitudinal_data(
-    n_subjects = 3, n_times = 3, seed = 123
+    n_subjects = 3,
+    n_times = 3,
+    seed = 123
   )[, c("id", "time", "v", "x1")]
 
   surv_data <- create_test_survival_data(
-    n_subjects = 3, seed = 123
+    n_subjects = 3,
+    seed = 123
   )[, c("id", "time", "status")]
   surv_data$w1 <- rnorm(3)
 
@@ -167,7 +170,9 @@ test_that(".validate checks all input types correctly", {
 
 test_that(".validate checks for missing columns correctly", {
   test_data <- create_minimal_test_data(
-    n_subjects = 3, n_times = 3, with_covariates = FALSE
+    n_subjects = 3,
+    n_times = 3,
+    with_covariates = FALSE
   )
   long_data <- test_data$longitudinal
   surv_data <- test_data$survival
@@ -223,7 +228,9 @@ test_that(".validate checks for missing columns correctly", {
 
 test_that(".validate checks formula variables correctly", {
   test_data <- create_minimal_test_data(
-    n_subjects = 3, n_times = 3, with_covariates = FALSE
+    n_subjects = 3,
+    n_times = 3,
+    with_covariates = FALSE
   )
   long_data <- test_data$longitudinal
   surv_data <- test_data$survival
@@ -231,8 +238,12 @@ test_that(".validate checks formula variables correctly", {
   # Test missing longitudinal formula variable
   expect_error(
     JointODE:::.validate(
-      v ~ x1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time"
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time"
     ),
     "Variables in longitudinal formula not found in data: x1"
   )
@@ -240,8 +251,12 @@ test_that(".validate checks formula variables correctly", {
   # Test missing survival formula variable
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ w1, surv_data,
-      "id", "time"
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time"
     ),
     "Variables in survival formula not found in data: w1"
   )
@@ -249,7 +264,9 @@ test_that(".validate checks formula variables correctly", {
 
 test_that(".validate checks survival formula structure", {
   test_data <- create_minimal_test_data(
-    n_subjects = 3, n_times = 3, with_covariates = FALSE
+    n_subjects = 3,
+    n_times = 3,
+    with_covariates = FALSE
   )
   long_data <- test_data$longitudinal
   surv_data <- test_data$survival
@@ -257,8 +274,12 @@ test_that(".validate checks survival formula structure", {
   # Test non-Surv formula
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, time ~ status, surv_data,
-      "id", "time"
+      v ~ 1,
+      long_data,
+      time ~ status,
+      surv_data,
+      "id",
+      "time"
     ),
     "Survival formula must have Surv\\(\\) on the left-hand side"
   )
@@ -266,8 +287,12 @@ test_that(".validate checks survival formula structure", {
   # Test Surv() with missing variables
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time2, event) ~ 1, surv_data,
-      "id", "time"
+      v ~ 1,
+      long_data,
+      Surv(time2, event) ~ 1,
+      surv_data,
+      "id",
+      "time"
     ),
     "Variables in survival formula not found in data: time2, event"
   )
@@ -295,8 +320,12 @@ test_that(".validate checks subject consistency correctly", {
   # Test orphaned longitudinal data
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time"
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time"
     ),
     "Subjects in longitudinal data not found in survival data: 4"
   )
@@ -310,8 +339,12 @@ test_that(".validate checks subject consistency correctly", {
 
   expect_warning(
     JointODE:::.validate(
-      v ~ 1, long_data_partial, Surv(time, status) ~ 1, surv_data,
-      "id", "time"
+      v ~ 1,
+      long_data_partial,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time"
     ),
     "Subjects in survival data without longitudinal data: 3"
   )
@@ -332,8 +365,12 @@ test_that(".validate handles more than 5 orphaned IDs in error message", {
 
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data_many, Surv(time, status) ~ 1, surv_data_few,
-      "id", "time"
+      v ~ 1,
+      long_data_many,
+      Surv(time, status) ~ 1,
+      surv_data_few,
+      "id",
+      "time"
     ),
     "Subjects in longitudinal data not found in survival data: 4, 5, 6, 7, 8"
   )
@@ -345,11 +382,14 @@ test_that(".validate handles more than 5 orphaned IDs in error message", {
 
 test_that(".validate checks temporal consistency correctly", {
   long_data <- create_test_longitudinal_data(
-    n_subjects = 2, n_times = 4, seed = 123
+    n_subjects = 2,
+    n_times = 4,
+    seed = 123
   )[, c("id", "time", "v", "x1")]
 
   surv_data <- create_test_survival_data(
-    n_subjects = 2, seed = 123
+    n_subjects = 2,
+    seed = 123
   )[, c("id", "time", "status")]
   # Set survival time before last observation
   surv_data$time <- c(1.5, 2.5)
@@ -361,8 +401,12 @@ test_that(".validate checks temporal consistency correctly", {
   # The function issues a warning, not an error, for temporal consistency
   expect_warning(
     JointODE:::.validate(
-      v ~ x1, long_data, Surv(time, status) ~ w1, surv_data,
-      "id", "time"
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time"
     ),
     "subjects have measurements after observation time"
   )
@@ -377,8 +421,12 @@ test_that(".validate checks time values correctly", {
 
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time"
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time"
     ),
     "Negative time values found in longitudinal data"
   )
@@ -398,8 +446,12 @@ test_that(".validate checks time values correctly", {
 
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data2, Surv(time, status) ~ 1, surv_data2,
-      "id", "time"
+      v ~ 1,
+      long_data2,
+      Surv(time, status) ~ 1,
+      surv_data2,
+      "id",
+      "time"
     ),
     "Invalid observation times in survival data"
   )
@@ -419,8 +471,12 @@ test_that(".validate checks status values correctly", {
 
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time"
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time"
     ),
     "Invalid status values found: 2"
   )
@@ -434,8 +490,12 @@ test_that(".validate checks status values correctly", {
 
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data2,
-      "id", "time"
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data2,
+      "id",
+      "time"
     ),
     "Missing values in status variable"
   )
@@ -457,8 +517,12 @@ test_that(".validate checks for NA values in critical columns", {
 
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time"
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time"
     ),
     "Missing values found in ID in longitudinal data"
   )
@@ -472,8 +536,12 @@ test_that(".validate checks for NA values in critical columns", {
 
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data2, Surv(time, status) ~ 1, surv_data,
-      "id", "time"
+      v ~ 1,
+      long_data2,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time"
     ),
     "Missing values found in Time in longitudinal data"
   )
@@ -494,8 +562,12 @@ test_that(".validate checks for duplicate survival records", {
 
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time"
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time"
     ),
     "Duplicate IDs found in survival data"
   )
@@ -521,8 +593,12 @@ test_that(".validate checks data dimensions correctly", {
 
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data_empty, Surv(time, status) ~ 1, surv_data,
-      "id", "time"
+      v ~ 1,
+      long_data_empty,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time"
     ),
     "Longitudinal data has no rows"
   )
@@ -542,8 +618,12 @@ test_that(".validate checks data dimensions correctly", {
 
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data_empty,
-      "id", "time"
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data_empty,
+      "id",
+      "time"
     ),
     "Survival data has no rows"
   )
@@ -557,8 +637,12 @@ test_that(".validate warns about single observations per subject", {
 
   expect_warning(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time"
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time"
     ),
     "Each subject has only one longitudinal observation"
   )
@@ -576,10 +660,13 @@ test_that(".validate checks spline_baseline parameters correctly", {
   # Test invalid parameter names
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time",
-      spline_baseline = list(invalid_param = 3),
-      spline_index = list()
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(invalid_param = 3)
     ),
     "Invalid parameters in spline_baseline: invalid_param"
   )
@@ -587,18 +674,26 @@ test_that(".validate checks spline_baseline parameters correctly", {
   # Test invalid degree values
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time",
-      spline_baseline = list(degree = 0), spline_index = list()
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(degree = 0)
     ),
     "spline_baseline\\$degree must be a single integer between 1 and 5"
   )
 
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time",
-      spline_baseline = list(degree = 6), spline_index = list()
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(degree = 6)
     ),
     "spline_baseline\\$degree must be a single integer between 1 and 5"
   )
@@ -606,9 +701,13 @@ test_that(".validate checks spline_baseline parameters correctly", {
   # Test invalid n_knots values
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time",
-      spline_baseline = list(n_knots = 0), spline_index = list()
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(n_knots = 0)
     ),
     "spline_baseline\\$n_knots must be a single integer between 1 and 20"
   )
@@ -616,10 +715,13 @@ test_that(".validate checks spline_baseline parameters correctly", {
   # Test invalid knot_placement values
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time",
-      spline_baseline = list(knot_placement = "invalid"),
-      spline_index = list()
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(knot_placement = "invalid")
     ),
     "spline_baseline\\$knot_placement must be one of: quantile, equal"
   )
@@ -627,10 +729,13 @@ test_that(".validate checks spline_baseline parameters correctly", {
   # Test invalid boundary_knots
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time",
-      spline_baseline = list(boundary_knots = c(2, 1)),
-      spline_index = list()
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(boundary_knots = c(2, 1))
     ),
     paste(
       "spline_baseline\\$boundary_knots\\[1\\] must be",
@@ -641,52 +746,39 @@ test_that(".validate checks spline_baseline parameters correctly", {
   # Test valid spline_baseline parameters
   expect_silent(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time",
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time",
       spline_baseline = list(
         degree = 3,
         n_knots = 5,
         knot_placement = "quantile",
         boundary_knots = c(0, 10)
-      ),
-      spline_index = list()
+      )
     )
   )
 })
 
-test_that(".validate checks spline_index parameters correctly", {
+test_that(".validate checks spline_baseline as non-list", {
   test_data <- create_minimal_test_data(n_subjects = 3, n_times = 3)
   long_data <- test_data$longitudinal
   surv_data <- test_data$survival
 
-  # Test invalid parameter names
-  expect_error(
-    JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time",
-      spline_baseline = list(),
-      spline_index = list(invalid_param = 3)
-    ),
-    "Invalid parameters in spline_index: invalid_param"
-  )
-
   # Test non-list spline parameters
   expect_error(
     JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time",
-      spline_baseline = "not a list", spline_index = list()
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = "not a list"
     ),
     "spline_baseline must be a list"
-  )
-
-  expect_error(
-    JointODE:::.validate(
-      v ~ 1, long_data, Surv(time, status) ~ 1, surv_data,
-      "id", "time",
-      spline_baseline = list(), spline_index = 5
-    ),
-    "spline_index must be a list"
   )
 })
 
@@ -710,8 +802,12 @@ test_that(".validate handles different data types correctly", {
 
   expect_silent(
     JointODE:::.validate(
-      v ~ 1, long_data_int, Surv(time, status) ~ 1, surv_data_int,
-      "id", "time"
+      v ~ 1,
+      long_data_int,
+      Surv(time, status) ~ 1,
+      surv_data_int,
+      "id",
+      "time"
     )
   )
 
@@ -730,8 +826,12 @@ test_that(".validate handles different data types correctly", {
 
   expect_silent(
     JointODE:::.validate(
-      v ~ 1, long_data_char, Surv(time, status) ~ 1, surv_data_char,
-      "id", "time"
+      v ~ 1,
+      long_data_char,
+      Surv(time, status) ~ 1,
+      surv_data_char,
+      "id",
+      "time"
     )
   )
 })
@@ -754,15 +854,18 @@ test_that(".validate handles special characters in variable names", {
 
   expect_silent(
     JointODE:::.validate(
-      `outcome-1` ~ 1, long_data_special,
-      Surv(`event.time`, status) ~ 1, surv_data_special,
-      "subject.id", "time_point"
+      `outcome-1` ~ 1,
+      long_data_special,
+      Surv(`event.time`, status) ~ 1,
+      surv_data_special,
+      "subject.id",
+      "time_point"
     )
   )
 })
 
 test_that(".validate handles large datasets efficiently", {
-  skip_on_cran()  # Skip performance tests on CRAN
+  skip_on_cran() # Skip performance tests on CRAN
 
   set.seed(42)
   n_subjects <- 1000
@@ -788,9 +891,12 @@ test_that(".validate handles large datasets efficiently", {
   time_taken <- system.time({
     suppressWarnings(
       JointODE:::.validate(
-        v ~ x1, long_data_large,
-        Surv(time, status) ~ w1, surv_data_large,
-        "id", "time"
+        v ~ x1,
+        long_data_large,
+        Surv(time, status) ~ w1,
+        surv_data_large,
+        "id",
+        "time"
       )
     )
   })
@@ -802,7 +908,9 @@ test_that(".validate handles large datasets efficiently", {
 test_that(".validate works with completely valid data", {
   # Create completely valid data
   long_data <- create_test_longitudinal_data(
-    n_subjects = 5, n_times = 4, seed = 123
+    n_subjects = 5,
+    n_times = 4,
+    seed = 123
   )[, c("id", "time", "v", "x1")]
   surv_data <- create_test_survival_data(n_subjects = 5, seed = 123)
   # Ensure times > max(long times)
@@ -812,8 +920,12 @@ test_that(".validate works with completely valid data", {
   # Should run without errors or warnings
   expect_silent(
     JointODE:::.validate(
-      v ~ x1, long_data, Surv(time, status) ~ w1, surv_data,
-      "id", "time"
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time"
     )
   )
 })

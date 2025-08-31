@@ -1,5 +1,6 @@
 # ==============================================================================
-# Tests for Simulation Functions (simulate, .estimate_bspline_coef, .create_example_data)
+# Tests for Simulation Functions
+# (simulate, .estimate_bspline_coef, .create_example_data)
 # ==============================================================================
 #
 # Test Coverage:
@@ -42,8 +43,19 @@ test_that("simulate() generates valid data structure", {
   # Check longitudinal data
   long_data <- sim_data$longitudinal_data
   expect_s3_class(long_data, "data.frame")
-  expect_true(all(c("id", "time", "v", "x1", "x2",
-                    "biomarker", "velocity", "acceleration") %in% names(long_data)))
+  expect_true(all(
+    c(
+      "id",
+      "time",
+      "v",
+      "x1",
+      "x2",
+      "biomarker",
+      "velocity",
+      "acceleration"
+    ) %in%
+      names(long_data)
+  ))
 
   # Check data types
   expect_type(long_data$id, "integer")
@@ -55,7 +67,10 @@ test_that("simulate() generates valid data structure", {
   # Check survival data
   surv_data <- sim_data$survival_data
   expect_s3_class(surv_data, "data.frame")
-  expect_true(all(c("id", "time", "status", "w1", "w2", "b") %in% names(surv_data)))
+  expect_true(all(
+    c("id", "time", "status", "w1", "w2", "b") %in%
+      names(surv_data)
+  ))
   expect_equal(nrow(surv_data), 30)
 
   # Check status values
@@ -87,7 +102,8 @@ test_that("simulate() respects input parameters", {
   expect_equal(nrow(sim_data$survival_data), 25)
   expect_equal(length(unique(sim_data$longitudinal_data$id)), 25)
 
-  # Check that parameters affect the data (different seed should give different results)
+  # Check that parameters affect the data
+  # (different seed should give different results)
   sim_data2 <- simulate(n = 25, seed = 789)
   expect_false(all(sim_data$survival_data$time == sim_data2$survival_data$time))
 })
@@ -120,9 +136,10 @@ test_that("simulate() produces reasonable values", {
 
   # Check for reasonable survival times
   expect_true(all(sim_data$survival_data$time > 0))
-  expect_true(all(sim_data$survival_data$time < 100))  # Should not be extreme
+  expect_true(all(sim_data$survival_data$time < 100)) # Should not be extreme
 
-  # Check for reasonable event rate (should be between 20% and 80% for typical settings)
+  # Check for reasonable event rate
+  # (should be between 20% and 80% for typical settings)
   event_rate <- mean(sim_data$survival_data$status)
   expect_true(event_rate > 0.2 && event_rate < 0.8)
 
@@ -142,28 +159,36 @@ test_that("simulate() input validation works", {
   expect_error(simulate(n = 2.5), "n must be a positive integer")
 
   # Invalid alpha
-  expect_error(simulate(n = 10, alpha = c(0.5, 0.4)),
-               "alpha must be a numeric vector of length 3")
+  expect_error(
+    simulate(n = 10, alpha = c(0.5, 0.4)),
+    "alpha must be a numeric vector of length 3"
+  )
 
   # Invalid beta
-  expect_error(simulate(n = 10, beta = c(-0.3, -0.5)),
-               "beta must be a numeric vector of length 5")
+  expect_error(
+    simulate(n = 10, beta = c(-0.3, -0.5)),
+    "beta must be a numeric vector of length 5"
+  )
 
   # Invalid phi
-  expect_error(simulate(n = 10, phi = c(0.2)),
-               "phi must be a numeric vector of length 2")
+  expect_error(
+    simulate(n = 10, phi = c(0.2)),
+    "phi must be a numeric vector of length 2"
+  )
 
   # Invalid weibull parameters
-  expect_error(simulate(n = 10, weibull_shape = -1),
-               "weibull_shape must be positive")
-  expect_error(simulate(n = 10, weibull_scale = 0),
-               "weibull_scale must be positive")
+  expect_error(
+    simulate(n = 10, weibull_shape = -1),
+    "weibull_shape must be positive"
+  )
+  expect_error(
+    simulate(n = 10, weibull_scale = 0),
+    "weibull_scale must be positive"
+  )
 
   # Invalid standard deviations
-  expect_error(simulate(n = 10, sigma_b = -0.1),
-               "sigma_b must be positive")
-  expect_error(simulate(n = 10, sigma_e = 0),
-               "sigma_e must be positive")
+  expect_error(simulate(n = 10, sigma_b = -0.1), "sigma_b must be positive")
+  expect_error(simulate(n = 10, sigma_e = 0), "sigma_e must be positive")
 })
 
 test_that("simulate() verbose option works", {
@@ -275,7 +300,7 @@ test_that(".estimate_bspline_coef handles nonlinear functions", {
 test_that(".estimate_bspline_coef handles edge cases", {
   # Test 3: Constant function
   x <- seq(1, 5, length.out = 20)
-  f_const <- function(t) rep(5, length(t))  # Ensure it returns a vector
+  f_const <- function(t) rep(5, length(t)) # Ensure it returns a vector
   config <- list(
     degree = 2,
     n_knots = 3,
@@ -320,13 +345,27 @@ test_that(".create_example_data generates valid dataset structure", {
   # Check longitudinal data
   long_data <- example_data$data$longitudinal_data
   expect_s3_class(long_data, "data.frame")
-  expect_true(all(c("id", "time", "v", "x1", "x2",
-                    "biomarker", "velocity", "acceleration") %in% names(long_data)))
+  expect_true(all(
+    c(
+      "id",
+      "time",
+      "v",
+      "x1",
+      "x2",
+      "biomarker",
+      "velocity",
+      "acceleration"
+    ) %in%
+      names(long_data)
+  ))
 
   # Check survival data
   surv_data <- example_data$data$survival_data
   expect_s3_class(surv_data, "data.frame")
-  expect_true(all(c("id", "time", "status", "w1", "w2", "b") %in% names(surv_data)))
+  expect_true(all(
+    c("id", "time", "status", "w1", "w2", "b") %in%
+      names(surv_data)
+  ))
   expect_equal(nrow(surv_data), 30)
 
   # Check formulas component
@@ -342,8 +381,16 @@ test_that(".create_example_data generates valid dataset structure", {
   # Check coefficients
   coef <- example_data$parameters$coefficients
   expect_type(coef, "list")
-  expect_true(all(c("baseline", "hazard", "index_g", "index_beta",
-                    "measurement_error_sd", "random_effect_sd") %in% names(coef)))
+  expect_true(all(
+    c(
+      "baseline",
+      "hazard",
+      "acceleration",
+      "measurement_error_sd",
+      "random_effect_sd"
+    ) %in%
+      names(coef)
+  ))
 
   # Check specific coefficient properties
   expect_type(coef$hazard, "double")
@@ -354,9 +401,8 @@ test_that(".create_example_data generates valid dataset structure", {
   # Check configurations
   config <- example_data$parameters$configurations
   expect_type(config, "list")
-  expect_named(config, c("baseline", "index"))
+  expect_named(config, "baseline")
   expect_type(config$baseline, "list")
-  expect_type(config$index, "list")
 })
 
 test_that(".create_example_data handles different sample sizes", {
@@ -389,23 +435,21 @@ test_that(".create_example_data produces consistent results with seed", {
   # Should be identical
   expect_equal(data1$data$survival_data$time, data2$data$survival_data$time)
   expect_equal(data1$data$survival_data$status, data2$data$survival_data$status)
-  expect_equal(data1$parameters$coefficients$hazard,
-               data2$parameters$coefficients$hazard)
+  expect_equal(
+    data1$parameters$coefficients$hazard,
+    data2$parameters$coefficients$hazard
+  )
 })
 
 test_that(".create_example_data validates parameter normalization", {
   example_data <- .create_example_data(n = 25)
 
-  # Check that index_beta is normalized
-  index_beta <- example_data$parameters$coefficients$index_beta
-  expect_equal(sum(index_beta^2), 1, tolerance = 1e-10)
+  # Check acceleration coefficients
+  acceleration <- example_data$parameters$coefficients$acceleration
+  expect_true(all(is.finite(acceleration)))
 
   # Check B-spline coefficients exist and are finite
   baseline_coef <- example_data$parameters$coefficients$baseline
   expect_true(all(is.finite(baseline_coef)))
   expect_true(length(baseline_coef) > 0)
-
-  index_g_coef <- example_data$parameters$coefficients$index_g
-  expect_true(all(is.finite(index_g_coef)))
-  expect_true(length(index_g_coef) > 0)
 })
