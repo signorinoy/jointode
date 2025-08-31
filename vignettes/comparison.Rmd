@@ -48,14 +48,112 @@ set.seed(2024)
 ```
 
 ```{r generate-data}
-# Generate data with known parameters
-sim_data <- JointODE::simulate(
-  n = 400, # Number of subjects
-  sigma_b = 0.1 # Measurement error SD
-)
+long_data <- sim$data$longitudinal_data
+surv_data <- sim$data$survival_data
+```
 
-long_data <- sim_data$longitudinal_data
-surv_data <- sim_data$survival_data
+## Data Exploration
+
+```{r explore-true-values, fig.height=6}
+# Compare observed vs true biomarker values
+measurement_error <- long_data %>%
+  summarise(
+    `Measurement Error SD` = sd(v - biomarker),
+    `Signal-to-Noise Ratio` = sd(biomarker) / sd(v - biomarker),
+    `Correlation (True vs Obs)` = cor(biomarker, v)
+  )
+
+# Display measurement error statistics
+measurement_error %>%
+  pivot_longer(everything(), names_to = "Metric", values_to = "Value") %>%
+  mutate(Value = sprintf("%.3f", Value)) %>%
+  knitr::kable(caption = "Measurement Error Characteristics")
+
+# Visual comparison: observed vs true trajectories
+set.seed(123)  # For reproducible sample selection
+sample_ids <- sample(unique(long_data$id), 4)
+
+# Biomarker trajectories
+p1 <- long_data %>%
+  filter(id %in% sample_ids) %>%
+  pivot_longer(c(v, biomarker), names_to = "Type", values_to = "Value") %>%
+  mutate(Type = ifelse(Type == "v", "Observed", "True")) %>%
+  ggplot(aes(x = time, y = Value, color = Type)) +
+  geom_line(linewidth = 0.7) +
+  facet_wrap(~ id, ncol = 2, scales = "free_y") +
+  scale_color_manual(values = c("Observed" = "#E74C3C", "True" = "#27AE60")) +
+  theme_minimal(base_size = 8) +
+  theme(legend.position = "top") +
+  labs(title = "Biomarker", x = "Time", y = "Value")
+
+# Biomarker, velocity and acceleration (true values)
+p2 <- long_data %>%
+  filter(id %in% sample_ids) %>%
+  pivot_longer(c(biomarker, velocity, acceleration),
+               names_to = "Type", values_to = "Value") %>%
+  mutate(Type = factor(Type,
+                       levels = c("biomarker", "velocity", "acceleration"),
+                       labels = c("Biomarker", "Velocity", "Acceleration"))) %>%
+  ggplot(aes(x = time, y = Value, color = Type)) +
+  geom_line(linewidth = 0.7) +
+  facet_wrap(~ id, ncol = 2, scales = "free_y") +
+  scale_color_manual(values = c("Biomarker" = "#27AE60",
+                                "Velocity" = "#3498DB",
+                                "Acceleration" = "#9B59B6")) +
+  theme_minimal(base_size = 8) +
+  theme(legend.position = "top") +
+  labs(title = "True Dynamics", x = "Time", y = "Value")
+
+# Combine plots
+library(patchwork)
+p1 / p2
+
+# Correlation analysis of dynamics
+cor_data <- long_data %>%
+  select(biomarker, velocity, acceleration) %>%
+  cor() %>%
+  round(3)
+
+# Display correlation matrix
+cor_data %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("Variable") %>%
+  knitr::kable(caption = "Correlation Matrix of True Dynamics")
+
+# Visualize correlations with scatter plots
+cor_plots <- list()
+
+# Biomarker vs Velocity
+cor_plots[[1]] <- ggplot(long_data, aes(x = biomarker, y = velocity)) +
+  geom_point(alpha = 0.1, size = 0.5, color = "#3498DB") +
+  geom_smooth(method = "lm", se = FALSE, color = "red", linewidth = 0.8) +
+  theme_minimal(base_size = 8) +
+  labs(title = paste("r =", 
+                      round(cor(long_data$biomarker, long_data$velocity), 3)),
+       x = "Biomarker", y = "Velocity")
+
+# Biomarker vs Acceleration
+cor_plots[[2]] <- ggplot(long_data, aes(x = biomarker, y = acceleration)) +
+  geom_point(alpha = 0.1, size = 0.5, color = "#9B59B6") +
+  geom_smooth(method = "lm", se = FALSE, color = "red", linewidth = 0.8) +
+  theme_minimal(base_size = 8) +
+  labs(title = paste("r =",
+                      round(cor(long_data$biomarker, long_data$acceleration), 3)),
+       x = "Biomarker", y = "Acceleration")
+
+# Velocity vs Acceleration
+cor_plots[[3]] <- ggplot(long_data, aes(x = velocity, y = acceleration)) +
+  geom_point(alpha = 0.1, size = 0.5, color = "#E74C3C") +
+  geom_smooth(method = "lm", se = FALSE, color = "red", linewidth = 0.8) +
+  theme_minimal(base_size = 8) +
+  labs(title = paste("r =",
+                      round(cor(long_data$velocity, long_data$acceleration), 3)),
+       x = "Velocity", y = "Acceleration")
+
+# Combine correlation plots
+library(patchwork)
+(cor_plots[[1]] | cor_plots[[2]] | cor_plots[[3]]) +
+  plot_annotation(title = "True Dynamics Relationships")
 
 # Data summary
 cat(sprintf(
@@ -169,7 +267,7 @@ summary(fit_jsm)
 
 ```{r fit-tvcox}
 fit_tvcox <- coxph(
-  Surv(start, stop, event) ~ w1 + w2 + v + cluster(ID),
+  Surv(start, stop, event) ~ w1 + w2 + v + acceleration + cluster(ID),
   data = jsm_data
 )
 
@@ -180,10 +278,10 @@ summary(fit_tvcox)
 
 ```{r compare-models, fig.height=10, fig.width=9}
 # True parameter values (using defaults from JointODE::simulate)
-# alpha[1] = 0.3 (value effect), phi = c(0.2, -0.15) for survival covariates
+# alpha[1] = 0.5 (value effect), phi = c(0.4, -0.6) for survival covariates
 true_params <- data.frame(
   param = c("Association", "w1", "w2"),
-  true_value = c(0.5, 0.2, -0.15)
+  true_value = c(0.5, 0.4, -0.6)
 )
 
 # Extract and organize coefficients
