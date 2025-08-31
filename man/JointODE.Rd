@@ -13,8 +13,6 @@ JointODE(
   time = "time",
   spline_baseline = list(degree = 3, n_knots = 5, knot_placement = "quantile",
     boundary_knots = NULL),
-  spline_index = list(degree = 3, n_knots = 4, knot_placement = "quantile",
-    boundary_knots = NULL),
   control = list(),
   ...
 )
@@ -51,22 +49,15 @@ longitudinal data (default: \code{"time"}).}
 (default: NULL)}
 }}
 
-\item{spline_index}{List of B-spline configuration for single index model:
-\describe{
-\item{\code{degree}}{Degree of B-spline basis (default: 3)}
-\item{\code{n_knots}}{Number of interior knots (default: 4)}
-\item{\code{knot_placement}}{Method for knot placement: "quantile"
-(based on index values) or "equal" (default: "quantile")}
-\item{\code{boundary_knots}}{Boundary knots, if NULL uses index range
-(default: NULL)}
-}}
-
 \item{control}{List of optimization control parameters:
 \describe{
-\item{\code{method}}{Optimization algorithm (default: "BFGS")}
-\item{\code{maxit}}{Maximum iterations (default: 1000)}
-\item{\code{tol}}{Convergence tolerance (default: 1e-6)}
-\item{\code{verbose}}{Print progress (default: FALSE)}
+\item{\code{method}}{Optimization algorithm (default: "L-BFGS-B")}
+\item{\code{maxit}}{Maximum iterations per M-step (default: 1000)}
+\item{\code{em_maxit}}{Maximum EM iterations (default: 10)}
+\item{\code{em_tol}}{EM convergence tolerance (default: 1e-4)}
+\item{\code{tol}}{Convergence tolerance (default: 1e-2)}
+\item{\code{verbose}}{Print progress and parameter estimates
+(default: FALSE)}
 }}
 
 \item{...}{Additional arguments passed to fitting functions.}
@@ -111,9 +102,9 @@ parameters to improve convergence.
 \dontrun{
 fit <- JointODE(
   longitudinal_formula = v ~ x1 + x2,
-  longitudinal_data = sim$longitudinal_data,
+  longitudinal_data = sim$data$longitudinal_data,
   survival_formula = Surv(time, status) ~ w1 + w2,
-  survival_data = sim$survival_data
+  survival_data = sim$data$survival_data
 )
 summary(fit)
 }

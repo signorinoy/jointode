@@ -14,7 +14,7 @@
 #'         (observed value), \code{x1}, \code{x2} (covariates),
 #'         \code{biomarker}, \code{velocity}, \code{acceleration}
 #'         (true latent values)
-#'       \item \code{survival_data}: Survival outcomes (50 subjects)
+#'       \item \code{survival_data}: Survival outcomes (200 subjects)
 #'         with columns: \code{id}, \code{time} (event/censoring),
 #'         \code{status} (1=event, 0=censored), \code{w1}, \code{w2}
 #'         (covariates), \code{b} (random effect)
@@ -35,11 +35,8 @@
 #'           \item \code{baseline}: B-spline coefficients for
 #'             baseline hazard
 #'           \item \code{hazard}: Association parameters
-#'             [biomarker, velocity, acceleration, w1, w2]
-#'           \item \code{index_g}: B-spline coefficients for
-#'             index transformation
-#'           \item \code{index_beta}: ODE dynamics parameters
-#'             (normalized)
+#'             (biomarker, velocity, acceleration, w1, w2)
+#'           \item \code{acceleration}: ODE acceleration parameters
 #'           \item \code{measurement_error_sd}: Measurement error
 #'             SD (0.1)
 #'           \item \code{random_effect_sd}: Random effect SD (0.1)
@@ -48,18 +45,16 @@
 #'         \itemize{
 #'           \item \code{baseline}: Complete B-spline configuration
 #'             for baseline hazard including knots and degree
-#'           \item \code{index}: Complete B-spline configuration
-#'             for nonlinear index function including knots and degree
 #'         }
 #'     }
 #'   }
 #' }
 #'
 #' @details
-#' Generated using \code{.create_example_data(n = 50)} with default
+#' Generated using \code{.create_example_data(n = 200)} with default
 #' parameters. Features include:
 #' \itemize{
-#'   \item 50 subjects with adaptive visit schedules
+#'   \item 200 subjects with adaptive visit schedules
 #'   \item Weibull baseline hazard (shape=1.5, scale=8)
 #'   \item 10\% random visit missingness
 #'   \item Administrative censoring between 50-95th percentiles
@@ -67,7 +62,7 @@
 #'
 #' For detailed simulation methodology, see \code{\link{simulate}}.
 #'
-#' @source Generated using JointODE:::.create_example_data(n = 50)
+#' @source Generated using JointODE:::.create_example_data(n = 200)
 #'
 #' @examples
 #' # Load the dataset
@@ -104,5 +99,7 @@
 #' @seealso
 #' \code{\link{JointODE}} for fitting joint models
 #' \code{\link{simulate}} for detailed simulation methodology
+#'
+#' @concept datasets
 #'
 "sim"

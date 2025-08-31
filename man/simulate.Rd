@@ -6,9 +6,9 @@
 \usage{
 simulate(
   n = 50,
-  alpha = c(0.5, 0.4, -0.5),
-  beta = c(-0.3, -0.5, 0.2, 0.1, 0.05),
-  phi = c(0.2, -0.15),
+  alpha = c(0.5, 0, -0.5),
+  beta = c(-3, -5, 2, 1, 0.5),
+  phi = c(0.4, -0.6),
   weibull_shape = 1.5,
   weibull_scale = 8,
   sigma_b = 0.1,
@@ -24,16 +24,15 @@ more stable parameter estimates (default: 50).}
 \item{alpha}{Numeric vector of length 3. Association parameters quantifying
 how trajectory features influence survival hazard:
 \code{[biomarker, velocity, acceleration]}.
-Positive values indicate increased risk (default: c(0.5, 0.4, -0.5)).}
+Positive values indicate increased risk (default: c(0.5, 0.0, -0.5)).}
 
 \item{beta}{Numeric vector governing ODE dynamics (length 5). Controls
 biomarker trajectory evolution: \code{[biomarker, velocity,
-  x1, x2, time]}. Automatically normalized to unit length for identifiability
-(default: c(-0.3, -0.5, 0.2, 0.1, 0.05)).}
+  x1, x2, time]} (default: c(-3, -5, 2, 1, 0.5)).}
 
 \item{phi}{Numeric vector of length 2. Baseline covariate effects modulating
 survival hazard independently of biomarker dynamics: \code{[w1, w2]}
-(default: c(0.2, -0.15)).}
+(default: c(0.4, -0.6)).}
 
 \item{weibull_shape}{Numeric. Weibull shape parameter (\eqn{\kappa})
 characterizing baseline hazard evolution. Values > 1 yield increasing
@@ -101,17 +100,15 @@ comprising two intricately coupled components:
 
 \strong{1. Longitudinal Dynamics}
 
-Biomarker evolution is governed by a second-order nonlinear ODE system
-that captures complex temporal dynamics:
-\deqn{\ddot{m}_i(t) = g(\boldsymbol{\beta}^{\top} \mathbf{Z}_i(t))}
+Biomarker evolution is governed by a second-order linear ODE system
+that captures temporal dynamics:
+\deqn{\ddot{m}_i(t) = \boldsymbol{\beta}^{\top} \mathbf{Z}_i(t)}
 
 where:
 \itemize{
 \item \eqn{m_i(t)}: Latent biomarker trajectory for subject \eqn{i}
 \item \eqn{\mathbf{Z}_i(t) = [m_i(t), \dot{m}_i(t), X_1, X_2, t]^{\top}}:
 State vector (5-dimensional)
-\item \eqn{g(u) = 2 \tanh(u/3)}: Bounded nonlinear transformation
-ensuring numerical stability and biological plausibility
 \item \eqn{\boldsymbol{\beta}}: Parameter vector governing homeostatic
 feedback, damping forces, and external influences
 }
@@ -186,9 +183,6 @@ importance (negative suggests protective stability)
 }
 \note{
 \itemize{
-\item Parameter vector \code{beta} undergoes automatic normalization
-to unit length, ensuring model identifiability without user
-intervention
 \item Visit schedules intelligently adapt to individual follow-up
 durations, balancing information gain with practical constraints
 \item Progress reporting can be silenced via \code{verbose = FALSE}
