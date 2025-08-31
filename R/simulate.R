@@ -14,14 +14,13 @@
 #' @param alpha Numeric vector of length 3. Association parameters quantifying
 #'   how trajectory features influence survival hazard:
 #'   \code{[biomarker, velocity, acceleration]}.
-#'   Positive values indicate increased risk (default: c(0.5, 0.4, -0.5)).
+#'   Positive values indicate increased risk (default: c(0.5, 0.0, -0.5)).
 #' @param beta Numeric vector governing ODE dynamics (length 5). Controls
 #'   biomarker trajectory evolution: \code{[biomarker, velocity,
-#'   x1, x2, time]}. Automatically normalized to unit length for identifiability
-#'   (default: c(-0.3, -0.5, 0.2, 0.1, 0.05)).
+#'   x1, x2, time]} (default: c(-3, -5, 2, 1, 0.5)).
 #' @param phi Numeric vector of length 2. Baseline covariate effects modulating
 #'   survival hazard independently of biomarker dynamics: \code{[w1, w2]}
-#'   (default: c(0.2, -0.15)).
+#'   (default: c(0.4, -0.6)).
 #' @param weibull_shape Numeric. Weibull shape parameter (\eqn{\kappa})
 #'   characterizing baseline hazard evolution. Values > 1 yield increasing
 #'   hazard (aging effect), < 1 decreasing hazard (selection effect), =
@@ -73,17 +72,15 @@
 #'
 #' \strong{1. Longitudinal Dynamics}
 #'
-#' Biomarker evolution is governed by a second-order nonlinear ODE system
-#' that captures complex temporal dynamics:
-#' \deqn{\ddot{m}_i(t) = g(\boldsymbol{\beta}^{\top} \mathbf{Z}_i(t))}
+#' Biomarker evolution is governed by a second-order linear ODE system
+#' that captures temporal dynamics:
+#' \deqn{\ddot{m}_i(t) = \boldsymbol{\beta}^{\top} \mathbf{Z}_i(t)}
 #'
 #' where:
 #' \itemize{
 #'   \item \eqn{m_i(t)}: Latent biomarker trajectory for subject \eqn{i}
 #'   \item \eqn{\mathbf{Z}_i(t) = [m_i(t), \dot{m}_i(t), X_1, X_2, t]^{\top}}:
 #'     State vector (5-dimensional)
-#'   \item \eqn{g(u) = 2 \tanh(u/3)}: Bounded nonlinear transformation
-#'     ensuring numerical stability and biological plausibility
 #'   \item \eqn{\boldsymbol{\beta}}: Parameter vector governing homeostatic
 #'     feedback, damping forces, and external influences
 #' }
@@ -158,9 +155,6 @@
 #'
 #' @note
 #' \itemize{
-#'   \item Parameter vector \code{beta} undergoes automatic normalization
-#'     to unit length, ensuring model identifiability without user
-#'     intervention
 #'   \item Visit schedules intelligently adapt to individual follow-up
 #'     durations, balancing information gain with practical constraints
 #'   \item Progress reporting can be silenced via \code{verbose = FALSE}
@@ -218,9 +212,17 @@
 #'
 #' @export
 simulate <- function(
-    n = 50, alpha = c(0.5, 0.4, -0.5), beta = c(-0.3, -0.5, 0.2, 0.1, 0.05),
-    phi = c(0.2, -0.15), weibull_shape = 1.5, weibull_scale = 8,
-    sigma_b = 0.1, sigma_e = 0.1, seed = 42, verbose = FALSE) {
+  n = 50,
+  alpha = c(0.5, 0, -0.5),
+  beta = c(-3, -5, 2, 1, 0.5),
+  phi = c(0.4, -0.6),
+  weibull_shape = 1.5,
+  weibull_scale = 8,
+  sigma_b = 0.1,
+  sigma_e = 0.1,
+  seed = 42,
+  verbose = FALSE
+) {
   # Validate inputs
   if (!is.numeric(n) || n <= 0 || n != as.integer(n)) {
     stop("n must be a positive integer")
@@ -251,8 +253,7 @@ simulate <- function(
 
   # Prepare parameters
   parameters <- list(
-    beta = beta / sqrt(sum(beta^2)),
-    g = function(u) 2 * tanh(u / 3),
+    beta = beta,
     alpha = alpha,
     phi = phi,
     sigma_b = sigma_b,
@@ -261,11 +262,15 @@ simulate <- function(
   )
 
   # Generate survival times
-  if (verbose) message("Step 1/2: Generating survival times...")
+  if (verbose) {
+    message("Step 1/2: Generating survival times...")
+  }
   survival_data <- .generate_survival_data(n, parameters)
 
   # Generate longitudinal measurements
-  if (verbose) message("Step 2/2: Generating longitudinal data...")
+  if (verbose) {
+    message("Step 2/2: Generating longitudinal data...")
+  }
   longitudinal_data <- .generate_longitudinal_data(survival_data, parameters)
 
   cols <- c("id", "time", "status", "w1", "w2", "b")
@@ -279,32 +284,35 @@ simulate <- function(
 #'
 #' @description
 #' Computes the instantaneous acceleration (second derivative) of the
-#' biomarker trajectory through nonlinear transformation of the current
+#' biomarker trajectory through linear combination of the current
 #' state and covariate configuration.
 #'
 #' @param time Numeric. Current time point in the trajectory evolution.
 #' @param biomarker Numeric. Instantaneous biomarker level \eqn{m(t)}.
 #' @param velocity Numeric. Instantaneous rate of change \eqn{\dot{m}(t)}.
 #' @param covariates Numeric vector. Subject-specific covariate values.
-#' @param beta Numeric vector. Unit-normalized dynamics parameters.
-#' @param g Function. Smooth nonlinear transformation ensuring boundedness.
+#' @param beta Numeric vector. Dynamics parameters.
 #'
 #' @return Numeric scalar. The computed acceleration \eqn{\ddot{m}(t)}
 #'   representing the instantaneous rate of velocity change.
 #'
 #' @details
-#' The acceleration emerges from the nonlinear dynamics:
-#' \deqn{\ddot{m}(t) = g(\boldsymbol{\beta}^{\top} \mathbf{z}(t))}
+#' The acceleration is computed from the linear dynamics:
+#' \deqn{\ddot{m}(t) = \boldsymbol{\beta}^{\top} \mathbf{z}(t)}
 #' where the feature vector
 #' \eqn{\mathbf{z}(t) = [m(t), \dot{m}(t), X_1, X_2, t]^{\top}}
 #' encapsulates both endogenous state and exogenous influences.
 #'
 #' @noRd
 .compute_acceleration_simulate <- function(
-    time, biomarker, velocity, covariates, beta, g) {
+  time,
+  biomarker,
+  velocity,
+  covariates,
+  beta
+) {
   z <- c(biomarker, velocity, covariates, time)
-  u <- sum(beta * z)
-  g(u)
+  sum(beta * z)
 }
 
 #' Solve Biomarker ODE System
@@ -318,8 +326,7 @@ simulate <- function(
 #' @param covariates Numeric vector. Subject-specific covariate profile.
 #' @param parameters List containing model specifications:
 #'   \itemize{
-#'     \item \code{beta}: Unit-normalized dynamics parameters
-#'     \item \code{g}: Smooth nonlinear transformation function
+#'     \item \code{beta}: Dynamics parameters
 #'   }
 #'
 #' @return Data frame containing the complete trajectory characterization:
@@ -341,7 +348,11 @@ simulate <- function(
     biomarker <- state[1]
     velocity <- state[2]
     acceleration <- .compute_acceleration_simulate(
-      t, biomarker, velocity, covariates, parms$beta, parms$g
+      t,
+      biomarker,
+      velocity,
+      covariates,
+      parms$beta
     )
     list(c(velocity, acceleration))
   }
@@ -357,8 +368,11 @@ simulate <- function(
   acceleration <- numeric(length(times))
   for (i in seq_along(times)) {
     acceleration[i] <- .compute_acceleration_simulate(
-      times[i], biomarker[i], velocity[i], covariates,
-      parameters$beta, parameters$g
+      times[i],
+      biomarker[i],
+      velocity[i],
+      covariates,
+      parameters$beta
     )
   }
   data.frame(
@@ -422,11 +436,14 @@ simulate <- function(
     scale <- parameters$weibull["scale"]
     h0 <- (shape / scale) * (t / scale)^(shape - 1)
     biomarker <- .solve_biomarker_ode(
-      t, as.numeric(c(x["x1"], x["x2"])), parameters
+      t,
+      as.numeric(c(x["x1"], x["x2"])),
+      parameters
     )
 
     # Linear predictor
-    eta <- parameters$alpha[1] * biomarker$biomarker +
+    eta <- parameters$alpha[1] *
+      biomarker$biomarker +
       parameters$alpha[2] * biomarker$velocity +
       parameters$alpha[3] * biomarker$acceleration +
       parameters$phi[1] * x["w1"] +
@@ -437,7 +454,9 @@ simulate <- function(
 
   # Generate event times
   surv_times <- simsurv::simsurv(
-    hazard = hazard_function, x = covariates, interval = c(1e-8, 100)
+    hazard = hazard_function,
+    x = covariates,
+    interval = c(1e-8, 100)
   )
 
   # Apply censoring
@@ -480,7 +499,8 @@ simulate <- function(
   n <- nrow(surv_times)
 
   # Generate censoring times
-  cens_times <- runif(n,
+  cens_times <- runif(
+    n,
     min = quantile(surv_times$eventtime, 0.5),
     max = quantile(surv_times$eventtime, 0.95)
   )
@@ -542,7 +562,14 @@ simulate <- function(
   }
   long_data <- do.call(rbind, data_list)
   cols <- c(
-    "id", "time", "v", "x1", "x2", "biomarker", "velocity", "acceleration"
+    "id",
+    "time",
+    "v",
+    "x1",
+    "x2",
+    "biomarker",
+    "velocity",
+    "acceleration"
   )
   long_data[, cols]
 }
@@ -577,7 +604,11 @@ simulate <- function(
 #'
 #' @noRd
 .generate_subject_measurements <- function(
-    obs_time, covariates, random_effect, parameters) {
+  obs_time,
+  covariates,
+  random_effect,
+  parameters
+) {
   # Define visit schedule
   visit_times <- .create_visit_schedule(obs_time)
 
@@ -602,7 +633,8 @@ simulate <- function(
 
   data.frame(
     time = visit_times,
-    v = biomarker$biomarker + random_effect +
+    v = biomarker$biomarker +
+      random_effect +
       rnorm(n_visits, 0, parameters$sigma_e),
     x1 = x_vals[, 1],
     x2 = x_vals[, 2],
@@ -772,8 +804,8 @@ simulate <- function(
 #'
 #' @examples
 #' \dontrun{
-#' # Generate example data for 100 subjects
-#' example_data <- .create_example_data(n = 100)
+#' # Generate example data for 200 subjects (used for package's sim dataset)
+#' example_data <- .create_example_data(n = 200)
 #'
 #' # Access components
 #' head(example_data$data$longitudinal_data)
@@ -793,15 +825,7 @@ simulate <- function(
     boundary_knots = NULL
   )
 
-  spline_index <- list(
-    degree = 3,
-    n_knots = 10,
-    knot_placement = "quantile",
-    boundary_knots = NULL
-  )
-
   # Define functions once
-  g_0 <- function(u) 2 * tanh(u / 3)
   lambda_0 <- function(t) log((1.5 / 8) * (t / 8)^0.5)
 
   # Generate and process data
@@ -812,24 +836,14 @@ simulate <- function(
 
   # Compute baseline spline coefficients
   baseline_spline_coefficients <- .estimate_bspline_coef(
-    times, lambda_0, spline_baseline
+    times,
+    lambda_0,
+    spline_baseline
   )
 
   # Define coefficients
-  hazard_coefficients <- c(0.5, 0.4, -0.5, 0.2, -0.15)
-  index_beta_raw <- c(-0.3, -0.5, 0, 0.2, 0.1, 0.05)
-  index_coefficients <- index_beta_raw / sqrt(sum(index_beta_raw^2))
-
-  # Compute index variable efficiently
-  z_cols <- c("biomarker", "velocity", "x1", "x2", "time")
-  z_coefs <- c(-0.3, -0.5, 0.2, 0.1, 0.05)
-  Z <- as.matrix(data$longitudinal_data[, z_cols])
-  u <- drop(Z %*% z_coefs) # drop() removes unnecessary dimensions
-
-  # Compute index spline coefficients
-  index_spline_coefficients <- .estimate_bspline_coef(
-    u, g_0, spline_index
-  )
+  hazard_coefficients <- c(0.5, 0.0, -0.5, 0.4, -0.6)
+  acceleration_coefficients <- c(-3, -5, 0, 2, 1, 0.5)
 
   # Create spline configurations
   spline_baseline_config <- .get_spline_config(
@@ -838,14 +852,6 @@ simulate <- function(
     n_knots = spline_baseline$n_knots,
     knot_placement = spline_baseline$knot_placement,
     boundary_knots = spline_baseline$boundary_knots
-  )
-
-  spline_index_config <- .get_spline_config(
-    x = u,
-    degree = spline_index$degree,
-    n_knots = spline_index$n_knots,
-    knot_placement = spline_index$knot_placement,
-    boundary_knots = spline_index$boundary_knots
   )
 
   # Return organized structure
@@ -859,14 +865,12 @@ simulate <- function(
       coefficients = list(
         baseline = baseline_spline_coefficients,
         hazard = hazard_coefficients,
-        index_g = index_spline_coefficients,
-        index_beta = index_coefficients,
+        acceleration = acceleration_coefficients,
         measurement_error_sd = 0.1,
         random_effect_sd = 0.1
       ),
       configurations = list(
-        baseline = spline_baseline_config,
-        index = spline_index_config
+        baseline = spline_baseline_config
       )
     )
   )
