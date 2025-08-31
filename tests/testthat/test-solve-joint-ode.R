@@ -20,10 +20,17 @@ test_that(".solve_joint_ode works with basic sensitivity type", {
     idx <- sim$data$longitudinal_data$id == subject_id
     biomarker_data <- sim$data$longitudinal_data[idx, ]
     biomarker_true <- biomarker_data$biomarker
+    biomarker_pred <- ode_solution$biomarker
+    names(biomarker_pred) <- NULL
     velocity_true <- biomarker_data$velocity
+    velocity_pred <- ode_solution$velocity
+    names(velocity_pred) <- NULL
     acceleration_true <- biomarker_data$acceleration
-    expect_equal(ode_solution$biomarker, biomarker_true, tolerance = 1e-2)
-    expect_equal(ode_solution$velocity, velocity_true, tolerance = 1e-3)
-    expect_equal(ode_solution$acceleration, acceleration_true, tolerance = 1e-3)
+    acceleration_pred <- ode_solution$acceleration
+    names(acceleration_pred) <- NULL
+
+    expect_equal(biomarker_pred, biomarker_true, tolerance = 1e-2)
+    expect_equal(velocity_pred, velocity_true, tolerance = 1e-3)
+    expect_equal(acceleration_pred, acceleration_true, tolerance = 1e-3)
   }
 })
