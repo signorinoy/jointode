@@ -70,7 +70,7 @@ measurement_error %>%
   knitr::kable(caption = "Measurement Error Characteristics")
 
 # Visual comparison: observed vs true trajectories
-set.seed(123)  # For reproducible sample selection
+set.seed(123) # For reproducible sample selection
 sample_ids <- sample(unique(long_data$id), 4)
 
 # Biomarker trajectories
@@ -80,7 +80,7 @@ p1 <- long_data %>%
   mutate(Type = ifelse(Type == "v", "Observed", "True")) %>%
   ggplot(aes(x = time, y = Value, color = Type)) +
   geom_line(linewidth = 0.7) +
-  facet_wrap(~ id, ncol = 2, scales = "free_y") +
+  facet_wrap(~id, ncol = 2, scales = "free_y") +
   scale_color_manual(values = c("Observed" = "#E74C3C", "True" = "#27AE60")) +
   theme_minimal(base_size = 8) +
   theme(legend.position = "top") +
@@ -90,16 +90,20 @@ p1 <- long_data %>%
 p2 <- long_data %>%
   filter(id %in% sample_ids) %>%
   pivot_longer(c(biomarker, velocity, acceleration),
-               names_to = "Type", values_to = "Value") %>%
+    names_to = "Type", values_to = "Value"
+  ) %>%
   mutate(Type = factor(Type,
-                       levels = c("biomarker", "velocity", "acceleration"),
-                       labels = c("Biomarker", "Velocity", "Acceleration"))) %>%
+    levels = c("biomarker", "velocity", "acceleration"),
+    labels = c("Biomarker", "Velocity", "Acceleration")
+  )) %>%
   ggplot(aes(x = time, y = Value, color = Type)) +
   geom_line(linewidth = 0.7) +
-  facet_wrap(~ id, ncol = 2, scales = "free_y") +
-  scale_color_manual(values = c("Biomarker" = "#27AE60",
-                                "Velocity" = "#3498DB",
-                                "Acceleration" = "#9B59B6")) +
+  facet_wrap(~id, ncol = 2, scales = "free_y") +
+  scale_color_manual(values = c(
+    "Biomarker" = "#27AE60",
+    "Velocity" = "#3498DB",
+    "Acceleration" = "#9B59B6"
+  )) +
   theme_minimal(base_size = 8) +
   theme(legend.position = "top") +
   labs(title = "True Dynamics", x = "Time", y = "Value")
@@ -128,27 +132,39 @@ cor_plots[[1]] <- ggplot(long_data, aes(x = biomarker, y = velocity)) +
   geom_point(alpha = 0.1, size = 0.5, color = "#3498DB") +
   geom_smooth(method = "lm", se = FALSE, color = "red", linewidth = 0.8) +
   theme_minimal(base_size = 8) +
-  labs(title = paste("r =", 
-                      round(cor(long_data$biomarker, long_data$velocity), 3)),
-       x = "Biomarker", y = "Velocity")
+  labs(
+    title = paste(
+      "r =",
+      round(cor(long_data$biomarker, long_data$velocity), 3)
+    ),
+    x = "Biomarker", y = "Velocity"
+  )
 
 # Biomarker vs Acceleration
 cor_plots[[2]] <- ggplot(long_data, aes(x = biomarker, y = acceleration)) +
   geom_point(alpha = 0.1, size = 0.5, color = "#9B59B6") +
   geom_smooth(method = "lm", se = FALSE, color = "red", linewidth = 0.8) +
   theme_minimal(base_size = 8) +
-  labs(title = paste("r =",
-                      round(cor(long_data$biomarker, long_data$acceleration), 3)),
-       x = "Biomarker", y = "Acceleration")
+  labs(
+    title = paste(
+      "r =",
+      round(cor(long_data$biomarker, long_data$acceleration), 3)
+    ),
+    x = "Biomarker", y = "Acceleration"
+  )
 
 # Velocity vs Acceleration
 cor_plots[[3]] <- ggplot(long_data, aes(x = velocity, y = acceleration)) +
   geom_point(alpha = 0.1, size = 0.5, color = "#E74C3C") +
   geom_smooth(method = "lm", se = FALSE, color = "red", linewidth = 0.8) +
   theme_minimal(base_size = 8) +
-  labs(title = paste("r =",
-                      round(cor(long_data$velocity, long_data$acceleration), 3)),
-       x = "Velocity", y = "Acceleration")
+  labs(
+    title = paste(
+      "r =",
+      round(cor(long_data$velocity, long_data$acceleration), 3)
+    ),
+    x = "Velocity", y = "Acceleration"
+  )
 
 # Combine correlation plots
 library(patchwork)
