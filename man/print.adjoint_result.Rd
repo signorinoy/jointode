@@ -2,10 +2,15 @@
 % Please edit documentation in R/adjoint.R
 \name{print.adjoint_result}
 \alias{print.adjoint_result}
-\title{Print method for adjoint results}
+\title{Print Method for Adjoint Results}
 \usage{
 \method{print}{adjoint_result}(x, ...)
 }
+\arguments{
+\item{x}{An object of class "adjoint_result"}
+
+\item{...}{Additional arguments (unused)}
+}
 \description{
-Print method for adjoint results
+Print Method for Adjoint Results
 }

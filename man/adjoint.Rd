@@ -2,7 +2,7 @@
 % Please edit documentation in R/adjoint.R
 \name{adjoint}
 \alias{adjoint}
-\title{Adjoint Sensitivity Analysis with Required Analytical Derivatives}
+\title{Adjoint Sensitivity Analysis for ODE Systems}
 \usage{
 adjoint(
   ode_func,
@@ -22,98 +22,125 @@ adjoint(
 )
 }
 \arguments{
-\item{ode_func}{Function(t, x, params, data) returning list with:
+\item{ode_func}{Function defining the ODE system:
+function(t, x, params, data) returning list with element 'dx'
+containing the state derivatives dx/dt}
+
+\item{jacobian_func}{Required function providing analytical derivatives:
+function(t, x, params, data) returning list with:
 \itemize{
-\item dx: derivative dx/dt (vector of length n_states)
+\item df_dx: State Jacobian \eqn{\partial f/\partial x} (n_states ×
+n_states matrix)
+\item df_dtheta: Parameter Jacobian \eqn{\partial f/\partial \theta}
+(n_states × n_params matrix)
 }}
 
-\item{jacobian_func}{REQUIRED function(t, x, params, data) returning list:
-\itemize{
-\item df_dx: Jacobian matrix ∂f/∂x (n_states x n_states)
-\item df_dtheta: Jacobian matrix ∂f/∂θ (n_states x n_params)
-}}
+\item{x0}{Initial state vector at time t0}
 
-\item{x0}{Initial state vector}
+\item{params}{Parameter vector \eqn{\theta} to compute sensitivities for}
 
-\item{params}{Parameter vector θ (parameters to optimize)}
+\item{times}{Time grid for ODE integration (must include t0 and T)}
 
-\item{times}{Time points for integration}
+\item{data}{Optional list containing constant auxiliary data}
 
-\item{data}{Optional list of constant data (not optimized)}
+\item{objective_func}{Terminal cost function g(x(T), data)
+Returns scalar objective value at final time}
 
-\item{objective_func}{Optional function(x_final, data) for terminal cost}
+\item{objective_grad}{Required when objective_func is provided:
+function(x_final, data) returning gradient \eqn{\partial g/\partial x}
+at final time}
 
-\item{objective_grad}{REQUIRED if objective_func provided:
-function(x_final, data) returning ∂g/∂x (vector of length n_states)}
+\item{running_cost}{Integrand function L(t, x, data) for running cost
+Returns scalar cost rate at time t}
 
-\item{running_cost}{Optional function(t, x, data) for running cost L(t,x)}
+\item{running_cost_grad}{Required when running_cost is provided:
+function(t, x, data) returning gradient \eqn{\partial L/\partial x}}
 
-\item{running_cost_grad}{Optional but REQUIRED if running_cost provided:
-function(t, x, data) returning ∂L/∂x (vector of length n_states)}
+\item{rtol}{Relative error tolerance for ODE solver (default: 1e-8)}
 
-\item{rtol}{Relative tolerance for ODE solver (default 1e-8)}
+\item{atol}{Absolute error tolerance for ODE solver (default: 1e-10)}
 
-\item{atol}{Absolute tolerance for ODE solver (default 1e-10)}
+\item{method}{ODE solver algorithm (default: "lsoda" - adaptive solver)}
 
-\item{method}{ODE solver method (default "lsoda")}
+\item{save_trajectory}{Whether to return the full state trajectory}
 }
 \value{
-List containing:
-\itemize{
-\item objective: Value of objective function J
-\item gradient: Gradient vector dJ/dθ
-\item final_state: State at final time x(T)
-\item sensitivity_final: Sensitivity matrix S(T) = ∂x(T)/∂θ
-\item trajectory: Full state trajectory (if save_trajectory = TRUE)
+Object of class "adjoint_result" containing:
+\describe{
+\item{objective}{Scalar value of the objective function J}
+\item{gradient}{Gradient vector \eqn{dJ/d\theta} with respect to
+parameters}
+\item{final_state}{System state at final time x(T)}
+\item{sensitivity_final}{Sensitivity matrix
+\eqn{\partial x(T)/\partial \theta} at final time}
+\item{trajectory}{Full state trajectory (if save_trajectory = TRUE)}
+\item{n_states}{Number of state variables}
+\item{n_params}{Number of parameters}
+\item{times}{Time grid used for integration}
 }
 }
 \description{
-Implements the adjoint sensitivity method for computing gradients.
-This version REQUIRES analytical derivatives for efficiency and accuracy.
+Computes gradients of scalar-valued objective functions with respect to ODE
+parameters using the adjoint sensitivity method. This implementation requires
+analytical derivatives for optimal performance and accuracy.
 }
 \details{
-For an ODE system:
-dx/dt = f(t, x, θ, data)
-x(t0) = x0
+For a dynamical system described by ordinary differential equations:
+\deqn{dx/dt = f(t, x, \theta, data)}
+\deqn{x(t_0) = x_0}
 
-And objective function:
-J = g(x(T), data) + ∫\link{t0,T} L(t, x(t), data) dt
+And an objective functional:
+\deqn{J = g(x(T), data) + \int_{t_0}^{T} L(t, x(t), data) dt}
 
-The adjoint method computes dJ/dθ efficiently using provided derivatives.
+The adjoint method efficiently computes the gradient \eqn{dJ/d\theta} by
+solving:
+\enumerate{
+\item Forward ODE with sensitivity equations (forward pass)
+\item Adjoint ODE backward in time (if running cost present)
+}
+
+This is particularly efficient when the number of parameters exceeds
+the number of objective functions.
 }
 \examples{
 \dontrun{
-# Define ODE system
-ode_func <- function(t, x, params, data) {
+# Example: Parameter estimation for exponential decay
+
+# Define the ODE system: dx/dt = -\theta x
+ode_system <- function(t, x, params, data) {
   list(dx = -params[1] * x)
 }
 
-# REQUIRED: Provide analytical Jacobians
-jacobian_func <- function(t, x, params, data) {
+# Provide analytical Jacobians
+jacobians <- function(t, x, params, data) {
   list(
-    df_dx = matrix(-params[1], 1, 1),
-    df_dtheta = matrix(-x, 1, 1)
+    df_dx = matrix(-params[1], 1, 1),      # \partial f/\partial x
+    df_dtheta = matrix(-x, 1, 1)           # \partial f/\partial \theta
   )
 }
 
-# Objective function
-objective_func <- function(x_final, data) {
-  (x_final - 0.5)^2
+# Define objective: squared error from target
+target_value <- 0.5
+objective <- function(x_final, data) {
+  (x_final - target_value)^2
 }
 
-# REQUIRED: Provide objective gradient
-objective_grad <- function(x_final, data) {
-  2 * (x_final - 0.5)
+# Gradient of objective
+objective_gradient <- function(x_final, data) {
+  2 * (x_final - target_value)
 }
 
+# Compute sensitivity
 result <- adjoint(
-  ode_func = ode_func,
-  jacobian_func = jacobian_func,
+  ode_func = ode_system,
+  jacobian_func = jacobians,
   x0 = 1,
   params = 0.5,
-  times = c(0, 1),
-  objective_func = objective_func,
-  objective_grad = objective_grad
+  times = seq(0, 2, length.out = 21),
+  objective_func = objective,
+  objective_grad = objective_gradient
 )
+
+print(result)
 }
 }
