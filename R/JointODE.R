@@ -31,21 +31,15 @@
 #'     \item{\code{boundary_knots}}{Boundary knots, if NULL uses event range
 #'       (default: NULL)}
 #'   }
-#' @param spline_index List of B-spline configuration for single index model:
-#'   \describe{
-#'     \item{\code{degree}}{Degree of B-spline basis (default: 3)}
-#'     \item{\code{n_knots}}{Number of interior knots (default: 4)}
-#'     \item{\code{knot_placement}}{Method for knot placement: "quantile"
-#'       (based on index values) or "equal" (default: "quantile")}
-#'     \item{\code{boundary_knots}}{Boundary knots, if NULL uses index range
-#'       (default: NULL)}
-#'   }
 #' @param control List of optimization control parameters:
 #'   \describe{
-#'     \item{\code{method}}{Optimization algorithm (default: "BFGS")}
-#'     \item{\code{maxit}}{Maximum iterations (default: 1000)}
-#'     \item{\code{tol}}{Convergence tolerance (default: 1e-6)}
-#'     \item{\code{verbose}}{Print progress (default: FALSE)}
+#'     \item{\code{method}}{Optimization algorithm (default: "L-BFGS-B")}
+#'     \item{\code{maxit}}{Maximum iterations per M-step (default: 1000)}
+#'     \item{\code{em_maxit}}{Maximum EM iterations (default: 10)}
+#'     \item{\code{em_tol}}{EM convergence tolerance (default: 1e-4)}
+#'     \item{\code{tol}}{Convergence tolerance (default: 1e-2)}
+#'     \item{\code{verbose}}{Print progress and parameter estimates
+#'       (default: FALSE)}
 #'   }
 #' @param ... Additional arguments passed to fitting functions.
 #'
@@ -86,30 +80,30 @@
 #' \dontrun{
 #' fit <- JointODE(
 #'   longitudinal_formula = v ~ x1 + x2,
-#'   longitudinal_data = sim$longitudinal_data,
+#'   longitudinal_data = sim$data$longitudinal_data,
 #'   survival_formula = Surv(time, status) ~ w1 + w2,
-#'   survival_data = sim$survival_data
+#'   survival_data = sim$data$survival_data
 #' )
 #' summary(fit)
 #' }
 #'
 #' @export
 JointODE <- function(
-    longitudinal_formula, longitudinal_data, survival_formula, survival_data,
-    id = "id", time = "time",
-    spline_baseline = list(
-      degree = 3,
-      n_knots = 5,
-      knot_placement = "quantile",
-      boundary_knots = NULL
-    ),
-    spline_index = list(
-      degree = 3,
-      n_knots = 4,
-      knot_placement = "quantile",
-      boundary_knots = NULL
-    ),
-    control = list(), ...) {
+  longitudinal_formula,
+  longitudinal_data,
+  survival_formula,
+  survival_data,
+  id = "id",
+  time = "time",
+  spline_baseline = list(
+    degree = 3,
+    n_knots = 5,
+    knot_placement = "quantile",
+    boundary_knots = NULL
+  ),
+  control = list(),
+  ...
+) {
   # Store call
   cl <- match.call()
 
@@ -122,8 +116,7 @@ JointODE <- function(
     survival_data = survival_data,
     id = id,
     time = time,
-    spline_baseline = spline_baseline,
-    spline_index = spline_index
+    spline_baseline = spline_baseline
   )
 
   # 1.2 Process data
@@ -141,7 +134,8 @@ JointODE <- function(
   n_subjects <- attr(data_process, "n_subjects")
   n_observations <- sum(sapply(data_process, function(s) s$longitudinal$n_obs))
   subjects_with_long <- Filter(
-    function(s) s$longitudinal$n_obs > 0, data_process
+    function(s) s$longitudinal$n_obs > 0,
+    data_process
   )
   n_longitudinal_covariates <- if (length(subjects_with_long) > 0) {
     ncol(subjects_with_long[[1]]$longitudinal$covariates)
@@ -161,28 +155,12 @@ JointODE <- function(
   )
   spline_baseline_config$boundary_knots[1] <- 0
 
-  scores <- seq(-0.3, 0.3, length.out = 100)
-  spline_index_config <- .get_spline_config(
-    x = scores,
-    degree = spline_index$degree,
-    n_knots = spline_index$n_knots,
-    knot_placement = spline_index$knot_placement,
-    boundary_knots = spline_index$boundary_knots
-  )
-
   # 2.2 Initialize coefficients
   baseline_spline_coefficients <- rep(0, spline_baseline_config$df)
   hazard_coefficients <- rep(0, n_survival_covariates + 3)
-  index_spline_coefficients <- rep(0, spline_index_config$df)
 
-  # Initialize beta as unit vector, then convert to spherical coordinates
-  index_coefficients_init <- rnorm(n_longitudinal_covariates + 3)
-  norm_factor <- sqrt(sum(index_coefficients_init^2))
-  if (norm_factor > 1e-10) {
-    index_coefficients_init <- index_coefficients_init / norm_factor
-  } else {
-    index_coefficients_init[1] <- 1 # Default to first unit vector
-  }
+  # Initialize beta without constraints (linear model)
+  index_coefficients <- rnorm(n_longitudinal_covariates + 3, sd = 0.1)
 
   measurement_error_sd <- 1
   random_effect_sd <- 1
@@ -190,138 +168,234 @@ JointODE <- function(
   # Set control defaults
   control_settings <- list(
     method = "L-BFGS-B",
+    em_maxit = 100,
     maxit = 1000,
     tol = 1e-2,
     verbose = FALSE
   )
   control_settings[names(control)] <- control
-  b_hat <- numeric(n_subjects)
 
-  # Track convergence
-  old_params <- NULL
+  # EM Algorithm settings
+  em_maxit <- control_settings$em_maxit %||% 10
+  em_tol <- control_settings$em_tol %||% 1e-4
+
+  # Build initial parameter structure
+  parameters <- list(
+    coefficients = list(
+      baseline = baseline_spline_coefficients,
+      hazard = hazard_coefficients,
+      acceleration = index_coefficients,
+      measurement_error_sd = measurement_error_sd,
+      random_effect_sd = random_effect_sd
+    ),
+    configurations = list(
+      baseline = spline_baseline_config
+    )
+  )
+
+  # EM Algorithm iterations
   converged <- FALSE
-  actual_iter <- 0
+  old_loglik <- -Inf
+  loglik_history <- numeric(em_maxit)
 
-  # EM algorithm implementation
+  # Pre-compute dimensions
+  n_baseline <- spline_baseline_config$df
+  n_hazard <- n_survival_covariates + 3
 
-  for (iter in seq_len(control_settings$maxit)) {
-    actual_iter <- iter
-    if (control_settings$verbose) {
-      print(sprintf("Iteration %d/%d", iter, control_settings$maxit))
-    }
+  if (control_settings$verbose) {
+    cat("\nStarting EM algorithm (max iterations:", em_maxit, ")\n")
+    cat(sprintf(
+      "%-5s %-15s %-10s %-10s %-10s\n",
+      "Iter",
+      "Log-Lik",
+      "Change",
+      "Sigma_e",
+      "Sigma_b"
+    ))
+    cat(rep("-", 60), "\n", sep = "")
+  }
 
-    # E-step
-    # Use current beta (already converted from theta if from M-step)
-    parameters <- list(
-      coefficients = list(
-        baseline = baseline_spline_coefficients,
-        hazard = hazard_coefficients,
-        index_g = index_spline_coefficients,
-        index_beta = index_coefficients,
-        measurement_error_sd = measurement_error_sd,
-        random_effect_sd = random_effect_sd
-      ),
-      configurations = list(
-        baseline = spline_baseline_config,
-        index = spline_index_config
-      )
+  for (em_iter in seq_len(em_maxit)) {
+    # E-step: Compute posteriors given current parameters
+    posteriors <- .compute_posteriors(data_process, parameters)
+
+    # Create fixed parameters structure for M-step
+    fixed_parameters <- list(
+      measurement_error_sd = parameters$coefficients$measurement_error_sd,
+      random_effect_sd = parameters$coefficients$random_effect_sd
     )
 
-
-    # Pre-allocate vectors for posterior quantities
-    posteriors <- .compute_posteriors(
-      data_list = data_process,
-      parameters = parameters
-    )
-
-    # Optimize variance components
-    sds <- .compute_sds(data_process, parameters, posteriors)
-    measurement_error_sd <- sds$measurement_error_sd
-    random_effect_sd <- sds$random_effect_sd
-    if (control_settings$verbose) {
-      cat(
-        "Sigma_e:", measurement_error_sd,
-        "Sigma_b:", random_effect_sd, "\n"
+    # Define objective function for M-step
+    objective_fn <- function(par) {
+      .compute_objective_joint(
+        params = par,
+        data_list = data_process,
+        posteriors = posteriors,
+        configurations = list(baseline = spline_baseline_config),
+        fixed_parameters = fixed_parameters
       )
     }
 
-    # M-step
-    # Optimize hazard coefficients
-    par <- c(
-      baseline_spline_coefficients,
-      hazard_coefficients,
-      index_spline_coefficients
+    # Define gradient function for M-step
+    gradient_fn <- function(par) {
+      .compute_gradient_joint(
+        params = par,
+        data_list = data_process,
+        posteriors = posteriors,
+        configurations = list(baseline = spline_baseline_config),
+        fixed_parameters = fixed_parameters
+      )
+    }
+
+    # Initial parameter vector for this iteration
+    par_init <- c(
+      parameters$coefficients$baseline,
+      parameters$coefficients$hazard,
+      parameters$coefficients$acceleration
     )
-    res_hazard <- optim(
-      par = par,
-      fn = .compute_objective_theta,
-      gr = .compute_grad_theta_forward,
-      data_list = data_process,
-      posteriors = posteriors,
-      configurations = list(
-        baseline = spline_baseline_config,
-        index = spline_index_config
-      ),
-      fixed_params = list(
-        index_beta = index_coefficients,
-        measurement_error_sd = measurement_error_sd,
-        random_effect_sd = random_effect_sd
-      ),
-      method = "L-BFGS-B",
+
+    # M-step: Optimize parameters given posteriors
+    res <- optim(
+      par = par_init,
+      fn = objective_fn,
+      gr = gradient_fn,
+      method = control_settings$method,
       control = list(
-        maxit = 1,
-        trace = if (control_settings$verbose) 3 else 0,
-        REPORT = if (control_settings$verbose) 1 else 10
+        maxit = control_settings$maxit,
+        trace = if (control_settings$verbose) 1 else 0,
+        REPORT = if (control_settings$verbose) 1 else 100
       )
     )
-    baseline_spline_coefficients <- res_hazard$par[
-      1:spline_baseline_config$df
-    ]
-    hazard_coefficients <- res_hazard$par[
-      (spline_baseline_config$df + 1):
-        (spline_baseline_config$df + n_survival_covariates + 3)
-    ]
-    index_spline_coefficients <- res_hazard$par[
-      (spline_baseline_config$df + n_survival_covariates + 4):
-        length(res_hazard$par)
-    ]
-    if (control_settings$verbose) {
-      cat("Lambda0:", baseline_spline_coefficients, "\n")
-      cat("alpha:", hazard_coefficients[1:3], "\n")
-      cat("eta:", hazard_coefficients[-(1:3)], "\n")
-      cat("gamma:", index_spline_coefficients, "\n")
-    }
 
+    # Extract and update parameters efficiently
+    parameters$coefficients$baseline <- res$par[1:n_baseline]
+    parameters$coefficients$hazard <- res$par[
+      (n_baseline + 1):(n_baseline + n_hazard)
+    ]
+    parameters$coefficients$acceleration <- res$par[
+      (n_baseline + n_hazard + 1):length(res$par)
+    ]
+
+    # Update variance components
+    posteriors_updated <- .compute_posteriors(data_process, parameters)
+    sds <- .compute_sds(data_process, parameters, posteriors_updated)
+    parameters$coefficients$measurement_error_sd <- sds$measurement_error_sd
+    parameters$coefficients$random_effect_sd <- sds$random_effect_sd
+
+    # Track convergence
+    new_loglik <- -res$value
+    loglik_change <- new_loglik - old_loglik
+    loglik_history[em_iter] <- new_loglik
+
+    if (control_settings$verbose) {
+      cat(sprintf(
+        "%-5d %-15.6f %-10.6f %-10.4f %-10.4f\n",
+        em_iter,
+        new_loglik,
+        loglik_change,
+        parameters$coefficients$measurement_error_sd,
+        parameters$coefficients$random_effect_sd
+      ))
+
+      # Always print parameter estimates when verbose
+      cat("  \u03b7:", sprintf("%.3f", parameters$coefficients$baseline), "\n")
+      cat(
+        "  \u03b1:",
+        sprintf("%.3f", parameters$coefficients$hazard[1:3]),
+        "\n"
+      )
+      if (n_hazard > 3) {
+        cat(
+          "  \u03c6:",
+          sprintf("%.3f", parameters$coefficients$hazard[4:n_hazard]),
+          "\n"
+        )
+      }
+      cat(
+        "  \u03b2:",
+        sprintf("%.3f", parameters$coefficients$acceleration),
+        "\n\n"
+      )
+    }
 
     # Check convergence
+    if (abs(loglik_change) < em_tol && em_iter > 1) {
+      converged <- TRUE
+      if (control_settings$verbose) {
+        cat(rep("-", 60), "\n", sep = "")
+        cat("EM converged successfully after", em_iter, "iterations\n")
+        cat("Final log-likelihood:", sprintf("%.6f\n", new_loglik))
+      }
+      break
+    }
 
+    # Check for non-improvement
+    if (em_iter > 3 && loglik_change < 0 && control_settings$verbose) {
+      cat("\nWarning: Log-likelihood decreased. Possible convergence issues.\n")
+    }
+
+    old_loglik <- new_loglik
+  }
+
+  if (!converged && control_settings$verbose) {
+    cat(rep("-", 60), "\n", sep = "")
+    cat("EM did not converge within", em_maxit, "iterations\n")
+    cat("Final log-likelihood:", sprintf("%.6f\n", new_loglik))
+    cat("Consider increasing em_maxit or adjusting initial values\n")
+  }
+
+  # Final posteriors with converged parameters
+  posteriors <- .compute_posteriors(data_process, parameters)
+  measurement_error_sd <- parameters$coefficients$measurement_error_sd
+  random_effect_sd <- parameters$coefficients$random_effect_sd
+
+  # Calculate log-likelihood
+  log_lik <- -res$value
+  n_params <- length(res$par) + 2 # +2 for variance components
+  aic <- -2 * log_lik + 2 * n_params
+  bic <- -2 * log_lik + n_params * log(n_subjects)
+
+  # Calculate residuals
+  residuals_long <- numeric(n_observations)
+  idx <- 1
+  for (i in seq_along(data_process)) {
+    subject <- data_process[[i]]
+    if (subject$longitudinal$n_obs > 0) {
+      # Solve ODE for this subject
+      ode_solution <- .solve_joint_ode(subject, parameters)
+      # Calculate residuals
+      for (j in seq_len(subject$longitudinal$n_obs)) {
+        residuals_long[idx] <- subject$longitudinal$measurements[j] -
+          ode_solution$biomarker[j] -
+          posteriors$b[i]
+        idx <- idx + 1
+      }
+    }
   }
 
   # Return fitted model
   structure(
     list(
       coefficients = list(
-        baseline = baseline_spline_coefficients,
-        hazard = hazard_coefficients,
-        index_g = index_spline_coefficients,
-        index_beta = index_coefficients,
+        baseline = parameters$coefficients$baseline,
+        hazard = parameters$coefficients$hazard,
+        acceleration = parameters$coefficients$acceleration,
         measurement_error_sd = measurement_error_sd,
         random_effect_sd = random_effect_sd
       ),
       spline_config = list(
-        baseline = spline_baseline_config,
-        index = spline_index_config
+        baseline = spline_baseline_config
       ),
-      logLik = NA_real_,
-      AIC = NA_real_,
-      BIC = NA_real_,
+      logLik = log_lik,
+      AIC = aic,
+      BIC = bic,
       convergence = list(
         converged = converged,
-        iterations = actual_iter,
+        em_iterations = if (converged) em_iter else em_maxit,
         message = if (converged) {
-          "Algorithm converged"
+          paste("EM algorithm converged after", em_iter, "iterations")
         } else {
-          "Maximum iterations reached"
+          paste("EM algorithm did not converge within", em_maxit, "iterations")
         }
       ),
       fitted = list(
@@ -329,7 +403,7 @@ JointODE <- function(
         survival = NULL
       ),
       residuals = list(
-        longitudinal = residuals,
+        longitudinal = residuals_long,
         martingale = NULL
       ),
       random_effects = list(
