@@ -82,32 +82,142 @@ Here’s a basic example demonstrating typical usage:
 
 ``` r
 library(JointODE)
-## basic example code
+#>
+#> Attaching package: 'JointODE'
+#> The following object is masked from 'package:stats':
+#>
+#>     simulate
+
+# Load example dataset
+data(sim)
+
+# Fit joint ODE model
+fit <- JointODE(
+  longitudinal_formula = sim$formulas$longitudinal,
+  longitudinal_data = sim$data$longitudinal_data,
+  survival_formula = sim$formulas$survival,
+  survival_data = sim$data$survival_data,
+  parallel = TRUE
+)
+
+# Model summary
+summary(fit)
+#>
+#> Call:
+#> JointODE(longitudinal_formula = sim$formulas$longitudinal, longitudinal_data = sim$data$longitudinal_data,
+#>     survival_formula = sim$formulas$survival, survival_data = sim$data$survival_data,
+#>     parallel = TRUE)
+#>
+#> Variance components:
+#> sigma_e sigma_b
+#> 0.10101 0.09658
+#>
+#> Fixed effects:
+#>                     Estimate Std. Error z value Pr(>|z|)
+#> baseline:1         -3.177691   0.678258  -4.685 2.80e-06 ***
+#> baseline:2         -2.697223   0.738452  -3.653  0.00026 ***
+#> baseline:3         -2.271341   0.565821  -4.014 5.96e-05 ***
+#> baseline:4         -1.936159   0.419073  -4.620 3.84e-06 ***
+#> baseline:5         -1.678826   0.421595  -3.982 6.83e-05 ***
+#> baseline:6         -2.380270   0.505616  -4.708 2.51e-06 ***
+#> baseline:7         -0.976073   0.847994  -1.151  0.24972
+#> baseline:8         -0.669168   1.153001  -0.580  0.56166
+#> baseline:9         -0.692297   1.180008  -0.587  0.55741
+#> hazard:alpha0       0.382982   0.149611   2.560  0.01047 *
+#> hazard:alpha1       0.024502   0.670308   0.037  0.97084
+#> hazard:alpha2      -0.515025   0.409202  -1.259  0.20817
+#> hazard:phi1         0.351680   0.081931   4.292 1.77e-05 ***
+#> hazard:phi2        -0.635422   0.081704  -7.777 7.42e-15 ***
+#> longitudinal:beta1 -2.241476   0.130061 -17.234  < 2e-16 ***
+#> longitudinal:beta2 -3.700008   0.246194 -15.029  < 2e-16 ***
+#> longitudinal:beta3 -0.003293   0.011233  -0.293  0.76939
+#> longitudinal:beta4  1.461423   0.087391  16.723  < 2e-16 ***
+#> longitudinal:beta5  0.726582   0.043685  16.632  < 2e-16 ***
+#> longitudinal:beta6  0.371125   0.022629  16.400  < 2e-16 ***
+#> ---
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#>
+#> ---
+#> Log-likelihood: 2207.167   AIC: -4370.334   BIC: -4297.771
+#> N = 200  Convergence: EM algorithm converged after 35 iterations
+
+# Generate predictions
+predictions <- predict(fit, times = seq(0, 5, by = 0.5))
 ```
 
-Using `README.Rmd` instead of `README.md` allows you to include
-executable R chunks:
+## Visualization
 
 ``` r
-summary(cars)
-#>      speed           dist
-#>  Min.   : 4.0   Min.   :  2.00
-#>  1st Qu.:12.0   1st Qu.: 26.00
-#>  Median :15.0   Median : 36.00
-#>  Mean   :15.4   Mean   : 42.98
-#>  3rd Qu.:19.0   3rd Qu.: 56.00
-#>  Max.   :25.0   Max.   :120.00
+library(ggplot2)
+library(dplyr)
+#>
+#> Attaching package: 'dplyr'
+#> The following objects are masked from 'package:stats':
+#>
+#>     filter, lag
+#> The following objects are masked from 'package:base':
+#>
+#>     intersect, setdiff, setequal, union
+library(tidyr)
+
+# Prepare data
+ids <- c(1, 5, 10, 15)
+df <- lapply(ids, \(i) {
+  pred <- predictions[[i]]
+  obs <- filter(sim$data$longitudinal_data, id == i)
+  data.frame(
+    id = i, time = pred$times,
+    biomarker_est = pred$biomarker, velocity_est = pred$velocity,
+    acceleration_est = pred$acceleration, survival = pred$survival
+  ) %>%
+    left_join(select(obs, time, v,
+      biomarker_true = biomarker,
+      velocity_true = velocity, acceleration_true = acceleration
+    ), by = "time")
+}) %>% bind_rows()
+
+# Biomarker plot
+ggplot(df, aes(x = time)) +
+  geom_line(aes(y = biomarker_est, color = "Estimated")) +
+  geom_line(
+    aes(y = biomarker_true, color = "True"), linetype = 2, na.rm = TRUE
+  ) +
+  geom_point(aes(y = v, color = "Observed"), alpha = 0.7, na.rm = TRUE) +
+  facet_wrap(~id) +
+  theme_minimal() +
+  labs(y = "Biomarker", color = "")
 ```
 
-Remember to render `README.Rmd` regularly to keep `README.md`
-up-to-date. Use `devtools::build_readme()` for this task.
+<img src="man/figures/README-visualization-1.png" width="100%" />
 
-You can also embed plots:
+``` r
 
-<img src="man/figures/README-pressure-1.png" width="100%" />
+# Dynamics plot
+df %>%
+  pivot_longer(matches("(velocity|acceleration)_(est|true)"),
+    names_to = c("type", "source"), names_sep = "_"
+  ) %>%
+  filter(!is.na(value)) %>%
+  ggplot(aes(x = time, y = value, color = type, linetype = source)) +
+  geom_line() +
+  facet_wrap(~id, scales = "free_y") +
+  theme_minimal() +
+  labs(y = "Value", color = "Type", linetype = "Source")
+```
 
-Remember to commit and push the resulting figure files to ensure they
-display on GitHub and CRAN.
+<img src="man/figures/README-visualization-2.png" width="100%" />
+
+``` r
+
+# Survival plot
+ggplot(df, aes(x = time, y = survival, color = factor(id))) +
+  geom_line(linewidth = 1.2) +
+  theme_minimal() +
+  ylim(0, 1) +
+  labs(y = "Survival Probability", color = "Subject")
+```
+
+<img src="man/figures/README-visualization-3.png" width="100%" />
 
 ## Code of Conduct
 

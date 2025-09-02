@@ -41,7 +41,7 @@ reference:
   contents:
   - has_concept("model-fitting")
 
-- title: "Model Inspection"  
+- title: "Model Inspection"
   desc: "Extract and examine fitted model components and parameters"
   contents:
   - has_concept("model-inspection")

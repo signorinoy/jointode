@@ -77,26 +77,82 @@ pak::pak("ziyangg98/JointODE")
 
 Here's a basic example demonstrating typical usage:
 
-```{r example, eval=FALSE}
+```{r example}
 library(JointODE)
-## basic example code
+
+# Load example dataset
+data(sim)
+
+# Fit joint ODE model
+fit <- JointODE(
+  longitudinal_formula = sim$formulas$longitudinal,
+  longitudinal_data = sim$data$longitudinal_data,
+  survival_formula = sim$formulas$survival,
+  survival_data = sim$data$survival_data,
+  parallel = TRUE
+)
+
+# Model summary
+summary(fit)
+
+# Generate predictions
+predictions <- predict(fit, times = seq(0, 5, by = 0.5))
 ```
 
-Using `README.Rmd` instead of `README.md` allows you to include executable R chunks:
+## Visualization
 
-```{r cars}
-summary(cars)
+```{r visualization, fig.width=10, fig.height=6}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+
+# Prepare data
+ids <- c(1, 5, 10, 15)
+df <- lapply(ids, \(i) {
+  pred <- predictions[[i]]
+  obs <- filter(sim$data$longitudinal_data, id == i)
+  data.frame(
+    id = i, time = pred$times,
+    biomarker_est = pred$biomarker, velocity_est = pred$velocity,
+    acceleration_est = pred$acceleration, survival = pred$survival
+  ) %>%
+    left_join(select(obs, time, v,
+      biomarker_true = biomarker,
+      velocity_true = velocity, acceleration_true = acceleration
+    ), by = "time")
+}) %>% bind_rows()
+
+# Biomarker plot
+ggplot(df, aes(x = time)) +
+  geom_line(aes(y = biomarker_est, color = "Estimated")) +
+  geom_line(
+    aes(y = biomarker_true, color = "True"), linetype = 2, na.rm = TRUE
+  ) +
+  geom_point(aes(y = v, color = "Observed"), alpha = 0.7, na.rm = TRUE) +
+  facet_wrap(~id) +
+  theme_minimal() +
+  labs(y = "Biomarker", color = "")
+
+# Dynamics plot
+df %>%
+  pivot_longer(matches("(velocity|acceleration)_(est|true)"),
+    names_to = c("type", "source"), names_sep = "_"
+  ) %>%
+  filter(!is.na(value)) %>%
+  ggplot(aes(x = time, y = value, color = type, linetype = source)) +
+  geom_line() +
+  facet_wrap(~id, scales = "free_y") +
+  theme_minimal() +
+  labs(y = "Value", color = "Type", linetype = "Source")
+
+# Survival plot
+ggplot(df, aes(x = time, y = survival, color = factor(id))) +
+  geom_line(linewidth = 1.2) +
+  theme_minimal() +
+  ylim(0, 1) +
+  labs(y = "Survival Probability", color = "Subject")
 ```
 
-Remember to render `README.Rmd` regularly to keep `README.md` up-to-date. Use `devtools::build_readme()` for this task.
-
-You can also embed plots:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
-
-Remember to commit and push the resulting figure files to ensure they display on GitHub and CRAN.
 
 ## Code of Conduct
 
