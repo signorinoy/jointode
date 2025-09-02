@@ -25,7 +25,8 @@ Imports:
     simsurv,
     future,
     future.apply,
-    cli
+    cli,
+    numDeriv
 Suggests:
     ggplot2,
     graphics,
@@ -35,7 +36,6 @@ Suggests:
     dplyr,
     JSM,
     nlme,
-    numDeriv,
     tibble,
     tidyr,
     patchwork

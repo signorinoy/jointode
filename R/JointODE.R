@@ -469,6 +469,80 @@ JointODE <- function(
   aic <- -2 * log_lik + 2 * n_params
   bic <- -2 * log_lik + n_params * log(n_subjects)
 
+  # Compute variance-covariance matrix
+  vcov_matrix <- if (!converged) {
+    if (verbose_level > 0) {
+      cli::cli_alert_warning(
+        "Skipping variance-covariance computation (EM did not converge)"
+      )
+    }
+    NULL
+  } else {
+    tryCatch(
+      {
+        if (verbose_level > 0) {
+          cli::cli_alert_info("Computing variance-covariance matrix...")
+        }
+
+        # Compute Hessian via numerical differentiation of gradient
+        # H = d²(-logL)/dθ² ≈ J(∇(-logL))
+        H <- numDeriv::jacobian(
+          func = function(p) {
+            .compute_gradient_joint(
+              p,
+              data_list = data_process,
+              posteriors = final_posteriors,
+              configurations = list(baseline = spline_baseline_config),
+              fixed_parameters = fixed_parameters,
+              parallel = parallel,
+              n_cores = n_cores
+            )
+          },
+          x = res$par,
+          method = "Richardson" # More accurate for second derivatives
+        )
+
+        # Ensure symmetry (numerical errors can break symmetry)
+        H <- 0.5 * (H + t(H))
+
+        # Check condition before inversion
+        eigen_vals <- eigen(H, symmetric = TRUE, only.values = TRUE)$values
+        if (min(eigen_vals) <= 0) {
+          stop("Hessian is not positive definite")
+        }
+
+        # Invert to get covariance matrix
+        V <- solve(H)
+
+        # Set parameter names
+        n_accel <- length(res$par) - n_baseline - n_hazard
+        param_names <- c(
+          paste0("baseline:", seq_len(n_baseline)),
+          paste0("hazard:", c("alpha0", "alpha1", "alpha2")),
+          if (n_hazard > 3) paste0("hazard:phi", seq_len(n_hazard - 3)),
+          paste0("longitudinal:beta", seq_len(n_accel))
+        )
+        dimnames(V) <- list(param_names, param_names)
+
+        if (verbose_level > 0) {
+          cli::cli_alert_success("Variance-covariance matrix computed")
+        }
+        V
+      },
+      error = function(e) {
+        if (verbose_level > 0) {
+          cli::cli_alert_warning(
+            "Variance-covariance matrix computation failed: {e$message}"
+          )
+          cli::cli_alert_info(
+            "Standard errors will not be available in summary output"
+          )
+        }
+        NULL
+      }
+    )
+  }
+
   # Return fitted model
   structure(
     list(
@@ -489,6 +563,7 @@ JointODE <- function(
         estimates = final_posteriors$b,
         variances = final_posteriors$v
       ),
+      vcov = vcov_matrix,
       data = data_process,
       control = control_settings,
       call = cl
