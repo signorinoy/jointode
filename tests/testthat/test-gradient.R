@@ -139,3 +139,158 @@ test_that("gradient components have correct dimensions", {
   expect_equal(length(grad_hazard), n_hazard)
   expect_equal(length(grad_acceleration), n_acceleration)
 })
+
+test_that("parallel gradient computation works correctly", {
+  skip_if_not_installed("future")
+  skip_if_not_installed("future.apply")
+
+  # Load test data
+  test_env <- load_test_data(n_subjects = 20)
+  posteriors <- .compute_posteriors(test_env$data, test_env$parameters)
+
+  coefficients <- test_env$parameters$coefficients
+  configurations <- test_env$parameters$configurations
+  params <- c(
+    coefficients$baseline,
+    coefficients$hazard,
+    coefficients$acceleration
+  )
+  fixed_params <- list(
+    measurement_error_sd = coefficients$measurement_error_sd,
+    random_effect_sd = coefficients$random_effect_sd
+  )
+
+  # Compute gradient sequentially
+  grad_sequential <- .compute_gradient_joint(
+    params = params,
+    data_list = test_env$data,
+    posteriors = posteriors,
+    configurations = configurations,
+    fixed_parameters = fixed_params,
+    parallel = FALSE
+  )
+
+  # Compute gradient in parallel
+  grad_parallel <- .compute_gradient_joint(
+    params = params,
+    data_list = test_env$data,
+    posteriors = posteriors,
+    configurations = configurations,
+    fixed_parameters = fixed_params,
+    parallel = TRUE,
+    n_cores = 2 # Use 2 cores for testing
+  )
+
+  # Results should be identical
+  expect_equal(
+    grad_sequential,
+    grad_parallel,
+    tolerance = 1e-10,
+    label = "Parallel vs Sequential gradient"
+  )
+
+  # Test with different core counts
+  if (parallel::detectCores() >= 4) {
+    grad_parallel_4 <- .compute_gradient_joint(
+      params = params,
+      data_list = test_env$data,
+      posteriors = posteriors,
+      configurations = configurations,
+      fixed_parameters = fixed_params,
+      parallel = TRUE,
+      n_cores = 4
+    )
+
+    expect_equal(
+      grad_sequential,
+      grad_parallel_4,
+      tolerance = 1e-10,
+      label = "Parallel (4 cores) vs Sequential gradient"
+    )
+  }
+
+  # Test auto-detection of cores
+  grad_parallel_auto <- .compute_gradient_joint(
+    params = params,
+    data_list = test_env$data,
+    posteriors = posteriors,
+    configurations = configurations,
+    fixed_parameters = fixed_params,
+    parallel = TRUE
+    # n_cores not specified - should auto-detect
+  )
+
+  expect_equal(
+    grad_sequential,
+    grad_parallel_auto,
+    tolerance = 1e-10,
+    label = "Parallel (auto cores) vs Sequential gradient"
+  )
+})
+
+test_that("parallel objective computation works correctly", {
+  skip_if_not_installed("future")
+  skip_if_not_installed("future.apply")
+
+  # Load test data
+  test_env <- load_test_data(n_subjects = 20)
+  posteriors <- .compute_posteriors(test_env$data, test_env$parameters)
+
+  coefficients <- test_env$parameters$coefficients
+  configurations <- test_env$parameters$configurations
+  params <- c(
+    coefficients$baseline,
+    coefficients$hazard,
+    coefficients$acceleration
+  )
+  fixed_params <- list(
+    measurement_error_sd = coefficients$measurement_error_sd,
+    random_effect_sd = coefficients$random_effect_sd
+  )
+
+  # Compute objective sequentially
+  obj_sequential <- .compute_objective_joint(
+    params = params,
+    data_list = test_env$data,
+    posteriors = posteriors,
+    configurations = configurations,
+    fixed_parameters = fixed_params,
+    parallel = FALSE
+  )
+
+  # Compute objective in parallel
+  obj_parallel <- .compute_objective_joint(
+    params = params,
+    data_list = test_env$data,
+    posteriors = posteriors,
+    configurations = configurations,
+    fixed_parameters = fixed_params,
+    parallel = TRUE,
+    n_cores = 2
+  )
+
+  # Results should be identical
+  expect_equal(
+    obj_sequential,
+    obj_parallel,
+    tolerance = 1e-10,
+    label = "Parallel vs Sequential objective"
+  )
+
+  # Test with auto-detected cores
+  obj_parallel_auto <- .compute_objective_joint(
+    params = params,
+    data_list = test_env$data,
+    posteriors = posteriors,
+    configurations = configurations,
+    fixed_parameters = fixed_params,
+    parallel = TRUE
+  )
+
+  expect_equal(
+    obj_sequential,
+    obj_parallel_auto,
+    tolerance = 1e-10,
+    label = "Parallel (auto) vs Sequential objective"
+  )
+})
