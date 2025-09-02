@@ -273,7 +273,7 @@ test_that("adjoint returns correct structure", {
     save_trajectory = TRUE
   )
 
-  expect_s3_class(result, "adjoint_result")
+  expect_s3_class(result, "adjoint")
   expect_named(
     result,
     c(
