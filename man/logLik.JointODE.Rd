@@ -17,3 +17,4 @@ Log-likelihood with df and nobs attributes
 \description{
 Extract Log-Likelihood
 }
+\concept{modeling}

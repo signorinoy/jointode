@@ -19,3 +19,4 @@ Invisibly returns the object
 \description{
 Print JointODE Model
 }
+\concept{modeling}

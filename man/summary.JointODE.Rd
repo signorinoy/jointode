@@ -17,3 +17,4 @@ A summary.JointODE object with coefficients and test statistics
 \description{
 Summary of JointODE Model
 }
+\concept{modeling}

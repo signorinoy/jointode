@@ -17,3 +17,4 @@ Named numeric vector of fixed effects coefficients
 \description{
 Extract Model Coefficients
 }
+\concept{modeling}

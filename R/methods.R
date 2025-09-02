@@ -4,6 +4,7 @@
 #' @param ... Additional arguments
 #' @return A summary.JointODE object with coefficients and test statistics
 #'
+#' @concept modeling
 #' @importFrom stats coef pnorm
 #' @export
 summary.JointODE <- function(object, ...) {
@@ -37,6 +38,7 @@ summary.JointODE <- function(object, ...) {
   )
 }
 
+#' @concept modeling
 #' @importFrom stats printCoefmat
 #' @export
 print.summary.JointODE <- function(
@@ -67,6 +69,7 @@ print.summary.JointODE <- function(
 #' @param object A JointODE object
 #' @param ... Additional arguments
 #' @return Named numeric vector of fixed effects coefficients
+#' @concept modeling
 #' @export
 coef.JointODE <- function(object, ...) {
   cf <- object$parameters$coefficients
@@ -92,6 +95,7 @@ coef.JointODE <- function(object, ...) {
 #' @param object A JointODE object
 #' @param ... Additional arguments
 #' @return Variance-covariance matrix of fixed effects
+#' @concept modeling
 #' @export
 vcov.JointODE <- function(object, ...) {
   object$vcov
@@ -102,6 +106,7 @@ vcov.JointODE <- function(object, ...) {
 #' @param object A JointODE object
 #' @param ... Additional arguments
 #' @return Log-likelihood with df and nobs attributes
+#' @concept modeling
 #' @importFrom stats coef
 #' @export
 logLik.JointODE <- function(object, ...) {
@@ -119,6 +124,7 @@ logLik.JointODE <- function(object, ...) {
 #' @param digits Number of digits for numeric output
 #' @param ... Additional arguments
 #' @return Invisibly returns the object
+#' @concept modeling
 #' @importFrom stats coef
 #' @export
 print.JointODE <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {

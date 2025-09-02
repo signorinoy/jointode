@@ -17,3 +17,4 @@ Variance-covariance matrix of fixed effects
 \description{
 Extract Variance-Covariance Matrix
 }
+\concept{modeling}
