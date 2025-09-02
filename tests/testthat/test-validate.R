@@ -929,3 +929,352 @@ test_that(".validate works with completely valid data", {
     )
   )
 })
+
+# ==============================================================================
+# SECTION 10: INIT PARAMETER VALIDATION
+# ==============================================================================
+
+test_that(".validate checks init parameter structure correctly", {
+  # Create test data
+  test_data <- create_minimal_test_data(n_subjects = 3, n_times = 3)
+  long_data <- test_data$longitudinal
+  long_data$x1 <- rnorm(nrow(long_data))
+  surv_data <- test_data$survival
+  surv_data$w1 <- rnorm(nrow(surv_data))
+
+  # Test non-list init
+  expect_error(
+    JointODE:::.validate(
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = "not a list"
+    ),
+    "Invalid 'init' parameter: must be a list"
+  )
+
+  # Test unknown top-level components
+  expect_error(
+    JointODE:::.validate(
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(unknown_component = 1)
+    ),
+    paste(
+      "Invalid 'init': unknown components 'unknown_component'",
+      "\\(valid: coefficients, configurations\\)"
+    )
+  )
+
+  # Test non-list coefficients
+  expect_error(
+    JointODE:::.validate(
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = "not a list")
+    ),
+    "Invalid 'init\\$coefficients': must be a list"
+  )
+})
+
+test_that(".validate checks init coefficient types correctly", {
+  test_data <- create_minimal_test_data(n_subjects = 3, n_times = 3)
+  long_data <- test_data$longitudinal
+  long_data$x1 <- rnorm(nrow(long_data))
+  surv_data <- test_data$survival
+  surv_data$w1 <- rnorm(nrow(surv_data))
+
+  # Test unknown coefficient types
+  expect_error(
+    JointODE:::.validate(
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = list(unknown_coef = 1))
+    ),
+    "Invalid 'init\\$coefficients': unknown types 'unknown_coef'"
+  )
+
+  # Test non-numeric baseline
+  expect_error(
+    JointODE:::.validate(
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = list(baseline = "not numeric"))
+    ),
+    "Invalid 'init\\$coefficients\\$baseline': must be numeric"
+  )
+
+  # Test non-finite values
+  expect_error(
+    JointODE:::.validate(
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = list(baseline = c(1, 2, NA, 4, 5, 6, 7, 8)))
+    ),
+    "Invalid 'init\\$coefficients\\$baseline': must contain finite values"
+  )
+})
+
+test_that(".validate checks init parameter lengths correctly", {
+  test_data <- create_minimal_test_data(n_subjects = 3, n_times = 3)
+  long_data <- test_data$longitudinal
+  long_data$x1 <- rnorm(nrow(long_data))
+  surv_data <- test_data$survival
+  surv_data$w1 <- rnorm(nrow(surv_data))
+
+  # Wrong baseline length (default spline has 8 basis functions)
+  expect_error(
+    JointODE:::.validate(
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = list(baseline = rep(0, 5)))
+    ),
+    paste(
+      "Invalid 'init\\$coefficients\\$baseline':",
+      "wrong length \\(expected 9, got 5\\)"
+    )
+  )
+
+  # Wrong hazard length (should be 3 + 1 survival covariate = 4)
+  expect_error(
+    JointODE:::.validate(
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = list(hazard = rep(0, 2)))
+    ),
+    paste(
+      "Invalid 'init\\$coefficients\\$hazard':",
+      "must have at least 3 elements for association parameters"
+    )
+  )
+
+  expect_error(
+    JointODE:::.validate(
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = list(hazard = rep(0, 5)))
+    ),
+    paste(
+      "Invalid 'init\\$coefficients\\$hazard':",
+      "wrong length \\(expected 4, got 5\\)"
+    )
+  )
+
+  # Wrong acceleration length (should be 3 + 1 longitudinal covariate = 4)
+  expect_error(
+    JointODE:::.validate(
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = list(acceleration = rep(0, 2)))
+    ),
+    paste(
+      "Invalid 'init\\$coefficients\\$acceleration':",
+      "must have at least 3 elements \\(intercept \\+ ODE parameters\\)"
+    )
+  )
+
+  expect_error(
+    JointODE:::.validate(
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = list(acceleration = rep(0, 6)))
+    ),
+    paste(
+      "Invalid 'init\\$coefficients\\$acceleration':",
+      "wrong length \\(expected 5, got 6\\)"
+    )
+  )
+})
+
+test_that(".validate checks variance parameters correctly", {
+  test_data <- create_minimal_test_data(n_subjects = 3, n_times = 3)
+  long_data <- test_data$longitudinal
+  surv_data <- test_data$survival
+
+  # Test non-positive measurement_error_sd
+  expect_error(
+    JointODE:::.validate(
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = list(measurement_error_sd = 0))
+    ),
+    "Invalid 'init\\$coefficients\\$measurement_error_sd': must be positive"
+  )
+
+  expect_error(
+    JointODE:::.validate(
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = list(measurement_error_sd = -1))
+    ),
+    "Invalid 'init\\$coefficients\\$measurement_error_sd': must be positive"
+  )
+
+  # Test non-scalar measurement_error_sd
+  expect_error(
+    JointODE:::.validate(
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = list(measurement_error_sd = c(1, 2)))
+    ),
+    paste(
+      "Invalid 'init\\$coefficients\\$measurement_error_sd':",
+      "must be a single numeric value"
+    )
+  )
+
+  # Test non-positive random_effect_sd
+  expect_error(
+    JointODE:::.validate(
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = list(random_effect_sd = 0))
+    ),
+    "Invalid 'init\\$coefficients\\$random_effect_sd': must be positive"
+  )
+
+  # Test non-finite values
+  expect_error(
+    JointODE:::.validate(
+      v ~ 1,
+      long_data,
+      Surv(time, status) ~ 1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = list(coefficients = list(measurement_error_sd = Inf))
+    ),
+    "Invalid 'init\\$coefficients\\$measurement_error_sd': must be finite"
+  )
+})
+
+test_that(".validate accepts valid init parameter", {
+  test_data <- create_minimal_test_data(n_subjects = 3, n_times = 3)
+  long_data <- test_data$longitudinal
+  long_data$x1 <- rnorm(nrow(long_data))
+  surv_data <- test_data$survival
+  surv_data$w1 <- rnorm(nrow(surv_data))
+
+  # Valid init with all components
+  valid_init <- list(
+    coefficients = list(
+      baseline = rep(0.1, 9), # 9 spline basis functions
+      hazard = rep(0.2, 4), # 3 association + 1 survival covariate
+      acceleration = rep(0.3, 5), # 3 ODE params + intercept + 1 covariate
+      measurement_error_sd = 0.5,
+      random_effect_sd = 0.8
+    ),
+    configurations = list(
+      baseline = list(df = 8)
+    )
+  )
+
+  expect_silent(
+    JointODE:::.validate(
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = valid_init
+    )
+  )
+
+  # Valid init with partial components
+  partial_init <- list(
+    coefficients = list(
+      measurement_error_sd = 0.5,
+      random_effect_sd = 0.8
+    )
+  )
+
+  expect_silent(
+    JointODE:::.validate(
+      v ~ x1,
+      long_data,
+      Surv(time, status) ~ w1,
+      surv_data,
+      "id",
+      "time",
+      spline_baseline = list(),
+      init = partial_init
+    )
+  )
+})
