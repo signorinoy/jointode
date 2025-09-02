@@ -22,7 +22,10 @@ Imports:
     survival,
     aghq,
     splines2,
-    simsurv
+    simsurv,
+    future,
+    future.apply,
+    cli
 Suggests:
     ggplot2,
     graphics,
