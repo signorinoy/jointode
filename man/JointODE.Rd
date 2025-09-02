@@ -214,4 +214,4 @@ summary(fit)
 }
 
 }
-\concept{modeling}
+\concept{model-fitting}

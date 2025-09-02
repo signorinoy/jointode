@@ -110,5 +110,5 @@ if (requireNamespace("ggplot2", quietly = TRUE)) {
 \code{\link{JointODE}} for fitting joint models
 \code{\link{simulate}} for detailed simulation methodology
 }
-\concept{datasets}
+\concept{data-simulation}
 \keyword{datasets}

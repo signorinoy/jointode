@@ -233,4 +233,4 @@ ggplot(plot_data, aes(x = time, y = v)) +
 \code{\link[simsurv]{simsurv}} for the underlying survival simulation
 \code{\link[deSolve]{ode}} for ODE integration details
 }
-\concept{datasets}
+\concept{data-simulation}

@@ -204,7 +204,7 @@
 #' \code{\link[simsurv]{simsurv}} for the underlying survival simulation
 #' \code{\link[deSolve]{ode}} for ODE integration details
 #'
-#' @concept datasets
+#' @concept data-simulation
 #'
 #' @importFrom deSolve ode
 #' @importFrom simsurv simsurv

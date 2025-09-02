@@ -100,6 +100,6 @@
 #' \code{\link{JointODE}} for fitting joint models
 #' \code{\link{simulate}} for detailed simulation methodology
 #'
-#' @concept datasets
+#' @concept data-simulation
 #'
 "sim"

@@ -48,7 +48,7 @@
 #' @param method ODE solver algorithm (default: "lsoda" - adaptive solver)
 #' @param save_trajectory Whether to return the full state trajectory
 #'
-#' @return Object of class "adjoint_result" containing:
+#' @return Object of class "adjoint" containing:
 #' \describe{
 #'   \item{objective}{Scalar value of the objective function J}
 #'   \item{gradient}{Gradient vector \eqn{dJ/d\theta} with respect to
@@ -62,7 +62,7 @@
 #'   \item{times}{Time grid used for integration}
 #' }
 #'
-#' @concept utilities
+#' @concept advanced-methods
 #'
 #' @examples
 #' \dontrun{
@@ -419,18 +419,18 @@ adjoint <- function(
       n_params = n_params,
       times = times
     ),
-    class = "adjoint_result"
+    class = "adjoint"
   )
 }
 
 #' Print Method for Adjoint Results
 #'
-#' @param x An object of class "adjoint_result"
+#' @param x An object of class "adjoint"
 #' @param ... Additional arguments (unused)
 #' @export
 #'
-#' @concept utilities
-print.adjoint_result <- function(x, ...) {
+#' @concept advanced-methods
+print.adjoint <- function(x, ...) {
   cat("Adjoint Sensitivity Analysis Results\n")
   cat("=====================================\n")
   cat(sprintf("Objective value: %.6g\n", x$objective))

@@ -3,7 +3,7 @@
 S3method(coef,JointODE)
 S3method(logLik,JointODE)
 S3method(print,JointODE)
-S3method(print,adjoint_result)
+S3method(print,adjoint)
 S3method(print,summary.JointODE)
 S3method(summary,JointODE)
 S3method(vcov,JointODE)

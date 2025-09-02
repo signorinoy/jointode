@@ -65,7 +65,7 @@ function(t, x, data) returning gradient \eqn{\partial L/\partial x}}
 \item{save_trajectory}{Whether to return the full state trajectory}
 }
 \value{
-Object of class "adjoint_result" containing:
+Object of class "adjoint" containing:
 \describe{
 \item{objective}{Scalar value of the objective function J}
 \item{gradient}{Gradient vector \eqn{dJ/d\theta} with respect to
@@ -144,4 +144,4 @@ result <- adjoint(
 print(result)
 }
 }
-\concept{utilities}
+\concept{advanced-methods}

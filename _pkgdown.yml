@@ -36,17 +36,28 @@ articles:
 
 # Reference configuration
 reference:
-- title: "Main Functions"
-  desc: "Core functions for joint ODE modeling"
+- title: "Model Fitting"
+  desc: "Core functionality for fitting joint ODE models combining survival and longitudinal data"
   contents:
-  - has_concept("modeling")
+  - has_concept("model-fitting")
 
-- title: "Datasets"
-  desc: "Joint Survival and Longitudinal Data"
+- title: "Model Inspection"  
+  desc: "Extract and examine fitted model components and parameters"
   contents:
-  - has_concept("datasets")
+  - has_concept("model-inspection")
 
-- title: "Utilities"
-  desc: "Helper functions"
+- title: "Model Summary & Display"
+  desc: "Summarize and display model results with statistical inference"
   contents:
-  - has_concept("utilities")
+  - has_concept("model-summary")
+  - has_concept("model-display")
+
+- title: "Advanced Methods"
+  desc: "Computational methods for sensitivity analysis and optimization"
+  contents:
+  - has_concept("advanced-methods")
+
+- title: "Data & Simulation"
+  desc: "Tools for simulating joint ODE data and example datasets"
+  contents:
+  - has_concept("data-simulation")
