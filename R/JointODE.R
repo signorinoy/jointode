@@ -178,9 +178,9 @@
 #' @examples
 #' \dontrun{
 #' fit <- JointODE(
-#'   longitudinal_formula = v ~ x1 + x2,
+#'   longitudinal_formula = sim$formulas$longitudinal,
 #'   longitudinal_data = sim$data$longitudinal_data,
-#'   survival_formula = Surv(time, status) ~ w1 + w2,
+#'   survival_formula = sim$formulas$survival,
 #'   survival_data = sim$data$survival_data
 #' )
 #' summary(fit)
@@ -720,4 +720,121 @@ print.JointODE <- function(x, digits = max(3L, getOption("digits") - 3L), ...) {
     "\n"
   )
   invisible(x)
+}
+
+#' Predict Method for JointODE Models
+#'
+#' @description
+#' Computes predictions for biomarker trajectories, velocities, accelerations,
+#' and survival functions from a fitted JointODE model. This method uses the
+#' fitted model parameters and random effects to solve the ODE system and
+#' generate predictions for each subject.
+#'
+#' @param object A fitted JointODE model object.
+#' @param times Optional numeric vector of time points at which to evaluate
+#'   predictions. If NULL, uses the union of observation times and event time
+#'   for each subject.
+#' @param parallel Logical flag for parallel computation. Default is FALSE.
+#' @param n_cores Number of CPU cores for parallel processing. If NULL,
+#'   uses all available cores minus one.
+#' @param ... Additional arguments (currently unused).
+#'
+#' @return A list containing predictions for each subject, where each
+#'   element contains:
+#'   \describe{
+#'     \item{\code{id}}{Subject identifier}
+#'     \item{\code{times}}{Time points for predictions}
+#'     \item{\code{biomarker}}{Predicted biomarker values with random effects}
+#'     \item{\code{velocity}}{Predicted biomarker velocity}
+#'     \item{\code{acceleration}}{Predicted biomarker acceleration}
+#'     \item{\code{cumhazard}}{Cumulative hazard values}
+#'     \item{\code{survival}}{Survival probability values}
+#'   }
+#'
+#' @details
+#' The prediction process involves:
+#' \enumerate{
+#'   \item Using the fitted model parameters and random effects
+#'   \item Solving the ODE system for each subject at specified time points
+#'   \item Computing biomarker trajectories with random effects included
+#'   \item Calculating cumulative hazard and survival probabilities
+#' }
+#'
+#' Random effects from the fitted model are always included in predictions
+#' to provide subject-specific trajectories.
+#' @concept model-prediction
+#' @importFrom stats predict
+#' @export
+predict.JointODE <- function(
+  object,
+  times = NULL,
+  parallel = FALSE,
+  n_cores = NULL,
+  ...
+) {
+  # Extract model components
+  parameters <- object$parameters
+  data_process <- object$data
+  random_effects <- object$random_effects$estimates
+
+  # Function to compute predictions for a single subject
+  compute_subject_predictions <- function(i) {
+    subject_data <- data_process[[i]]
+    b_i <- random_effects[i]
+
+    # Determine time points for prediction
+    if (!is.null(times)) {
+      pred_times <- sort(unique(times))
+    } else {
+      # Use observation times (without event time for cleaner output)
+      pred_times <- sort(unique(
+        subject_data$longitudinal$times,
+        subject_data$time
+      ))
+    }
+
+    # Solve ODE with specified times
+    ode_solution <- .solve_joint_ode(
+      subject_data,
+      parameters,
+      sensitivity_type = "basic",
+      times = pred_times
+    )
+
+    cumhazard_values <- ode_solution$cum_hazard * exp(b_i)
+    survival_values <- exp(-cumhazard_values)
+
+    predictions <- list(
+      id = subject_data$id,
+      times = pred_times,
+      biomarker = ode_solution$biomarker + b_i,
+      velocity = ode_solution$velocity,
+      acceleration = ode_solution$acceleration,
+      survival = survival_values
+    )
+
+    predictions
+  }
+
+  # Compute predictions for all subjects
+  n_subjects <- length(data_process)
+
+  if (parallel) {
+    cleanup <- .setup_parallel_plan(n_cores)
+    on.exit(cleanup(), add = TRUE)
+
+    prediction_results <- future.apply::future_lapply(
+      seq_len(n_subjects),
+      compute_subject_predictions,
+      future.seed = TRUE
+    )
+  } else {
+    prediction_results <- lapply(
+      seq_len(n_subjects),
+      compute_subject_predictions
+    )
+  }
+
+  # Return predictions
+  prediction_results
 }

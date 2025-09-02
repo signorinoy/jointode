@@ -752,7 +752,13 @@ NULL
   )
 }
 
-.extract_ode_results <- function(solution, data, parameters, sensitivity_type) {
+.extract_ode_results <- function(
+  solution,
+  data,
+  parameters,
+  sensitivity_type,
+  times = NULL
+) {
   # Get final state
   final_state <- solution[nrow(solution), -1]
   event_time <- data$time
@@ -778,9 +784,16 @@ NULL
     parameters
   )
 
-  # Extract values at observation times (compute indices once)
-  if (length(data$longitudinal$times) > 0) {
-    obs_indices <- match(data$longitudinal$times, solution[, 1])
+  times_to_extract <- if (is.null(times)) {
+    data$longitudinal$times
+  } else {
+    times
+  }
+
+  # Extract values at specified times
+  if (length(times_to_extract) > 0) {
+    obs_indices <- match(times_to_extract, solution[, 1])
+    cumhazard_values <- solution[obs_indices, 2]
     biomarker_values <- solution[obs_indices, 3]
     velocity_values <- solution[obs_indices, 4]
     acceleration_values <- sapply(seq_along(obs_indices), function(i) {
@@ -794,6 +807,7 @@ NULL
       )
     })
   } else {
+    cumhazard_values <- NULL
     biomarker_values <- NULL
     velocity_values <- NULL
     acceleration_values <- NULL
@@ -801,8 +815,9 @@ NULL
 
   # Build base result
   result <- list(
-    cum_hazard = final_state[1],
-    log_hazard = log_hazard_final,
+    cum_hazard_at_event = final_state[1],
+    log_hazard_at_event = log_hazard_final,
+    cum_hazard = cumhazard_values,
     biomarker = biomarker_values,
     velocity = velocity_values,
     acceleration = acceleration_values
@@ -829,8 +844,8 @@ NULL
     dcumhazard_dbeta <- final_state[idx:(idx + n_beta - 1)]
 
     # Extract β sensitivities at observation times
-    dbiomarker_dbeta_values <- if (length(data$longitudinal$times) > 0) {
-      obs_indices <- match(data$longitudinal$times, solution[, 1])
+    dbiomarker_dbeta_values <- if (length(times_to_extract) > 0) {
+      obs_indices <- match(times_to_extract, solution[, 1])
       # Column 1 is time, columns 2-4 are [Λ, m, ṁ]
       # Columns 5-(4+n_eta) are ∂Λ/∂η
       # Columns (5+n_eta)-(4+n_eta+n_alpha) are ∂Λ/∂α
@@ -854,8 +869,8 @@ NULL
     )
 
     result <- list(
-      log_hazard = log_hazard_final,
-      cum_hazard = final_state[1],
+      log_hazard_at_event = log_hazard_final,
+      cum_hazard_at_event = final_state[1],
       biomarker_at_event = final_state[2],
       velocity_at_event = final_state[3],
       acceleration_at_event = acceleration_final,
@@ -901,8 +916,8 @@ NULL
     )
 
     result <- list(
-      log_hazard = log_hazard_final,
-      cum_hazard = final_state[1],
+      log_hazard_at_event = log_hazard_final,
+      cum_hazard_at_event = final_state[1],
       biomarker = biomarker_values,
       dbiomarker_dbeta = dbiomarker_dbeta_values,
       dbiomarker_dbeta_at_event = dbiomarker_dbeta_final,
@@ -915,13 +930,14 @@ NULL
   result
 }
 
-.solve_joint_ode <- function(data, parameters, sensitivity_type = "basic") {
+.solve_joint_ode <- function(
+  data,
+  parameters,
+  sensitivity_type = "basic",
+  times = NULL
+) {
   # Validate sensitivity_type
-  valid_types <- c(
-    "basic",
-    "forward",
-    "adjoint"
-  )
+  valid_types <- c("basic", "forward", "adjoint")
   if (!sensitivity_type %in% valid_types) {
     stop(
       "Invalid sensitivity_type. Must be one of: ",
@@ -1038,22 +1054,31 @@ NULL
     parameters = parameters,
     sensitivity_type = sensitivity_type
   )
-  event_time <- data$time
-  times <- sort(unique(c(0, data$longitudinal$times, event_time)))
 
-  # Solve ODE with robust error handling and higher precision
-  solution <- deSolve::ode(
-    y = initial_extended,
-    times = times,
-    func = ode_derivatives,
-    parms = ode_parameters,
-    method = "ode45",
-    atol = 1e-6, # Reasonable precision for research
-    rtol = 1e-8 # Balanced speed and accuracy
-  )
+  # If custom times provided, add them to ensure they're in the solution
+  ode_times <- if (!is.null(times)) {
+    sort(unique(c(0, times)))
+  } else {
+    sort(unique(c(0, data$longitudinal$times, data$time)))
+  }
+  solution <- if (length(ode_times) < 2) {
+    matrix(c(0, initial_extended), nrow = 1)
+  } else {
+    # Use deSolve to solve the ODEs
+    deSolve::ode(
+      y = initial_extended,
+      times = ode_times,
+      func = ode_derivatives,
+      parms = ode_parameters,
+      method = "ode45",
+      atol = 1e-6,
+      rtol = 1e-8
+    )
+  }
 
   # Extract and return results
-  .extract_ode_results(solution, data, parameters, sensitivity_type)
+  # Pass the custom times if provided, otherwise NULL for default extraction
+  .extract_ode_results(solution, data, parameters, sensitivity_type, times)
 }
 
 # Helper functions for posterior computation
@@ -1135,7 +1160,7 @@ NULL
   k = 7
 ) {
   # Extract components
-  cum_hazard_0 <- ode_solution$cum_hazard
+  cum_hazard_0 <- ode_solution$cum_hazard_at_event
   biomarker_0 <- ode_solution$biomarker
 
   status <- data$status
@@ -1313,9 +1338,9 @@ NULL
 
     # Survival component
     if (subject_data$status == 1) {
-      obj_i <- obj_i + ode_sol$log_hazard
+      obj_i <- obj_i + ode_sol$log_hazard_at_event
     }
-    obj_i <- obj_i - posteriors$exp_b[i] * ode_sol$cum_hazard
+    obj_i <- obj_i - posteriors$exp_b[i] * ode_sol$cum_hazard_at_event
 
     # Longitudinal component
     if (subject_data$longitudinal$n_obs > 0) {
@@ -1457,7 +1482,7 @@ NULL
     # φ (survival covariates)
     if (n_phi > 0 && !is.null(subject_data$covariates)) {
       w_vec <- as.numeric(subject_data$covariates)
-      grad_phi_i <- (status_i - exp_b_i * ode_sol$cum_hazard) * w_vec
+      grad_phi_i <- (status_i - exp_b_i * ode_sol$cum_hazard_at_event) * w_vec
     }
 
     # β (acceleration coefficients)

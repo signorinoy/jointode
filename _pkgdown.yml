@@ -45,6 +45,7 @@ reference:
   desc: "Extract and examine fitted model components and parameters"
   contents:
   - has_concept("model-inspection")
+  - has_concept("model-prediction")
 
 - title: "Model Summary & Display"
   desc: "Summarize and display model results with statistical inference"

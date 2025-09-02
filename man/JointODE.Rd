@@ -205,9 +205,9 @@ provided
 \examples{
 \dontrun{
 fit <- JointODE(
-  longitudinal_formula = v ~ x1 + x2,
+  longitudinal_formula = sim$formulas$longitudinal,
   longitudinal_data = sim$data$longitudinal_data,
-  survival_formula = Surv(time, status) ~ w1 + w2,
+  survival_formula = sim$formulas$survival,
   survival_data = sim$data$survival_data
 )
 summary(fit)

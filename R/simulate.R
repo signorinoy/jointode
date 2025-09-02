@@ -716,7 +716,7 @@ simulate <- function(
 #' @examples
 #' \dontrun{
 #' # Approximate a sine function
-#' x <- seq(0, 2*pi, length.out = 100)
+#' x <- seq(0, 2 * pi, length.out = 100)
 #' f0 <- function(t) sin(t)
 #' config <- list(degree = 3, n_knots = 5, knot_placement = "quantile")
 #' coef <- .estimate_bspline_coef(x, f0, config)
