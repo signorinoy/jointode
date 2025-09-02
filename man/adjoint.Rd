@@ -144,3 +144,4 @@ result <- adjoint(
 print(result)
 }
 }
+\concept{utilities}

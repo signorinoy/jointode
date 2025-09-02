@@ -186,6 +186,7 @@
 #' summary(fit)
 #' }
 #'
+#' @concept modeling
 #' @export
 JointODE <- function(
   longitudinal_formula,

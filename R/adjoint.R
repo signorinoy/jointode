@@ -62,6 +62,8 @@
 #'   \item{times}{Time grid used for integration}
 #' }
 #'
+#' @concept utilities
+#'
 #' @examples
 #' \dontrun{
 #' # Example: Parameter estimation for exponential decay
@@ -426,6 +428,8 @@ adjoint <- function(
 #' @param x An object of class "adjoint_result"
 #' @param ... Additional arguments (unused)
 #' @export
+#'
+#' @concept utilities
 print.adjoint_result <- function(x, ...) {
   cat("Adjoint Sensitivity Analysis Results\n")
   cat("=====================================\n")
