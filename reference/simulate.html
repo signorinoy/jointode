@@ -70,9 +70,9 @@ and time-to-event processes.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">simulate</span><span class="op">(</span></span>
-<span>  n <span class="op">=</span> <span class="fl">50</span>,</span>
-<span>  alpha <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">0</span>, <span class="op">-</span><span class="fl">0.5</span><span class="op">)</span>,</span>
-<span>  beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">3</span>, <span class="op">-</span><span class="fl">5</span>, <span class="fl">2</span>, <span class="fl">1</span>, <span class="fl">0.5</span><span class="op">)</span>,</span>
+<span>  n <span class="op">=</span> <span class="fl">200</span>,</span>
+<span>  alpha <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.5</span>, <span class="fl">0</span>, <span class="fl">0.3</span><span class="op">)</span>,</span>
+<span>  beta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">1</span>, <span class="op">-</span><span class="fl">2</span>, <span class="fl">2</span>, <span class="fl">1</span>, <span class="fl">0.5</span><span class="op">)</span>,</span>
 <span>  phi <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.4</span>, <span class="op">-</span><span class="fl">0.6</span><span class="op">)</span>,</span>
 <span>  weibull_shape <span class="op">=</span> <span class="fl">1.5</span>,</span>
 <span>  weibull_scale <span class="op">=</span> <span class="fl">8</span>,</span>
@@ -89,20 +89,20 @@ and time-to-event processes.</p>
 
 <dl><dt id="arg-n">n<a class="anchor" aria-label="anchor" href="#arg-n"></a></dt>
 <dd><p>Integer. Number of subjects to simulate. Larger cohorts provide
-more stable parameter estimates (default: 50).</p></dd>
+more stable parameter estimates (default: 200).</p></dd>
 
 
 <dt id="arg-alpha">alpha<a class="anchor" aria-label="anchor" href="#arg-alpha"></a></dt>
 <dd><p>Numeric vector of length 3. Association parameters quantifying
 how trajectory features influence survival hazard:
 <code>[biomarker, velocity, acceleration]</code>.
-Positive values indicate increased risk (default: c(0.5, 0.0, -0.5)).</p></dd>
+Positive values indicate increased risk (default: c(0.5, 0.0, 0.3)).</p></dd>
 
 
 <dt id="arg-beta">beta<a class="anchor" aria-label="anchor" href="#arg-beta"></a></dt>
 <dd><p>Numeric vector governing ODE dynamics (length 5). Controls
 biomarker trajectory evolution: <code>[biomarker, velocity,
-  x1, x2, time]</code> (default: c(-3, -5, 2, 1, 0.5)).</p></dd>
+  x1, x2, time]</code> (default: c(-1, -2, 2, 1, 0.5)).</p></dd>
 
 
 <dt id="arg-phi">phi<a class="anchor" aria-label="anchor" href="#arg-phi"></a></dt>
@@ -253,31 +253,31 @@ for batch simulations</p></li>
 <span class="r-in"><span><span class="va">sim</span> <span class="op">&lt;-</span> <span class="fu">simulate</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sim</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> List of 2</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ longitudinal_data:'data.frame':	734 obs. of  8 variables:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id          : int [1:734] 1 1 1 1 1 1 1 1 1 1 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time        : num [1:734] 0 0.25 0.5 0.75 1 1.25 1.5 1.75 2 2.5 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ v           : num [1:734] 0.2525 0.181 0.1862 -0.0408 -0.2429 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x1          : num [1:734] -0.0407 -0.0407 -0.0407 -0.0407 -0.0407 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x2          : num [1:734] -2 -2 -2 -2 -2 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ biomarker   : num [1:734] 0 -0.0431 -0.1192 -0.1924 -0.2526 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ velocity    : num [1:734] 0 -0.278 -0.31 -0.269 -0.212 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ acceleration: num [1:734] -2.0823 -0.4401 0.0768 0.2168 0.2341 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ survival_data    :'data.frame':	50 obs. of  6 variables:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id    : int [1:50] 1 2 3 4 5 6 7 8 9 10 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time  : num [1:50] 8.826 8.183 0.989 9.26 4.161 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ status: int [1:50] 0 0 1 0 1 1 1 1 0 0 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ w1    : num [1:50] 0.3219 -0.7838 1.5757 0.6429 0.0898 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ w2    : num [1:50] 1.201 1.045 -1.003 1.848 -0.667 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ b     : num [1:50] 0.1371 -0.0565 0.0363 0.0633 0.0404 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ longitudinal_data:'data.frame':	2445 obs. of  8 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id          : int [1:2445] 1 1 1 1 1 1 1 1 1 1 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time        : num [1:2445] 0 0.25 0.5 0.75 1 1.25 1.5 1.75 2 2.5 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ v           : num [1:2445] 0.1729 -0.146 0.2442 0.3306 0.0653 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x1          : num [1:2445] -0.248 -0.248 -0.248 -0.248 -0.248 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x2          : num [1:2445] 0.689 0.689 0.689 0.689 0.689 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ biomarker   : num [1:2445] 0 0.00623 0.02547 0.05776 0.10251 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ velocity    : num [1:2445] 0 0.0506 0.1033 0.1546 0.2027 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ acceleration: num [1:2445] 0.192 0.209 0.21 0.2 0.184 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ survival_data    :'data.frame':	200 obs. of  6 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id    : int [1:200] 1 2 3 4 5 6 7 8 9 10 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time  : num [1:200] 10.96 1.07 5.03 1.07 7.66 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ status: int [1:200] 0 1 1 1 1 1 0 1 1 1 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ w1    : num [1:200] -2.001 0.334 1.171 2.06 -1.377 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ w2    : num [1:200] 1.3349 -0.8693 0.0555 0.0491 -0.5784 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ b     : num [1:200] 0.1371 -0.0565 0.0363 0.0633 0.0404 ...</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Check data characteristics</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Event rate:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">survival_data</span><span class="op">$</span><span class="va">status</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Event rate: 0.74 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Event rate: 0.79 </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="st">"Observations per subject:"</span>,</span></span>
 <span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">survival_data</span><span class="op">)</span>, <span class="st">"\n"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Observations per subject: 14.68 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Observations per subject: 12.225 </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Visualize trajectories with survival information</span></span></span>
 <span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></span>

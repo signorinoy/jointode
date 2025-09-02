@@ -144,6 +144,7 @@
 <span>  longitudinal_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span>,</span>
 <span>  survival_formula <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">formulas</span><span class="op">$</span><span class="va">survival</span>,</span>
 <span>  survival_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span>,</span>
+<span>  init <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">parameters</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -153,43 +154,43 @@
 <span><span class="co">#&gt; Call:</span></span>
 <span><span class="co">#&gt; JointODE(longitudinal_formula = sim$formulas$longitudinal, longitudinal_data = sim$data$longitudinal_data,</span></span>
 <span><span class="co">#&gt;     survival_formula = sim$formulas$survival, survival_data = sim$data$survival_data,</span></span>
-<span><span class="co">#&gt;     parallel = TRUE)</span></span>
+<span><span class="co">#&gt;     init = sim$parameters, parallel = TRUE)</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Variance components:</span></span>
 <span><span class="co">#&gt; sigma_e sigma_b</span></span>
-<span><span class="co">#&gt; 0.10101 0.09658</span></span>
+<span><span class="co">#&gt; 0.10092 0.09506</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Fixed effects:</span></span>
 <span><span class="co">#&gt;                     Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; baseline:1         -3.177691   0.678258  -4.685 2.80e-06 ***</span></span>
-<span><span class="co">#&gt; baseline:2         -2.697223   0.738452  -3.653  0.00026 ***</span></span>
-<span><span class="co">#&gt; baseline:3         -2.271341   0.565821  -4.014 5.96e-05 ***</span></span>
-<span><span class="co">#&gt; baseline:4         -1.936159   0.419073  -4.620 3.84e-06 ***</span></span>
-<span><span class="co">#&gt; baseline:5         -1.678826   0.421595  -3.982 6.83e-05 ***</span></span>
-<span><span class="co">#&gt; baseline:6         -2.380270   0.505616  -4.708 2.51e-06 ***</span></span>
-<span><span class="co">#&gt; baseline:7         -0.976073   0.847994  -1.151  0.24972</span></span>
-<span><span class="co">#&gt; baseline:8         -0.669168   1.153001  -0.580  0.56166</span></span>
-<span><span class="co">#&gt; baseline:9         -0.692297   1.180008  -0.587  0.55741</span></span>
-<span><span class="co">#&gt; hazard:alpha0       0.382982   0.149611   2.560  0.01047 *</span></span>
-<span><span class="co">#&gt; hazard:alpha1       0.024502   0.670308   0.037  0.97084</span></span>
-<span><span class="co">#&gt; hazard:alpha2      -0.515025   0.409202  -1.259  0.20817</span></span>
-<span><span class="co">#&gt; hazard:phi1         0.351680   0.081931   4.292 1.77e-05 ***</span></span>
-<span><span class="co">#&gt; hazard:phi2        -0.635422   0.081704  -7.777 7.42e-15 ***</span></span>
-<span><span class="co">#&gt; longitudinal:beta1 -2.241476   0.130061 -17.234  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; longitudinal:beta2 -3.700008   0.246194 -15.029  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; longitudinal:beta3 -0.003293   0.011233  -0.293  0.76939</span></span>
-<span><span class="co">#&gt; longitudinal:beta4  1.461423   0.087391  16.723  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; longitudinal:beta5  0.726582   0.043685  16.632  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; longitudinal:beta6  0.371125   0.022629  16.400  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; baseline:1         -3.867098   0.844898  -4.577 4.72e-06 ***</span></span>
+<span><span class="co">#&gt; baseline:2         -2.554384   0.746438  -3.422 0.000621 ***</span></span>
+<span><span class="co">#&gt; baseline:3         -2.469201   0.619648  -3.985 6.75e-05 ***</span></span>
+<span><span class="co">#&gt; baseline:4         -2.070030   0.441657  -4.687 2.77e-06 ***</span></span>
+<span><span class="co">#&gt; baseline:5         -1.974180   0.409197  -4.825 1.40e-06 ***</span></span>
+<span><span class="co">#&gt; baseline:6         -1.816067   0.470518  -3.860 0.000114 ***</span></span>
+<span><span class="co">#&gt; baseline:7         -1.657955   0.900964  -1.840 0.065739 .</span></span>
+<span><span class="co">#&gt; baseline:8         -1.540116   1.267635  -1.215 0.224384</span></span>
+<span><span class="co">#&gt; baseline:9         -1.487824   1.350214  -1.102 0.270497</span></span>
+<span><span class="co">#&gt; hazard:alpha0       0.468010   0.068575   6.825 8.80e-12 ***</span></span>
+<span><span class="co">#&gt; hazard:alpha1       0.006911   0.254299   0.027 0.978318</span></span>
+<span><span class="co">#&gt; hazard:alpha2       0.301793   0.307082   0.983 0.325717</span></span>
+<span><span class="co">#&gt; hazard:phi1         0.373701   0.083733   4.463 8.08e-06 ***</span></span>
+<span><span class="co">#&gt; hazard:phi2        -0.640911   0.082446  -7.774 7.62e-15 ***</span></span>
+<span><span class="co">#&gt; longitudinal:beta1 -0.989857   0.013367 -74.052  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; longitudinal:beta2 -1.976997   0.037872 -52.202  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; longitudinal:beta3  0.005200   0.006199   0.839 0.401579</span></span>
+<span><span class="co">#&gt; longitudinal:beta4  1.980852   0.029870  66.317  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; longitudinal:beta5  0.990293   0.015023  65.920  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; longitudinal:beta6  0.493552   0.008160  60.481  &lt; 2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Log-likelihood: 2207.167   AIC: -4370.334   BIC: -4297.771</span></span>
-<span><span class="co">#&gt; N = 200  Convergence: EM algorithm converged after 35 iterations</span></span>
+<span><span class="co">#&gt; Log-likelihood: 2042.664   AIC: -4041.328   BIC: -3968.765</span></span>
+<span><span class="co">#&gt; N = 200  Convergence: EM algorithm converged after 6 iterations</span></span>
 <span></span>
 <span><span class="co"># Generate predictions</span></span>
-<span><span class="va">predictions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, times <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">5</span>, by <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">predictions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, times <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">10</span>, by <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="visualization">Visualization<a class="anchor" aria-label="anchor" href="#visualization"></a>
@@ -229,7 +230,7 @@
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">biomarker_true</span>, color <span class="op">=</span> <span class="st">"True"</span><span class="op">)</span>, linetype <span class="op">=</span> <span class="fl">2</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">v</span>, color <span class="op">=</span> <span class="st">"Observed"</span><span class="op">)</span>, alpha <span class="op">=</span> <span class="fl">0.7</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">v</span>, color <span class="op">=</span> <span class="st">"Observed"</span><span class="op">)</span>, alpha <span class="op">=</span> <span class="fl">0.3</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span><span class="va">id</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>y <span class="op">=</span> <span class="st">"Biomarker"</span>, color <span class="op">=</span> <span class="st">""</span><span class="op">)</span></span></code></pre></div>
