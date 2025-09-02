@@ -44,9 +44,9 @@
     </div>
 
     <div class="section level2">
-      <h2 id="main-functions">Main Functions<a class="anchor" aria-label="anchor" href="#main-functions"></a></h2>
+      <h2 id="model-fitting">Model Fitting<a class="anchor" aria-label="anchor" href="#model-fitting"></a></h2>
 
-      <div class="section-desc"><p>Core functions for joint ODE modeling</p></div>
+      <div class="section-desc"><p>Core functionality for fitting joint ODE models combining survival and longitudinal data</p></div>
 
 
     </div><div class="section level2">
@@ -60,7 +60,18 @@
 
         </dt>
         <dd>Joint Modeling of Longitudinal and Survival Data Using ODEs</dd>
-      </dl><dl><dt>
+      </dl></div><div class="section level2">
+      <h2 id="model-inspection">Model Inspection<a class="anchor" aria-label="anchor" href="#model-inspection"></a></h2>
+
+      <div class="section-desc"><p>Extract and examine fitted model components and parameters</p></div>
+
+
+    </div><div class="section level2">
+
+
+
+
+      <dl><dt>
 
           <code><a href="coef.JointODE.html">coef(<i>&lt;JointODE&gt;</i>)</a></code>
 
@@ -74,11 +85,22 @@
         <dd>Extract Log-Likelihood</dd>
       </dl><dl><dt>
 
-          <code><a href="print.JointODE.html">print(<i>&lt;JointODE&gt;</i>)</a></code>
+          <code><a href="vcov.JointODE.html">vcov(<i>&lt;JointODE&gt;</i>)</a></code>
 
         </dt>
-        <dd>Print JointODE Model</dd>
-      </dl><dl><dt>
+        <dd>Extract Variance-Covariance Matrix</dd>
+      </dl></div><div class="section level2">
+      <h2 id="model-summary-display">Model Summary &amp; Display<a class="anchor" aria-label="anchor" href="#model-summary-display"></a></h2>
+
+      <div class="section-desc"><p>Summarize and display model results with statistical inference</p></div>
+
+
+    </div><div class="section level2">
+
+
+
+
+      <dl><dt>
 
           <code><a href="summary.JointODE.html">summary(<i>&lt;JointODE&gt;</i>)</a></code>
 
@@ -86,14 +108,37 @@
         <dd>Summary of JointODE Model</dd>
       </dl><dl><dt>
 
-          <code><a href="vcov.JointODE.html">vcov(<i>&lt;JointODE&gt;</i>)</a></code>
+          <code><a href="print.JointODE.html">print(<i>&lt;JointODE&gt;</i>)</a></code>
 
         </dt>
-        <dd>Extract Variance-Covariance Matrix</dd>
+        <dd>Print JointODE Model</dd>
       </dl></div><div class="section level2">
-      <h2 id="datasets">Datasets<a class="anchor" aria-label="anchor" href="#datasets"></a></h2>
+      <h2 id="advanced-methods">Advanced Methods<a class="anchor" aria-label="anchor" href="#advanced-methods"></a></h2>
 
-      <div class="section-desc"><p>Joint Survival and Longitudinal Data</p></div>
+      <div class="section-desc"><p>Computational methods for sensitivity analysis and optimization</p></div>
+
+
+    </div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="adjoint.html">adjoint()</a></code>
+
+        </dt>
+        <dd>Adjoint Sensitivity Analysis for ODE Systems</dd>
+      </dl><dl><dt>
+
+          <code><a href="print.adjoint.html">print(<i>&lt;adjoint&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Print Method for Adjoint Results</dd>
+      </dl></div><div class="section level2">
+      <h2 id="data-simulation">Data &amp; Simulation<a class="anchor" aria-label="anchor" href="#data-simulation"></a></h2>
+
+      <div class="section-desc"><p>Tools for simulating joint ODE data and example datasets</p></div>
 
 
     </div><div class="section level2">
@@ -113,29 +158,6 @@
 
         </dt>
         <dd>Simulate Joint ODE Model Data</dd>
-      </dl></div><div class="section level2">
-      <h2 id="utilities">Utilities<a class="anchor" aria-label="anchor" href="#utilities"></a></h2>
-
-      <div class="section-desc"><p>Helper functions</p></div>
-
-
-    </div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="adjoint.html">adjoint()</a></code>
-
-        </dt>
-        <dd>Adjoint Sensitivity Analysis for ODE Systems</dd>
-      </dl><dl><dt>
-
-          <code><a href="print.adjoint_result.html">print(<i>&lt;adjoint_result&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Print Method for Adjoint Results</dd>
       </dl></div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
