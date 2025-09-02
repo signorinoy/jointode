@@ -97,6 +97,7 @@ fit <- JointODE(
   longitudinal_data = sim$data$longitudinal_data,
   survival_formula = sim$formulas$survival,
   survival_data = sim$data$survival_data,
+  init = sim$parameters,
   parallel = TRUE
 )
 
@@ -106,43 +107,43 @@ summary(fit)
 #> Call:
 #> JointODE(longitudinal_formula = sim$formulas$longitudinal, longitudinal_data = sim$data$longitudinal_data,
 #>     survival_formula = sim$formulas$survival, survival_data = sim$data$survival_data,
-#>     parallel = TRUE)
+#>     init = sim$parameters, parallel = TRUE)
 #>
 #> Variance components:
 #> sigma_e sigma_b
-#> 0.10101 0.09658
+#> 0.10092 0.09506
 #>
 #> Fixed effects:
 #>                     Estimate Std. Error z value Pr(>|z|)
-#> baseline:1         -3.177691   0.678258  -4.685 2.80e-06 ***
-#> baseline:2         -2.697223   0.738452  -3.653  0.00026 ***
-#> baseline:3         -2.271341   0.565821  -4.014 5.96e-05 ***
-#> baseline:4         -1.936159   0.419073  -4.620 3.84e-06 ***
-#> baseline:5         -1.678826   0.421595  -3.982 6.83e-05 ***
-#> baseline:6         -2.380270   0.505616  -4.708 2.51e-06 ***
-#> baseline:7         -0.976073   0.847994  -1.151  0.24972
-#> baseline:8         -0.669168   1.153001  -0.580  0.56166
-#> baseline:9         -0.692297   1.180008  -0.587  0.55741
-#> hazard:alpha0       0.382982   0.149611   2.560  0.01047 *
-#> hazard:alpha1       0.024502   0.670308   0.037  0.97084
-#> hazard:alpha2      -0.515025   0.409202  -1.259  0.20817
-#> hazard:phi1         0.351680   0.081931   4.292 1.77e-05 ***
-#> hazard:phi2        -0.635422   0.081704  -7.777 7.42e-15 ***
-#> longitudinal:beta1 -2.241476   0.130061 -17.234  < 2e-16 ***
-#> longitudinal:beta2 -3.700008   0.246194 -15.029  < 2e-16 ***
-#> longitudinal:beta3 -0.003293   0.011233  -0.293  0.76939
-#> longitudinal:beta4  1.461423   0.087391  16.723  < 2e-16 ***
-#> longitudinal:beta5  0.726582   0.043685  16.632  < 2e-16 ***
-#> longitudinal:beta6  0.371125   0.022629  16.400  < 2e-16 ***
+#> baseline:1         -3.867098   0.844898  -4.577 4.72e-06 ***
+#> baseline:2         -2.554384   0.746438  -3.422 0.000621 ***
+#> baseline:3         -2.469201   0.619648  -3.985 6.75e-05 ***
+#> baseline:4         -2.070030   0.441657  -4.687 2.77e-06 ***
+#> baseline:5         -1.974180   0.409197  -4.825 1.40e-06 ***
+#> baseline:6         -1.816067   0.470518  -3.860 0.000114 ***
+#> baseline:7         -1.657955   0.900964  -1.840 0.065739 .
+#> baseline:8         -1.540116   1.267635  -1.215 0.224384
+#> baseline:9         -1.487824   1.350214  -1.102 0.270497
+#> hazard:alpha0       0.468010   0.068575   6.825 8.80e-12 ***
+#> hazard:alpha1       0.006911   0.254299   0.027 0.978318
+#> hazard:alpha2       0.301793   0.307082   0.983 0.325717
+#> hazard:phi1         0.373701   0.083733   4.463 8.08e-06 ***
+#> hazard:phi2        -0.640911   0.082446  -7.774 7.62e-15 ***
+#> longitudinal:beta1 -0.989857   0.013367 -74.052  < 2e-16 ***
+#> longitudinal:beta2 -1.976997   0.037872 -52.202  < 2e-16 ***
+#> longitudinal:beta3  0.005200   0.006199   0.839 0.401579
+#> longitudinal:beta4  1.980852   0.029870  66.317  < 2e-16 ***
+#> longitudinal:beta5  0.990293   0.015023  65.920  < 2e-16 ***
+#> longitudinal:beta6  0.493552   0.008160  60.481  < 2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #>
 #> ---
-#> Log-likelihood: 2207.167   AIC: -4370.334   BIC: -4297.771
-#> N = 200  Convergence: EM algorithm converged after 35 iterations
+#> Log-likelihood: 2042.664   AIC: -4041.328   BIC: -3968.765
+#> N = 200  Convergence: EM algorithm converged after 6 iterations
 
 # Generate predictions
-predictions <- predict(fit, times = seq(0, 5, by = 0.5))
+predictions <- predict(fit, times = seq(0, 10, by = 0.25))
 ```
 
 ## Visualization
@@ -182,7 +183,7 @@ ggplot(df, aes(x = time)) +
   geom_line(
     aes(y = biomarker_true, color = "True"), linetype = 2, na.rm = TRUE
   ) +
-  geom_point(aes(y = v, color = "Observed"), alpha = 0.7, na.rm = TRUE) +
+  geom_point(aes(y = v, color = "Observed"), alpha = 0.3, na.rm = TRUE) +
   facet_wrap(~id) +
   theme_minimal() +
   labs(y = "Biomarker", color = "")

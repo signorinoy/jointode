@@ -283,7 +283,8 @@ summary(fit_jsm)
 
 ```{r fit-tvcox}
 fit_tvcox <- coxph(
-  Surv(start, stop, event) ~ w1 + w2 + v + acceleration + cluster(ID),
+  Surv(start, stop, event) ~ w1 + w2 + biomarker + velocity + acceleration +
+    offset(b) + cluster(ID),
   data = jsm_data
 )
 
@@ -315,8 +316,8 @@ extract_coef <- function(jsm, tvcox) {
       jsm_vcov["alpha:v"],
       jsm_vcov[c("phi:w1", "phi:w2")]
     ),
-    tvc_est = coef(tvcox)[c("v", "w1", "w2")],
-    tvc_se = tvcox_summ[c("v", "w1", "w2"), "se(coef)"]
+    tvc_est = coef(tvcox)[c("biomarker", "w1", "w2")],
+    tvc_se = tvcox_summ[c("biomarker", "w1", "w2"), "se(coef)"]
   ) %>%
     mutate(across(c("jsm_est", "jsm_se", "tvc_est", "tvc_se"), as.numeric))
 }

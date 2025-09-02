@@ -10,14 +10,14 @@
 #' and time-to-event processes.
 #'
 #' @param n Integer. Number of subjects to simulate. Larger cohorts provide
-#'   more stable parameter estimates (default: 50).
+#'   more stable parameter estimates (default: 200).
 #' @param alpha Numeric vector of length 3. Association parameters quantifying
 #'   how trajectory features influence survival hazard:
 #'   \code{[biomarker, velocity, acceleration]}.
-#'   Positive values indicate increased risk (default: c(0.5, 0.0, -0.5)).
+#'   Positive values indicate increased risk (default: c(0.5, 0.0, 0.3)).
 #' @param beta Numeric vector governing ODE dynamics (length 5). Controls
 #'   biomarker trajectory evolution: \code{[biomarker, velocity,
-#'   x1, x2, time]} (default: c(-3, -5, 2, 1, 0.5)).
+#'   x1, x2, time]} (default: c(-1, -2, 2, 1, 0.5)).
 #' @param phi Numeric vector of length 2. Baseline covariate effects modulating
 #'   survival hazard independently of biomarker dynamics: \code{[w1, w2]}
 #'   (default: c(0.4, -0.6)).
@@ -212,9 +212,9 @@
 #'
 #' @export
 simulate <- function(
-  n = 50,
-  alpha = c(0.5, 0, -0.5),
-  beta = c(-3, -5, 2, 1, 0.5),
+  n = 200,
+  alpha = c(0.5, 0.0, 0.3),
+  beta = c(-1, -2, 2, 1, 0.5),
   phi = c(0.4, -0.6),
   weibull_shape = 1.5,
   weibull_scale = 8,
@@ -759,7 +759,7 @@ simulate <- function(
 #' demonstrating and testing the JointODE package. Creates simulated
 #' data with known parameters for model validation.
 #'
-#' @param n Integer. Number of subjects to simulate (default: 50).
+#' @param n Integer. Number of subjects to simulate (default: 200).
 #'
 #' @return A list containing:
 #'   \describe{
@@ -804,8 +804,8 @@ simulate <- function(
 #'
 #' @examples
 #' \dontrun{
-#' # Generate example data for 200 subjects (used for package's sim dataset)
-#' example_data <- .create_example_data(n = 200)
+#' # Generate example data for 100 subjects (used for package's sim dataset)
+#' example_data <- .create_example_data(n = 100)
 #'
 #' # Access components
 #' head(example_data$data$longitudinal_data)
@@ -816,7 +816,7 @@ simulate <- function(
 #' @seealso \code{\link{simulate}} for the underlying simulation engine
 #'
 #' @noRd
-.create_example_data <- function(n = 50) {
+.create_example_data <- function(n = 200) {
   # Define default configurations
   spline_baseline <- list(
     degree = 3,
@@ -842,8 +842,8 @@ simulate <- function(
   )
 
   # Define coefficients
-  hazard_coefficients <- c(0.5, 0.0, -0.5, 0.4, -0.6)
-  acceleration_coefficients <- c(-3, -5, 0, 2, 1, 0.5)
+  hazard_coefficients <- c(0.5, 0.0, 0.3, 0.4, -0.6)
+  acceleration_coefficients <- c(-1, -2, 0, 2, 1, 0.5)
 
   # Create spline configurations
   spline_baseline_config <- .get_spline_config(

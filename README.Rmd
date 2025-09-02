@@ -89,6 +89,7 @@ fit <- JointODE(
   longitudinal_data = sim$data$longitudinal_data,
   survival_formula = sim$formulas$survival,
   survival_data = sim$data$survival_data,
+  init = sim$parameters,
   parallel = TRUE
 )
 
@@ -96,7 +97,7 @@ fit <- JointODE(
 summary(fit)
 
 # Generate predictions
-predictions <- predict(fit, times = seq(0, 5, by = 0.5))
+predictions <- predict(fit, times = seq(0, 10, by = 0.25))
 ```
 
 ## Visualization
@@ -128,7 +129,7 @@ ggplot(df, aes(x = time)) +
   geom_line(
     aes(y = biomarker_true, color = "True"), linetype = 2, na.rm = TRUE
   ) +
-  geom_point(aes(y = v, color = "Observed"), alpha = 0.7, na.rm = TRUE) +
+  geom_point(aes(y = v, color = "Observed"), alpha = 0.3, na.rm = TRUE) +
   facet_wrap(~id) +
   theme_minimal() +
   labs(y = "Biomarker", color = "")

@@ -5,9 +5,9 @@
 \title{Simulate Joint ODE Model Data}
 \usage{
 simulate(
-  n = 50,
-  alpha = c(0.5, 0, -0.5),
-  beta = c(-3, -5, 2, 1, 0.5),
+  n = 200,
+  alpha = c(0.5, 0, 0.3),
+  beta = c(-1, -2, 2, 1, 0.5),
   phi = c(0.4, -0.6),
   weibull_shape = 1.5,
   weibull_scale = 8,
@@ -19,16 +19,16 @@ simulate(
 }
 \arguments{
 \item{n}{Integer. Number of subjects to simulate. Larger cohorts provide
-more stable parameter estimates (default: 50).}
+more stable parameter estimates (default: 200).}
 
 \item{alpha}{Numeric vector of length 3. Association parameters quantifying
 how trajectory features influence survival hazard:
 \code{[biomarker, velocity, acceleration]}.
-Positive values indicate increased risk (default: c(0.5, 0.0, -0.5)).}
+Positive values indicate increased risk (default: c(0.5, 0.0, 0.3)).}
 
 \item{beta}{Numeric vector governing ODE dynamics (length 5). Controls
 biomarker trajectory evolution: \code{[biomarker, velocity,
-  x1, x2, time]} (default: c(-3, -5, 2, 1, 0.5)).}
+  x1, x2, time]} (default: c(-1, -2, 2, 1, 0.5)).}
 
 \item{phi}{Numeric vector of length 2. Baseline covariate effects modulating
 survival hazard independently of biomarker dynamics: \code{[w1, w2]}
