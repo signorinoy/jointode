@@ -1,80 +1,179 @@
-#' Fit Joint Model for Longitudinal and Survival Data Using ODEs
+#' Joint Modeling of Longitudinal and Survival Data Using ODEs
 #'
 #' @description
-#' Fits a joint model that simultaneously analyzes longitudinal biomarker
+#' Implements a unified framework for jointly modeling longitudinal biomarker
 #' trajectories and time-to-event outcomes using ordinary differential
-#' equations (ODEs). This approach captures complex temporal dynamics in
-#' biomarker evolution while quantifying their association with survival
-#' through shared parameters.
+#' equations (ODEs). The model captures complex non-linear dynamics in
+#' biomarker evolution while simultaneously quantifying their association with
+#' survival risk through
+#' shared random effects and flexible hazard specifications.
 #'
-#' @param longitudinal_formula Formula for the longitudinal submodel.
-#'   Left side specifies the response; right side includes time and
-#'   covariates (e.g., \code{v ~ x1}).
-#' @param longitudinal_data Data frame containing longitudinal measurements.
-#'   Must include multiple observations per subject with columns for
-#'   subject ID, measurement times, and response values.
-#' @param survival_formula Formula for the survival submodel.
-#'   Must use \code{Surv(time, status)} on the left side;
-#'   right side specifies baseline covariates.
-#' @param survival_data Data frame containing survival/event data.
-#'   Must have exactly one row per subject with event time and status.
-#' @param id Character string naming the subject ID variable.
-#'   Must exist in both datasets (default: \code{"id"}).
-#' @param time Character string naming the time variable in
-#'   longitudinal data (default: \code{"time"}).
-#' @param spline_baseline List of B-spline configuration for baseline hazard:
+#' @param longitudinal_formula A formula specifying the longitudinal submodel.
+#'   The left-hand side defines the response variable, while the right-hand
+#'   side specifies fixed effects including time-varying and baseline
+#'   covariates
+#'   (e.g., \code{biomarker ~ time + treatment + age}).
+#' @param longitudinal_data A data frame containing repeated measurements with
+#'   one row per observation. Required columns include subject identifier,
+#'   measurement times, response values, and any covariates specified in the
+#'   formula.
+#' @param survival_formula A formula for the survival submodel using
+#'   \code{Surv(time, status)} notation on the left-hand side. The right-hand
+#'   side specifies baseline hazard covariates
+#'   (e.g., \code{Surv(event_time, event) ~ treatment + age}).
+#' @param survival_data A data frame with time-to-event information containing
+#'   one row per subject. Must include event/censoring times, event indicators,
+#'   and baseline covariates.
+#' @param id Character string specifying the column name for subject
+#'   identifiers. This variable must be present in both longitudinal and
+#'   survival datasets
+#'   to link observations (default: \code{"id"}).
+#' @param time Character string specifying the column name for measurement
+#'   times
+#'   in the longitudinal dataset (default: \code{"time"}).
+#' @param spline_baseline A list controlling the B-spline representation of the
+#'   baseline hazard function with the following components:
 #'   \describe{
-#'     \item{\code{degree}}{Degree of B-spline basis (default: 3)}
-#'     \item{\code{n_knots}}{Number of interior knots (default: 5)}
-#'     \item{\code{knot_placement}}{Method for knot placement: "quantile"
-#'       (based on event times) or "equal" (default: "quantile")}
-#'     \item{\code{boundary_knots}}{Boundary knots, if NULL uses event range
-#'       (default: NULL)}
+#'     \item{\code{degree}}{Polynomial degree of the B-spline basis functions
+#'       (default: 3, cubic splines)}
+#'     \item{\code{n_knots}}{Number of interior knots for flexibility
+#'       (default: 5)}
+#'     \item{\code{knot_placement}}{Strategy for positioning knots:
+#'       \code{"quantile"} places knots at quantiles of observed event times,
+#'       \code{"equal"} uses equally-spaced knots (default: \code{"quantile"})}
+#'     \item{\code{boundary_knots}}{A numeric vector of length 2 specifying
+#'       the boundary knot locations. If \code{NULL}, automatically set to the
+#'       range of observed event times (default: \code{NULL})}
 #'   }
-#' @param control List of optimization control parameters:
+#' @param control A list of optimization and algorithmic settings:
 #'   \describe{
-#'     \item{\code{method}}{Optimization algorithm (default: "L-BFGS-B")}
-#'     \item{\code{maxit}}{Maximum iterations per M-step (default: 1000)}
-#'     \item{\code{em_maxit}}{Maximum EM iterations (default: 10)}
-#'     \item{\code{em_tol}}{EM convergence tolerance (default: 1e-4)}
-#'     \item{\code{tol}}{Convergence tolerance (default: 1e-2)}
-#'     \item{\code{verbose}}{Print progress and parameter estimates
-#'       (default: FALSE)}
+#'     \item{\code{method}}{Optimization algorithm for parameter estimation.
+#'       Options include \code{"L-BFGS-B"}, \code{"BFGS"}, \code{"Nelder-Mead"}
+#'       (default: \code{"L-BFGS-B"})}
+#'     \item{\code{maxit}}{Maximum number of iterations for each M-step
+#'       optimization (default: 1000)}
+#'     \item{\code{em_maxit}}{Maximum number of EM algorithm iterations
+#'       (default: 10)}
+#'     \item{\code{em_tol}}{Convergence criterion for EM algorithm based on
+#'       relative change
+#'       in log-likelihood (default: 1e-4)}
+#'     \item{\code{tol}}{Numerical tolerance for optimization convergence
+#'       (default: 1e-2)}
+#'     \item{\code{verbose}}{Controls diagnostic output: \code{0}/\code{FALSE}
+#'       for silent operation, \code{1}/\code{TRUE} for iteration progress,
+#'       \code{2} for detailed parameter traces (default: \code{FALSE})}
 #'   }
-#' @param ... Additional arguments passed to fitting functions.
+#' @param init Optional list providing initial values for model parameters.
+#'   Should have the same structure as the fitted model's \code{parameters}
+#'   component with elements:
+#'   \describe{
+#'     \item{\code{coefficients}}{A list containing:
+#'       \itemize{
+#'         \item \code{baseline}: Vector of B-spline coefficients for baseline
+#'           hazard (length = number of spline basis functions)
+#'         \item \code{hazard}: Vector of hazard parameters including
+#'           association parameters (3) and survival covariates
+#'         \item \code{acceleration}: Vector of longitudinal fixed effects
+#'           including intercept and covariates
+#'         \item \code{measurement_error_sd}: Residual standard deviation
+#'           (positive scalar)
+#'         \item \code{random_effect_sd}: Random effect standard deviation
+#'           (positive scalar)
+#'       }}
+#'     \item{\code{configurations}}{Optional; if not provided, will use
+#'       spline configuration from \code{spline_baseline}}
+#'   }
+#'   If \code{NULL}, default initial values are used (default: \code{NULL}).
+#' @param parallel Logical flag enabling parallel computation for
+#'   computationally intensive operations including posterior calculations,
+#'   gradient evaluations, and likelihood computations. Requires \pkg{future}
+#'   and \pkg{future.apply} packages
+#'   (default: \code{FALSE}).
+#' @param n_cores Integer specifying the number of CPU cores for parallel
+#'   processing. If \code{NULL}, automatically detects and uses all available
+#'   cores minus one
+#'   (default: \code{NULL}).
+#' @param ... Additional arguments passed to internal optimization routines.
 #'
-#' @return Object of class \code{"JointODE"} containing:
+#' @return An S3 object of class \code{"JointODE"} containing fitted model
+#'   results:
 #'   \describe{
-#'     \item{\code{coefficients}}{Estimated model parameters including
-#'       longitudinal, survival, and association parameters}
-#'     \item{\code{logLik}}{Log-likelihood at convergence}
-#'     \item{\code{AIC}}{Akaike Information Criterion}
-#'     \item{\code{BIC}}{Bayesian Information Criterion}
-#'     \item{\code{convergence}}{Optimization convergence details}
-#'     \item{\code{fitted}}{Fitted values for both submodels}
-#'     \item{\code{residuals}}{Model residuals}
-#'     \item{\code{data}}{Original input data}
-#'     \item{\code{call}}{Matched function call}
+#'     \item{\code{parameters}}{A list containing all estimated parameters:
+#'       \itemize{
+#'         \item \code{coefficients}: Named list with \code{baseline} (B-spline
+#'           coefficients for baseline hazard), \code{hazard} (association and
+#'           survival covariate effects), \code{acceleration} (longitudinal
+#'           fixed effects), \code{measurement_error_sd} (residual standard
+#'           deviation), and \code{random_effect_sd} (random effect standard
+#'           deviation)
+#'         \item \code{configurations}: Model configuration including spline
+#'           basis specifications
+#'       }}
+#'     \item{\code{logLik}}{Maximum log-likelihood value achieved at
+#'       convergence}
+#'     \item{\code{AIC}}{Akaike Information Criterion for model comparison}
+#'     \item{\code{BIC}}{Bayesian Information Criterion adjusted for sample
+#'       size}
+#'     \item{\code{convergence}}{List containing convergence diagnostics:
+#'       \itemize{
+#'         \item \code{converged}: Logical indicating convergence status
+#'         \item \code{em_iterations}: Number of EM iterations performed
+#'         \item \code{message}: Descriptive convergence message
+#'       }}
+#'     \item{\code{random_effects}}{List containing random effects estimates:
+#'       \itemize{
+#'         \item \code{estimates}: Posterior means of subject-specific random
+#'           effects
+#'         \item \code{variances}: Posterior variances of random effects
+#'       }}
+#'     \item{\code{data}}{Processed data used for model fitting in internal
+#'       format}
+#'     \item{\code{control}}{List of control parameters used in optimization}
+#'     \item{\code{call}}{The matched function call for reproducibility}
 #'   }
 #'
 #' @details
-#' The joint ODE model links longitudinal and survival processes through
-#' shared parameters. The longitudinal trajectory is modeled using ODEs
-#' to capture non-linear dynamics, while the survival hazard incorporates
-#' features of the trajectory (level, slope, or cumulative burden).
+#' The joint modeling framework integrates longitudinal and survival processes
+#' through a shared random effects structure. The longitudinal biomarker
+#' evolution is characterized by a system of ODEs that can accommodate
+#' non-linear dynamics, feedback mechanisms, and complex temporal patterns.
+#' The survival component employs a proportional hazards model where the
+#' instantaneous risk depends on
+#' features derived from the longitudinal trajectory.
 #'
-#' Model estimation uses maximum likelihood with numerical integration
-#' over random effects via adaptive Gauss-Hermite quadrature.
+#' Three association structures are supported:
+#' \itemize{
+#'   \item Current value: hazard depends on the biomarker level at time t
+#'   \item Rate of change: hazard depends on the biomarker's instantaneous
+#'     slope
+#'   \item Cumulative burden: hazard depends on the area under the trajectory
+#'     curve
+#' }
+#'
+#' Parameter estimation employs an Expectation-Maximization (EM) algorithm
+#' with:
+#' \itemize{
+#'   \item E-step: Adaptive Gauss-Hermite quadrature for numerical integration
+#'   \item M-step: Quasi-Newton optimization for parameter updates
+#' }
 #'
 #' @note
-#' Input data are automatically validated and processed before fitting.
-#' For large datasets or complex ODE systems, consider adjusting control
-#' parameters to improve convergence.
-#'
-#' @concept modeling
+#' \itemize{
+#'   \item Data validation is performed automatically with informative error
+#'     messages
+#'   \item For high-dimensional problems, parallel computation is strongly
+#'     recommended
+#'   \item Convergence issues may arise with sparse event data or limited
+#'     follow-up
+#'   \item Initial values are computed using separate model fits when not
+#'     provided
+#' }
 #'
 #' @importFrom stats optim
+#' @importFrom utils modifyList
 #' @importFrom survival Surv
+#' @importFrom cli cli_h2 cli_text cli_alert_success
+#' @importFrom cli cli_alert_warning cli_alert_info
 #'
 #' @examples
 #' \dontrun{
@@ -101,14 +200,15 @@ JointODE <- function(
     knot_placement = "quantile",
     boundary_knots = NULL
   ),
+  init = NULL,
   control = list(),
+  parallel = FALSE,
+  n_cores = NULL,
   ...
 ) {
-  # Store call
   cl <- match.call()
 
-  # 1. Preprocessing
-  # 1.1 Validate inputs
+  # Validate and process data
   .validate(
     longitudinal_formula = longitudinal_formula,
     longitudinal_data = longitudinal_data,
@@ -116,10 +216,10 @@ JointODE <- function(
     survival_data = survival_data,
     id = id,
     time = time,
-    spline_baseline = spline_baseline
+    spline_baseline = spline_baseline,
+    init = init
   )
 
-  # 1.2 Process data
   data_process <- .process(
     longitudinal_formula = longitudinal_formula,
     longitudinal_data = longitudinal_data,
@@ -129,10 +229,9 @@ JointODE <- function(
     time = time
   )
 
-  # 1.3 Extract properties
+  # Extract data dimensions
   event_times <- vapply(data_process, `[[`, numeric(1), "time")
   n_subjects <- attr(data_process, "n_subjects")
-  n_observations <- sum(sapply(data_process, function(s) s$longitudinal$n_obs))
   subjects_with_long <- Filter(
     function(s) s$longitudinal$n_obs > 0,
     data_process
@@ -144,8 +243,7 @@ JointODE <- function(
   }
   n_survival_covariates <- ncol(data_process[[1]]$covariates)
 
-  # 2. Initialize parameters
-  # 2.1 Configure splines
+  # Configure splines
   spline_baseline_config <- .get_spline_config(
     x = event_times,
     degree = spline_baseline$degree,
@@ -155,260 +253,240 @@ JointODE <- function(
   )
   spline_baseline_config$boundary_knots[1] <- 0
 
-  # 2.2 Initialize coefficients
-  baseline_spline_coefficients <- rep(0, spline_baseline_config$df)
-  hazard_coefficients <- rep(0, n_survival_covariates + 3)
-
-  # Initialize beta without constraints (linear model)
-  index_coefficients <- rnorm(n_longitudinal_covariates + 3, sd = 0.1)
-
-  measurement_error_sd <- 1
-  random_effect_sd <- 1
-
-  # Set control defaults
-  control_settings <- list(
-    method = "L-BFGS-B",
-    em_maxit = 100,
-    maxit = 1000,
-    tol = 1e-2,
-    verbose = FALSE
-  )
-  control_settings[names(control)] <- control
-
-  # EM Algorithm settings
-  em_maxit <- control_settings$em_maxit %||% 10
-  em_tol <- control_settings$em_tol %||% 1e-4
-
-  # Build initial parameter structure
+  # Initialize parameters
   parameters <- list(
     coefficients = list(
-      baseline = baseline_spline_coefficients,
-      hazard = hazard_coefficients,
-      acceleration = index_coefficients,
-      measurement_error_sd = measurement_error_sd,
-      random_effect_sd = random_effect_sd
+      baseline = rep(0, spline_baseline_config$df),
+      hazard = rep(0, n_survival_covariates + 3),
+      acceleration = rep(0, n_longitudinal_covariates + 3),
+      measurement_error_sd = 1,
+      random_effect_sd = 1
     ),
-    configurations = list(
-      baseline = spline_baseline_config
-    )
+    configurations = list(baseline = spline_baseline_config)
   )
 
-  # EM Algorithm iterations
+  # Override with user-provided initial values if available
+  # (validation already done in .validate)
+  if (!is.null(init)) {
+    if (!is.null(init$coefficients)) {
+      # Note: modifyList performs shallow merge, which is sufficient for
+      # current parameter structure. If deeper nesting is added in future,
+      # consider implementing deep merge
+      parameters$coefficients <- modifyList(
+        parameters$coefficients,
+        init$coefficients
+      )
+    }
+
+    if (!is.null(init$configurations)) {
+      parameters$configurations <- modifyList(
+        parameters$configurations,
+        init$configurations
+      )
+    }
+  }
+
+  # Control settings
+  control_settings <- modifyList(
+    list(
+      method = "L-BFGS-B",
+      em_maxit = 100,
+      maxit = 20,
+      tol = 1e-4,
+      verbose = FALSE,
+      factr = 1e8
+    ),
+    control
+  )
+  em_maxit <- control_settings$em_maxit
+  em_tol <- control_settings$em_tol %||% 1e-4
+
+  # EM Algorithm setup
   converged <- FALSE
   old_loglik <- -Inf
-  loglik_history <- numeric(em_maxit)
-
-  # Pre-compute dimensions
   n_baseline <- spline_baseline_config$df
   n_hazard <- n_survival_covariates + 3
 
-  if (control_settings$verbose) {
-    cat("\nStarting EM algorithm (max iterations:", em_maxit, ")\n")
-    cat(sprintf(
-      "%-5s %-15s %-10s %-10s %-10s\n",
-      "Iter",
-      "Log-Lik",
-      "Change",
-      "Sigma_e",
-      "Sigma_b"
-    ))
-    cat(rep("-", 60), "\n", sep = "")
+  # Convert verbose to numeric level
+  verbose_level <- if (is.logical(control_settings$verbose)) {
+    as.numeric(control_settings$verbose)
+  } else {
+    control_settings$verbose
+  }
+
+  if (verbose_level > 0) {
+    cli::cli_h2("EM Algorithm Optimization")
+    cli::cli_alert_info(
+      "Settings: {em_maxit} iterations | tolerance: {em_tol}"
+    )
+    cli::cli_text("")
   }
 
   for (em_iter in seq_len(em_maxit)) {
-    # E-step: Compute posteriors given current parameters
-    posteriors <- .compute_posteriors(data_process, parameters)
+    # E-step
+    posteriors <- .compute_posteriors(
+      data_process,
+      parameters,
+      parallel = parallel,
+      n_cores = n_cores,
+      return_ode_solutions = TRUE
+    )
 
-    # Create fixed parameters structure for M-step
+    # Update variance components
+    variance_update <- .update_variance_components(
+      data_process,
+      parameters,
+      posteriors,
+      posteriors$ode_solutions
+    )
+    parameters$coefficients$measurement_error_sd <-
+      variance_update$measurement_error_sd
+    parameters$coefficients$random_effect_sd <-
+      variance_update$random_effect_sd
+
     fixed_parameters <- list(
       measurement_error_sd = parameters$coefficients$measurement_error_sd,
       random_effect_sd = parameters$coefficients$random_effect_sd
     )
 
-    # Define objective function for M-step
-    objective_fn <- function(par) {
-      .compute_objective_joint(
-        params = par,
-        data_list = data_process,
-        posteriors = posteriors,
-        configurations = list(baseline = spline_baseline_config),
-        fixed_parameters = fixed_parameters
-      )
-    }
-
-    # Define gradient function for M-step
-    gradient_fn <- function(par) {
-      .compute_gradient_joint(
-        params = par,
-        data_list = data_process,
-        posteriors = posteriors,
-        configurations = list(baseline = spline_baseline_config),
-        fixed_parameters = fixed_parameters
-      )
-    }
-
-    # Initial parameter vector for this iteration
-    par_init <- c(
-      parameters$coefficients$baseline,
-      parameters$coefficients$hazard,
-      parameters$coefficients$acceleration
-    )
-
-    # M-step: Optimize parameters given posteriors
+    # M-step
     res <- optim(
-      par = par_init,
-      fn = objective_fn,
-      gr = gradient_fn,
+      par = unlist(
+        parameters$coefficients[c(
+          "baseline",
+          "hazard",
+          "acceleration"
+        )],
+        use.names = FALSE
+      ),
+      fn = .compute_objective_joint,
+      gr = .compute_gradient_joint,
       method = control_settings$method,
       control = list(
+        pgtol = control_settings$tol,
         maxit = control_settings$maxit,
-        trace = if (control_settings$verbose) 1 else 0,
-        REPORT = if (control_settings$verbose) 1 else 100
-      )
+        factr = control_settings$factr,
+        trace = if (verbose_level >= 3) 1 else 0
+      ),
+      data_list = data_process,
+      posteriors = posteriors,
+      configurations = list(baseline = spline_baseline_config),
+      fixed_parameters = fixed_parameters,
+      parallel = parallel,
+      n_cores = n_cores
     )
 
-    # Extract and update parameters efficiently
-    parameters$coefficients$baseline <- res$par[1:n_baseline]
-    parameters$coefficients$hazard <- res$par[
-      (n_baseline + 1):(n_baseline + n_hazard)
-    ]
-    parameters$coefficients$acceleration <- res$par[
-      (n_baseline + n_hazard + 1):length(res$par)
-    ]
-
-    # Update variance components
-    posteriors_updated <- .compute_posteriors(data_process, parameters)
-    sds <- .compute_sds(data_process, parameters, posteriors_updated)
-    parameters$coefficients$measurement_error_sd <- sds$measurement_error_sd
-    parameters$coefficients$random_effect_sd <- sds$random_effect_sd
+    # Update parameters
+    idx_end <- cumsum(c(
+      n_baseline,
+      n_hazard,
+      length(res$par) - n_baseline - n_hazard
+    ))
+    idx_start <- c(1, idx_end[-length(idx_end)] + 1)
+    parameters$coefficients$baseline <- res$par[idx_start[1]:idx_end[1]]
+    parameters$coefficients$hazard <- res$par[idx_start[2]:idx_end[2]]
+    parameters$coefficients$acceleration <- res$par[idx_start[3]:idx_end[3]]
 
     # Track convergence
     new_loglik <- -res$value
     loglik_change <- new_loglik - old_loglik
-    loglik_history[em_iter] <- new_loglik
 
-    if (control_settings$verbose) {
-      cat(sprintf(
-        "%-5d %-15.6f %-10.6f %-10.4f %-10.4f\n",
-        em_iter,
-        new_loglik,
-        loglik_change,
-        parameters$coefficients$measurement_error_sd,
-        parameters$coefficients$random_effect_sd
-      ))
-
-      # Always print parameter estimates when verbose
-      cat("  \u03b7:", sprintf("%.3f", parameters$coefficients$baseline), "\n")
-      cat(
-        "  \u03b1:",
-        sprintf("%.3f", parameters$coefficients$hazard[1:3]),
-        "\n"
+    if (verbose_level > 0) {
+      cli::cli_text(
+        "[{sprintf('%3d', em_iter)}/{em_maxit}] ",
+        "LogLik: {sprintf('%.4f', new_loglik)} ",
+        "(Change: {sprintf('%.4f', loglik_change)}) ",
+        "\u03c3_e={sprintf('%.3f',
+                     parameters$coefficients$measurement_error_sd)} ",
+        "\u03c3_b={sprintf('%.3f', parameters$coefficients$random_effect_sd)}"
       )
-      if (n_hazard > 3) {
-        cat(
-          "  \u03c6:",
-          sprintf("%.3f", parameters$coefficients$hazard[4:n_hazard]),
-          "\n"
+
+      # Detailed parameter output for verbose=2
+      if (verbose_level >= 2) {
+        cli::cli_text(
+          "  \u03b7: [{paste(sprintf('%.3f',
+            head(parameters$coefficients$baseline, 5)), collapse=', ')}",
+          if (length(parameters$coefficients$baseline) > 5) "..." else "",
+          "]"
         )
+        cli::cli_text(
+          "  \u03b1: [{paste(sprintf('%.3f',
+            parameters$coefficients$hazard[1:3]), collapse=', ')}]"
+        )
+        if (n_hazard > 3) {
+          cli::cli_text(
+            "  \u03c6: [{paste(sprintf('%.3f',
+              parameters$coefficients$hazard[4:n_hazard]), collapse=', ')}]"
+          )
+        }
+        cli::cli_text(
+          "  \u03b2: [{paste(sprintf('%.3f',
+            parameters$coefficients$acceleration), collapse=', ')}]"
+        )
+        cli::cli_text("")
       }
-      cat(
-        "  \u03b2:",
-        sprintf("%.3f", parameters$coefficients$acceleration),
-        "\n\n"
-      )
     }
 
     # Check convergence
     if (abs(loglik_change) < em_tol && em_iter > 1) {
       converged <- TRUE
-      if (control_settings$verbose) {
-        cat(rep("-", 60), "\n", sep = "")
-        cat("EM converged successfully after", em_iter, "iterations\n")
-        cat("Final log-likelihood:", sprintf("%.6f\n", new_loglik))
+      if (verbose_level > 0) {
+        cli::cli_text("")
+        cli::cli_alert_success(
+          "Converged after {em_iter} iterations ",
+          "(LogLik: {sprintf('%.4f', new_loglik)})"
+        )
       }
       break
-    }
-
-    # Check for non-improvement
-    if (em_iter > 3 && loglik_change < 0 && control_settings$verbose) {
-      cat("\nWarning: Log-likelihood decreased. Possible convergence issues.\n")
     }
 
     old_loglik <- new_loglik
   }
 
-  if (!converged && control_settings$verbose) {
-    cat(rep("-", 60), "\n", sep = "")
-    cat("EM did not converge within", em_maxit, "iterations\n")
-    cat("Final log-likelihood:", sprintf("%.6f\n", new_loglik))
-    cat("Consider increasing em_maxit or adjusting initial values\n")
+  if (!converged && verbose_level > 0) {
+    cli::cli_text("")
+    cli::cli_alert_warning(
+      "Did not converge within {em_maxit} iterations ",
+      "(LogLik: {sprintf('%.4f', new_loglik)})"
+    )
+    cli::cli_alert_info(
+      "Try increasing em_maxit or adjusting initial values"
+    )
   }
 
-  # Final posteriors with converged parameters
-  posteriors <- .compute_posteriors(data_process, parameters)
-  measurement_error_sd <- parameters$coefficients$measurement_error_sd
-  random_effect_sd <- parameters$coefficients$random_effect_sd
+  # Final computations
+  final_posteriors <- .compute_posteriors(
+    data_process,
+    parameters,
+    parallel = parallel,
+    n_cores = n_cores,
+    return_ode_solutions = TRUE
+  )
 
-  # Calculate log-likelihood
   log_lik <- -res$value
-  n_params <- length(res$par) + 2 # +2 for variance components
+  n_params <- length(res$par) + 2
   aic <- -2 * log_lik + 2 * n_params
   bic <- -2 * log_lik + n_params * log(n_subjects)
-
-  # Calculate residuals
-  residuals_long <- numeric(n_observations)
-  idx <- 1
-  for (i in seq_along(data_process)) {
-    subject <- data_process[[i]]
-    if (subject$longitudinal$n_obs > 0) {
-      # Solve ODE for this subject
-      ode_solution <- .solve_joint_ode(subject, parameters)
-      # Calculate residuals
-      for (j in seq_len(subject$longitudinal$n_obs)) {
-        residuals_long[idx] <- subject$longitudinal$measurements[j] -
-          ode_solution$biomarker[j] -
-          posteriors$b[i]
-        idx <- idx + 1
-      }
-    }
-  }
 
   # Return fitted model
   structure(
     list(
-      coefficients = list(
-        baseline = parameters$coefficients$baseline,
-        hazard = parameters$coefficients$hazard,
-        acceleration = parameters$coefficients$acceleration,
-        measurement_error_sd = measurement_error_sd,
-        random_effect_sd = random_effect_sd
-      ),
-      spline_config = list(
-        baseline = spline_baseline_config
-      ),
+      parameters = parameters,
       logLik = log_lik,
       AIC = aic,
       BIC = bic,
       convergence = list(
         converged = converged,
         em_iterations = if (converged) em_iter else em_maxit,
-        message = if (converged) {
-          paste("EM algorithm converged after", em_iter, "iterations")
-        } else {
-          paste("EM algorithm did not converge within", em_maxit, "iterations")
-        }
-      ),
-      fitted = list(
-        longitudinal = NULL,
-        survival = NULL
-      ),
-      residuals = list(
-        longitudinal = residuals_long,
-        martingale = NULL
+        message = sprintf(
+          "EM algorithm %s after %d iterations",
+          if (converged) "converged" else "did not converge within",
+          if (converged) em_iter else em_maxit
+        )
       ),
       random_effects = list(
-        estimates = vapply(posteriors, `[[`, numeric(1), "b_hat"),
-        variances = vapply(posteriors, `[[`, numeric(1), "v_hat")
+        estimates = final_posteriors$b,
+        variances = final_posteriors$v
       ),
       data = data_process,
       control = control_settings,

@@ -2,7 +2,7 @@
 % Please edit documentation in R/JointODE.R
 \name{JointODE}
 \alias{JointODE}
-\title{Fit Joint Model for Longitudinal and Survival Data Using ODEs}
+\title{Joint Modeling of Longitudinal and Survival Data Using ODEs}
 \usage{
 JointODE(
   longitudinal_formula,
@@ -13,90 +13,194 @@ JointODE(
   time = "time",
   spline_baseline = list(degree = 3, n_knots = 5, knot_placement = "quantile",
     boundary_knots = NULL),
+  init = NULL,
   control = list(),
+  parallel = FALSE,
+  n_cores = NULL,
   ...
 )
 }
 \arguments{
-\item{longitudinal_formula}{Formula for the longitudinal submodel.
-Left side specifies the response; right side includes time and
-covariates (e.g., \code{v ~ x1}).}
+\item{longitudinal_formula}{A formula specifying the longitudinal submodel.
+The left-hand side defines the response variable, while the right-hand
+side specifies fixed effects including time-varying and baseline
+covariates
+(e.g., \code{biomarker ~ time + treatment + age}).}
 
-\item{longitudinal_data}{Data frame containing longitudinal measurements.
-Must include multiple observations per subject with columns for
-subject ID, measurement times, and response values.}
+\item{longitudinal_data}{A data frame containing repeated measurements with
+one row per observation. Required columns include subject identifier,
+measurement times, response values, and any covariates specified in the
+formula.}
 
-\item{survival_formula}{Formula for the survival submodel.
-Must use \code{Surv(time, status)} on the left side;
-right side specifies baseline covariates.}
+\item{survival_formula}{A formula for the survival submodel using
+\code{Surv(time, status)} notation on the left-hand side. The right-hand
+side specifies baseline hazard covariates
+(e.g., \code{Surv(event_time, event) ~ treatment + age}).}
 
-\item{survival_data}{Data frame containing survival/event data.
-Must have exactly one row per subject with event time and status.}
+\item{survival_data}{A data frame with time-to-event information containing
+one row per subject. Must include event/censoring times, event indicators,
+and baseline covariates.}
 
-\item{id}{Character string naming the subject ID variable.
-Must exist in both datasets (default: \code{"id"}).}
+\item{id}{Character string specifying the column name for subject
+identifiers. This variable must be present in both longitudinal and
+survival datasets
+to link observations (default: \code{"id"}).}
 
-\item{time}{Character string naming the time variable in
-longitudinal data (default: \code{"time"}).}
+\item{time}{Character string specifying the column name for measurement
+times
+in the longitudinal dataset (default: \code{"time"}).}
 
-\item{spline_baseline}{List of B-spline configuration for baseline hazard:
+\item{spline_baseline}{A list controlling the B-spline representation of the
+baseline hazard function with the following components:
 \describe{
-\item{\code{degree}}{Degree of B-spline basis (default: 3)}
-\item{\code{n_knots}}{Number of interior knots (default: 5)}
-\item{\code{knot_placement}}{Method for knot placement: "quantile"
-(based on event times) or "equal" (default: "quantile")}
-\item{\code{boundary_knots}}{Boundary knots, if NULL uses event range
-(default: NULL)}
+\item{\code{degree}}{Polynomial degree of the B-spline basis functions
+(default: 3, cubic splines)}
+\item{\code{n_knots}}{Number of interior knots for flexibility
+(default: 5)}
+\item{\code{knot_placement}}{Strategy for positioning knots:
+\code{"quantile"} places knots at quantiles of observed event times,
+\code{"equal"} uses equally-spaced knots (default: \code{"quantile"})}
+\item{\code{boundary_knots}}{A numeric vector of length 2 specifying
+the boundary knot locations. If \code{NULL}, automatically set to the
+range of observed event times (default: \code{NULL})}
 }}
 
-\item{control}{List of optimization control parameters:
+\item{init}{Optional list providing initial values for model parameters.
+Should have the same structure as the fitted model's \code{parameters}
+component with elements:
 \describe{
-\item{\code{method}}{Optimization algorithm (default: "L-BFGS-B")}
-\item{\code{maxit}}{Maximum iterations per M-step (default: 1000)}
-\item{\code{em_maxit}}{Maximum EM iterations (default: 10)}
-\item{\code{em_tol}}{EM convergence tolerance (default: 1e-4)}
-\item{\code{tol}}{Convergence tolerance (default: 1e-2)}
-\item{\code{verbose}}{Print progress and parameter estimates
-(default: FALSE)}
+\item{\code{coefficients}}{A list containing:
+\itemize{
+\item \code{baseline}: Vector of B-spline coefficients for baseline
+hazard (length = number of spline basis functions)
+\item \code{hazard}: Vector of hazard parameters including
+association parameters (3) and survival covariates
+\item \code{acceleration}: Vector of longitudinal fixed effects
+including intercept and covariates
+\item \code{measurement_error_sd}: Residual standard deviation
+(positive scalar)
+\item \code{random_effect_sd}: Random effect standard deviation
+(positive scalar)
+}}
+\item{\code{configurations}}{Optional; if not provided, will use
+spline configuration from \code{spline_baseline}}
+}
+If \code{NULL}, default initial values are used (default: \code{NULL}).}
+
+\item{control}{A list of optimization and algorithmic settings:
+\describe{
+\item{\code{method}}{Optimization algorithm for parameter estimation.
+Options include \code{"L-BFGS-B"}, \code{"BFGS"}, \code{"Nelder-Mead"}
+(default: \code{"L-BFGS-B"})}
+\item{\code{maxit}}{Maximum number of iterations for each M-step
+optimization (default: 1000)}
+\item{\code{em_maxit}}{Maximum number of EM algorithm iterations
+(default: 10)}
+\item{\code{em_tol}}{Convergence criterion for EM algorithm based on
+relative change
+in log-likelihood (default: 1e-4)}
+\item{\code{tol}}{Numerical tolerance for optimization convergence
+(default: 1e-2)}
+\item{\code{verbose}}{Controls diagnostic output: \code{0}/\code{FALSE}
+for silent operation, \code{1}/\code{TRUE} for iteration progress,
+\code{2} for detailed parameter traces (default: \code{FALSE})}
 }}
 
-\item{...}{Additional arguments passed to fitting functions.}
+\item{parallel}{Logical flag enabling parallel computation for
+computationally intensive operations including posterior calculations,
+gradient evaluations, and likelihood computations. Requires \pkg{future}
+and \pkg{future.apply} packages
+(default: \code{FALSE}).}
+
+\item{n_cores}{Integer specifying the number of CPU cores for parallel
+processing. If \code{NULL}, automatically detects and uses all available
+cores minus one
+(default: \code{NULL}).}
+
+\item{...}{Additional arguments passed to internal optimization routines.}
 }
 \value{
-Object of class \code{"JointODE"} containing:
+An S3 object of class \code{"JointODE"} containing fitted model
+results:
 \describe{
-\item{\code{coefficients}}{Estimated model parameters including
-longitudinal, survival, and association parameters}
-\item{\code{logLik}}{Log-likelihood at convergence}
-\item{\code{AIC}}{Akaike Information Criterion}
-\item{\code{BIC}}{Bayesian Information Criterion}
-\item{\code{convergence}}{Optimization convergence details}
-\item{\code{fitted}}{Fitted values for both submodels}
-\item{\code{residuals}}{Model residuals}
-\item{\code{data}}{Original input data}
-\item{\code{call}}{Matched function call}
+\item{\code{parameters}}{A list containing all estimated parameters:
+\itemize{
+\item \code{coefficients}: Named list with \code{baseline} (B-spline
+coefficients for baseline hazard), \code{hazard} (association and
+survival covariate effects), \code{acceleration} (longitudinal
+fixed effects), \code{measurement_error_sd} (residual standard
+deviation), and \code{random_effect_sd} (random effect standard
+deviation)
+\item \code{configurations}: Model configuration including spline
+basis specifications
+}}
+\item{\code{logLik}}{Maximum log-likelihood value achieved at
+convergence}
+\item{\code{AIC}}{Akaike Information Criterion for model comparison}
+\item{\code{BIC}}{Bayesian Information Criterion adjusted for sample
+size}
+\item{\code{convergence}}{List containing convergence diagnostics:
+\itemize{
+\item \code{converged}: Logical indicating convergence status
+\item \code{em_iterations}: Number of EM iterations performed
+\item \code{message}: Descriptive convergence message
+}}
+\item{\code{random_effects}}{List containing random effects estimates:
+\itemize{
+\item \code{estimates}: Posterior means of subject-specific random
+effects
+\item \code{variances}: Posterior variances of random effects
+}}
+\item{\code{data}}{Processed data used for model fitting in internal
+format}
+\item{\code{control}}{List of control parameters used in optimization}
+\item{\code{call}}{The matched function call for reproducibility}
 }
 }
 \description{
-Fits a joint model that simultaneously analyzes longitudinal biomarker
+Implements a unified framework for jointly modeling longitudinal biomarker
 trajectories and time-to-event outcomes using ordinary differential
-equations (ODEs). This approach captures complex temporal dynamics in
-biomarker evolution while quantifying their association with survival
-through shared parameters.
+equations (ODEs). The model captures complex non-linear dynamics in
+biomarker evolution while simultaneously quantifying their association with
+survival risk through
+shared random effects and flexible hazard specifications.
 }
 \details{
-The joint ODE model links longitudinal and survival processes through
-shared parameters. The longitudinal trajectory is modeled using ODEs
-to capture non-linear dynamics, while the survival hazard incorporates
-features of the trajectory (level, slope, or cumulative burden).
+The joint modeling framework integrates longitudinal and survival processes
+through a shared random effects structure. The longitudinal biomarker
+evolution is characterized by a system of ODEs that can accommodate
+non-linear dynamics, feedback mechanisms, and complex temporal patterns.
+The survival component employs a proportional hazards model where the
+instantaneous risk depends on
+features derived from the longitudinal trajectory.
 
-Model estimation uses maximum likelihood with numerical integration
-over random effects via adaptive Gauss-Hermite quadrature.
+Three association structures are supported:
+\itemize{
+\item Current value: hazard depends on the biomarker level at time t
+\item Rate of change: hazard depends on the biomarker's instantaneous
+slope
+\item Cumulative burden: hazard depends on the area under the trajectory
+curve
+}
+
+Parameter estimation employs an Expectation-Maximization (EM) algorithm
+with:
+\itemize{
+\item E-step: Adaptive Gauss-Hermite quadrature for numerical integration
+\item M-step: Quasi-Newton optimization for parameter updates
+}
 }
 \note{
-Input data are automatically validated and processed before fitting.
-For large datasets or complex ODE systems, consider adjusting control
-parameters to improve convergence.
+\itemize{
+\item Data validation is performed automatically with informative error
+messages
+\item For high-dimensional problems, parallel computation is strongly
+recommended
+\item Convergence issues may arise with sparse event data or limited
+follow-up
+\item Initial values are computed using separate model fits when not
+provided
+}
 }
 \examples{
 \dontrun{
@@ -110,4 +214,3 @@ summary(fit)
 }
 
 }
-\concept{modeling}
