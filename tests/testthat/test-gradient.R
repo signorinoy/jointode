@@ -12,7 +12,7 @@ test_that("compute_gradient_joint matches numerical gradient", {
   skip_if_not_installed("numDeriv")
 
   # Setup: Load test data and compute posteriors
-  test_env <- load_test_data(n_subjects = 2)
+  test_env <- load_test_data()
   posteriors <- .compute_posteriors(test_env$data, test_env$parameters)
 
   # Extract parameters and dimensions
