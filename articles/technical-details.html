@@ -596,6 +596,21 @@ F}{\partial \boldsymbol{\phi}} = [\mathbf{W}_i \lambda_i(t|0), 0,
 </div>
 </div>
 </div>
+<div class="section level2">
+<h2 id="known-limitations">Known Limitations<a class="anchor" aria-label="anchor" href="#known-limitations"></a>
+</h2>
+<p>The JointODE model includes the biomarker trajectory and its
+derivatives in the hazard function:</p>
+<p><span class="math display">\lambda_i(t) = \lambda_0(t)
+\exp\left[\alpha_0 m_i(t) + \alpha_1 \dot{m}_i(t) + \alpha_2
+\ddot{m}_i(t) + \mathbf{W}_i^{\top}\boldsymbol{\phi} +
+b_i\right]</span></p>
+<p>Since <span class="math inline">\dot{m}_i(t)</span> and <span class="math inline">\ddot{m}_i(t)</span> are derivatives of <span class="math inline">m_i(t)</span>, these components are correlated,
+leading to identifiability challenges. The velocity effect is
+particularly difficult to identify. Additionally, flexible baseline
+hazards can absorb trajectory effects, creating a trade-off between
+model flexibility and parameter identifiability.</p>
+</div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
 </div>

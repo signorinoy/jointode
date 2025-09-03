@@ -73,7 +73,7 @@ shared random effects and flexible hazard specifications.</p>
 <span>  <span class="va">survival_data</span>,</span>
 <span>  id <span class="op">=</span> <span class="st">"id"</span>,</span>
 <span>  time <span class="op">=</span> <span class="st">"time"</span>,</span>
-<span>  spline_baseline <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>degree <span class="op">=</span> <span class="fl">3</span>, n_knots <span class="op">=</span> <span class="fl">5</span>, knot_placement <span class="op">=</span> <span class="st">"quantile"</span>,</span>
+<span>  spline_baseline <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>degree <span class="op">=</span> <span class="fl">1</span>, n_knots <span class="op">=</span> <span class="fl">1</span>, knot_placement <span class="op">=</span> <span class="st">"quantile"</span>,</span>
 <span>    boundary_knots <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
 <span>  init <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -132,11 +132,11 @@ in the longitudinal dataset (default: <code>"time"</code>).</p></dd>
 <dd><p>A list controlling the B-spline representation of the
 baseline hazard function with the following components:</p><dl><dt><code>degree</code></dt>
 <dd><p>Polynomial degree of the B-spline basis functions
-(default: 3, cubic splines)</p></dd>
+(default: 1, linear splines)</p></dd>
 
 <dt><code>n_knots</code></dt>
 <dd><p>Number of interior knots for flexibility
-(default: 5)</p></dd>
+(default: 1)</p></dd>
 
 <dt><code>knot_placement</code></dt>
 <dd><p>Strategy for positioning knots:
