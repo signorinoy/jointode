@@ -10,7 +10,7 @@
 #' and time-to-event processes.
 #'
 #' @param n Integer. Number of subjects to simulate. Larger cohorts provide
-#'   more stable parameter estimates (default: 200).
+#'   more stable parameter estimates (default: 100).
 #' @param alpha Numeric vector of length 3. Association parameters quantifying
 #'   how trajectory features influence survival hazard:
 #'   \code{[biomarker, velocity, acceleration]}.
@@ -212,7 +212,7 @@
 #'
 #' @export
 simulate <- function(
-  n = 200,
+  n = 100,
   alpha = c(0.3, 0.5, -0.8),
   beta = c(-0.5, -0.3, -0.5, 0.3, 0.2),
   phi = c(0.4, -0.6),
@@ -759,7 +759,7 @@ simulate <- function(
 #' demonstrating and testing the JointODE package. Creates simulated
 #' data with known parameters for model validation.
 #'
-#' @param n Integer. Number of subjects to simulate (default: 200).
+#' @param n Integer. Number of subjects to simulate (default: 100).
 #'
 #' @return A list containing:
 #'   \describe{
@@ -816,11 +816,11 @@ simulate <- function(
 #' @seealso \code{\link{simulate}} for the underlying simulation engine
 #'
 #' @noRd
-.create_example_data <- function(n = 200) {
+.create_example_data <- function(n = 100) {
   # Define default configurations (match JointODE defaults)
   spline_baseline <- list(
     degree = 1,
-    n_knots = 1,
+    n_knots = 0,
     knot_placement = "quantile",
     boundary_knots = NULL
   )

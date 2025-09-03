@@ -14,7 +14,7 @@
 #'         (observed value), \code{x1}, \code{x2} (covariates),
 #'         \code{biomarker}, \code{velocity}, \code{acceleration}
 #'         (true latent values)
-#'       \item \code{survival_data}: Survival outcomes (200 subjects)
+#'       \item \code{survival_data}: Survival outcomes (100 subjects)
 #'         with columns: \code{id}, \code{time} (event/censoring),
 #'         \code{status} (1=event, 0=censored), \code{w1}, \code{w2}
 #'         (covariates), \code{b} (random effect)
@@ -51,10 +51,10 @@
 #' }
 #'
 #' @details
-#' Generated using \code{.create_example_data(n = 200)} with default
+#' Generated using \code{.create_example_data(n = 100)} with default
 #' parameters. Features include:
 #' \itemize{
-#'   \item 200 subjects with adaptive visit schedules
+#'   \item 100 subjects with adaptive visit schedules
 #'   \item Weibull baseline hazard (shape=1, scale=8)
 #'   \item 10\% random visit missingness
 #'   \item Administrative censoring between 50-95th percentiles
@@ -62,7 +62,7 @@
 #'
 #' For detailed simulation methodology, see \code{\link{simulate}}.
 #'
-#' @source Generated using JointODE:::.create_example_data(n = 200)
+#' @source Generated using JointODE:::.create_example_data(n = 100)
 #'
 #' @examples
 #' # Load the dataset

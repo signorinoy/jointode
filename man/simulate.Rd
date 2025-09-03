@@ -5,7 +5,7 @@
 \title{Simulate Joint ODE Model Data}
 \usage{
 simulate(
-  n = 200,
+  n = 100,
   alpha = c(0.3, 0.5, -0.8),
   beta = c(-0.5, -0.3, -0.5, 0.3, 0.2),
   phi = c(0.4, -0.6),
@@ -19,7 +19,7 @@ simulate(
 }
 \arguments{
 \item{n}{Integer. Number of subjects to simulate. Larger cohorts provide
-more stable parameter estimates (default: 200).}
+more stable parameter estimates (default: 100).}
 
 \item{alpha}{Numeric vector of length 3. Association parameters quantifying
 how trajectory features influence survival hazard:

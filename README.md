@@ -111,30 +111,29 @@ summary(fit)
 #> 
 #> Variance components:
 #> sigma_e sigma_b 
-#> 0.10140 0.09916 
+#> 0.09646 0.09394 
 #> 
 #> Fixed effects:
 #>                     Estimate Std. Error  z value Pr(>|z|)    
-#> baseline:1         -2.078368   0.206520  -10.064  < 2e-16 ***
-#> baseline:2         -2.079262   0.231104   -8.997  < 2e-16 ***
-#> baseline:3         -2.079791   0.558595   -3.723 0.000197 ***
-#> hazard:alpha0       0.299244   0.104399    2.866 0.004152 ** 
-#> hazard:alpha1       0.499975   0.260901    1.916 0.055322 .  
-#> hazard:alpha2      -0.800221   0.334868   -2.390 0.016864 *  
-#> hazard:phi1         0.397017   0.081408    4.877 1.08e-06 ***
-#> hazard:phi2        -0.601917   0.082051   -7.336 2.20e-13 ***
-#> longitudinal:beta1 -0.505679   0.003071 -164.673  < 2e-16 ***
-#> longitudinal:beta2 -0.303746   0.005316  -57.143  < 2e-16 ***
-#> longitudinal:beta3 -0.004325   0.002453   -1.763 0.077825 .  
-#> longitudinal:beta4 -0.509114   0.003553 -143.276  < 2e-16 ***
-#> longitudinal:beta5  0.306473   0.002367  129.479  < 2e-16 ***
-#> longitudinal:beta6  0.203452   0.001556  130.741  < 2e-16 ***
+#> baseline:1         -2.083253   0.225528   -9.237  < 2e-16 ***
+#> baseline:2         -2.078663   0.673679   -3.086  0.00203 ** 
+#> hazard:alpha0       0.313248   0.169553    1.847  0.06468 .  
+#> hazard:alpha1       0.505112   0.362825    1.392  0.16387    
+#> hazard:alpha2      -0.799521   0.552611   -1.447  0.14795    
+#> hazard:phi1         0.396715   0.132758    2.988  0.00281 ** 
+#> hazard:phi2        -0.605996   0.121175   -5.001  5.7e-07 ***
+#> longitudinal:beta1 -0.495143   0.004103 -120.672  < 2e-16 ***
+#> longitudinal:beta2 -0.304172   0.009947  -30.580  < 2e-16 ***
+#> longitudinal:beta3  0.001914   0.003093    0.619  0.53609    
+#> longitudinal:beta4 -0.496585   0.005767  -86.108  < 2e-16 ***
+#> longitudinal:beta5  0.300015   0.003721   80.627  < 2e-16 ***
+#> longitudinal:beta6  0.198027   0.002496   79.335  < 2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #> 
 #> ---
-#> Log-likelihood: 1779.423   AIC: -3526.847   BIC: -3474.074
-#> N = 200  Convergence: EM algorithm converged after 10 iterations
+#> Log-likelihood: 1058.271   AIC: -2086.542   BIC: -2047.465
+#> N = 100  Convergence: EM algorithm converged after 7 iterations
 
 # Generate predictions
 predictions <- predict(fit, times = seq(0, 10, by = 0.25))
@@ -181,8 +180,6 @@ ggplot(df, aes(x = time)) +
   facet_wrap(~id) +
   theme_minimal() +
   labs(y = "Biomarker", color = "")
-#> `geom_line()`: Each group consists of only one observation.
-#> ℹ Do you need to adjust the group aesthetic?
 ```
 
 <img src="man/figures/README-visualization-1.png" width="100%" />

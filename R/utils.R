@@ -229,10 +229,10 @@ NULL
     if (
       !is.numeric(spline_baseline$n_knots) ||
         length(spline_baseline$n_knots) != 1 ||
-        spline_baseline$n_knots < 1 ||
+        spline_baseline$n_knots < 0 ||
         spline_baseline$n_knots > 20
     ) {
-      stop("spline_baseline$n_knots must be a single integer between 1 and 20")
+      stop("spline_baseline$n_knots must be a single integer between 0 and 20")
     }
   }
 

@@ -707,9 +707,9 @@ test_that(".validate checks spline_baseline parameters correctly", {
       surv_data,
       "id",
       "time",
-      spline_baseline = list(n_knots = 0)
+      spline_baseline = list(n_knots = -1)
     ),
-    "spline_baseline\\$n_knots must be a single integer between 1 and 20"
+    "spline_baseline\\$n_knots must be a single integer between 0 and 20"
   )
 
   # Test invalid knot_placement values
