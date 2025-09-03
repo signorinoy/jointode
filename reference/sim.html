@@ -124,20 +124,20 @@ parameters. Features include:</p><ul><li><p>200 subjects with adaptive visit sch
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Examine structure</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 'data.frame':	1846 obs. of  8 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 'data.frame':	2183 obs. of  8 variables:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ id          : int  1 1 1 1 1 1 1 1 1 1 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ time        : num  0 0.25 0.5 0.75 1 1.25 1.5 1.75 2 2.5 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ v           : num  0.1968 0.1935 -0.0672 0.4143 0.6257 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ v           : num  -0.1523 0.2293 0.3158 0.0604 0.1023 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ x1          : num  -0.248 -0.248 -0.248 -0.248 -0.248 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ x2          : num  0.689 0.689 0.689 0.689 0.689 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ biomarker   : num  0 0.0206 0.085 0.1956 0.3528 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ velocity    : num  0 0.168 0.349 0.536 0.722 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ acceleration: num  0.632 0.704 0.741 0.749 0.734 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ biomarker   : num  0 0.0106 0.043 0.0976 0.1743 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ velocity    : num  0 0.0854 0.174 0.263 0.3497 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ acceleration: num  0.331 0.35 0.357 0.353 0.339 ...</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 'data.frame':	200 obs. of  6 variables:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ id    : int  1 2 3 4 5 6 7 8 9 10 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ time  : num  9.6562 0.0649 4.7052 0.1059 6.5849 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ status: int  1 1 1 1 1 1 0 1 1 1 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ time  : num  11.838 0.544 8.166 0.389 4.502 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ status: int  0 1 0 1 1 1 1 1 1 1 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ w1    : num  -2.001 0.334 1.171 2.06 -1.377 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ w2    : num  1.3349 -0.8693 0.0555 0.0491 -0.5784 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ b     : num  0.1371 -0.0565 0.0363 0.0633 0.0404 ...</span>
@@ -147,11 +147,11 @@ parameters. Features include:</p><ul><li><p>200 subjects with adaptive visit sch
 <span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Number of subjects: 200 </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Event rate:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">$</span><span class="va">status</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Event rate: 0.76 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Event rate: 0.835 </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Average observations per subject:"</span>,</span></span>
 <span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">)</span> <span class="op">/</span></span></span>
 <span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Average observations per subject: 9.23 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Average observations per subject: 10.915 </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Visualize longitudinal trajectories</span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"ggplot2"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
@@ -168,12 +168,6 @@ parameters. Features include:</p><ul><li><p>200 subjects with adaptive visit sch
 <span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Time (years)"</span>, y <span class="op">=</span> <span class="st">"Observed Biomarker Value"</span>,</span></span>
 <span class="r-in"><span>         title <span class="op">=</span> <span class="st">"Simulated Longitudinal Trajectories"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> `geom_line()`: Each group consists of only one observation.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Do you need to adjust the <span style="color: #00BB00;">group</span> aesthetic?</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> `geom_line()`: Each group consists of only one observation.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Do you need to adjust the <span style="color: #00BB00;">group</span> aesthetic?</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> `geom_line()`: Each group consists of only one observation.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Do you need to adjust the <span style="color: #00BB00;">group</span> aesthetic?</span>
 <span class="r-plt img"><img src="sim-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
