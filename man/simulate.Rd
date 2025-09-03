@@ -6,8 +6,8 @@
 \usage{
 simulate(
   n = 200,
-  alpha = c(0.3, -0.5, 0.8),
-  beta = c(-0.5, -1, 3, 2, 1),
+  alpha = c(0.3, 0.5, -0.8),
+  beta = c(-0.5, -0.3, -0.5, 0.3, 0.2),
   phi = c(0.4, -0.6),
   weibull_shape = 1,
   weibull_scale = 8,
@@ -24,11 +24,11 @@ more stable parameter estimates (default: 200).}
 \item{alpha}{Numeric vector of length 3. Association parameters quantifying
 how trajectory features influence survival hazard:
 \code{[biomarker, velocity, acceleration]}.
-Positive values indicate increased risk (default: c(0.3, -0.5, 0.8)).}
+Positive values indicate increased risk (default: c(0.3, 0.5, -0.8)).}
 
 \item{beta}{Numeric vector governing ODE dynamics (length 5). Controls
 biomarker trajectory evolution: \code{[biomarker, velocity,
-  x1, x2, time]} (default: c(-0.5, -1.0, 3, 2, 1)).}
+  x1, x2, time]} (default: c(-0.5, -0.3, -0.5, 0.3, 0.2)).}
 
 \item{phi}{Numeric vector of length 2. Baseline covariate effects modulating
 survival hazard independently of biomarker dynamics: \code{[w1, w2]}

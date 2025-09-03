@@ -82,10 +82,10 @@ Here’s a basic example demonstrating typical usage:
 
 ``` r
 library(JointODE)
-#>
+#> 
 #> Attaching package: 'JointODE'
 #> The following object is masked from 'package:stats':
-#>
+#> 
 #>     simulate
 
 # Load example dataset
@@ -103,38 +103,38 @@ fit <- JointODE(
 
 # Model summary
 summary(fit)
-#>
+#> 
 #> Call:
-#> JointODE(longitudinal_formula = sim$formulas$longitudinal, longitudinal_data = sim$data$longitudinal_data,
-#>     survival_formula = sim$formulas$survival, survival_data = sim$data$survival_data,
+#> JointODE(longitudinal_formula = sim$formulas$longitudinal, longitudinal_data = sim$data$longitudinal_data, 
+#>     survival_formula = sim$formulas$survival, survival_data = sim$data$survival_data, 
 #>     init = sim$parameters, parallel = TRUE)
-#>
+#> 
 #> Variance components:
-#> sigma_e sigma_b
-#> 0.09996 0.10355
-#>
+#> sigma_e sigma_b 
+#> 0.10140 0.09916 
+#> 
 #> Fixed effects:
-#>                      Estimate Std. Error  z value Pr(>|z|)
-#> baseline:1         -2.0573403  0.2335833   -8.808  < 2e-16 ***
-#> baseline:2         -2.1112286  0.1697719  -12.436  < 2e-16 ***
-#> baseline:3         -2.0908873  0.4912967   -4.256 2.08e-05 ***
-#> hazard:alpha0       0.2973353  0.0323395    9.194  < 2e-16 ***
-#> hazard:alpha1      -0.5372366  0.0775390   -6.929 4.25e-12 ***
-#> hazard:alpha2       0.8492806  0.0614666   13.817  < 2e-16 ***
-#> hazard:phi1         0.3426915  0.0836012    4.099 4.15e-05 ***
-#> hazard:phi2        -0.6434636  0.0805711   -7.986 1.39e-15 ***
-#> longitudinal:beta1 -0.4990941  0.0014939 -334.092  < 2e-16 ***
-#> longitudinal:beta2 -0.9957728  0.0056783 -175.366  < 2e-16 ***
-#> longitudinal:beta3 -0.0009904  0.0040998   -0.242    0.809
-#> longitudinal:beta4  2.9961882  0.0111115  269.647  < 2e-16 ***
-#> longitudinal:beta5  2.0001668  0.0073992  270.320  < 2e-16 ***
-#> longitudinal:beta6  0.9985132  0.0042600  234.395  < 2e-16 ***
+#>                     Estimate Std. Error  z value Pr(>|z|)    
+#> baseline:1         -2.078368   0.206520  -10.064  < 2e-16 ***
+#> baseline:2         -2.079262   0.231104   -8.997  < 2e-16 ***
+#> baseline:3         -2.079791   0.558595   -3.723 0.000197 ***
+#> hazard:alpha0       0.299244   0.104399    2.866 0.004152 ** 
+#> hazard:alpha1       0.499975   0.260901    1.916 0.055322 .  
+#> hazard:alpha2      -0.800221   0.334868   -2.390 0.016864 *  
+#> hazard:phi1         0.397017   0.081408    4.877 1.08e-06 ***
+#> hazard:phi2        -0.601917   0.082051   -7.336 2.20e-13 ***
+#> longitudinal:beta1 -0.505679   0.003071 -164.673  < 2e-16 ***
+#> longitudinal:beta2 -0.303746   0.005316  -57.143  < 2e-16 ***
+#> longitudinal:beta3 -0.004325   0.002453   -1.763 0.077825 .  
+#> longitudinal:beta4 -0.509114   0.003553 -143.276  < 2e-16 ***
+#> longitudinal:beta5  0.306473   0.002367  129.479  < 2e-16 ***
+#> longitudinal:beta6  0.203452   0.001556  130.741  < 2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-#>
+#> 
 #> ---
-#> Log-likelihood: 1634.315   AIC: -3236.631   BIC: -3183.858
-#> N = 200  Convergence: EM algorithm converged after 13 iterations
+#> Log-likelihood: 1779.423   AIC: -3526.847   BIC: -3474.074
+#> N = 200  Convergence: EM algorithm converged after 10 iterations
 
 # Generate predictions
 predictions <- predict(fit, times = seq(0, 10, by = 0.25))
@@ -145,13 +145,13 @@ predictions <- predict(fit, times = seq(0, 10, by = 0.25))
 ``` r
 library(ggplot2)
 library(dplyr)
-#>
+#> 
 #> Attaching package: 'dplyr'
 #> The following objects are masked from 'package:stats':
-#>
+#> 
 #>     filter, lag
 #> The following objects are masked from 'package:base':
-#>
+#> 
 #>     intersect, setdiff, setequal, union
 library(tidyr)
 
@@ -181,6 +181,8 @@ ggplot(df, aes(x = time)) +
   facet_wrap(~id) +
   theme_minimal() +
   labs(y = "Biomarker", color = "")
+#> `geom_line()`: Each group consists of only one observation.
+#> ℹ Do you need to adjust the group aesthetic?
 ```
 
 <img src="man/figures/README-visualization-1.png" width="100%" />

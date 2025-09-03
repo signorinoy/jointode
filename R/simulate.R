@@ -14,10 +14,10 @@
 #' @param alpha Numeric vector of length 3. Association parameters quantifying
 #'   how trajectory features influence survival hazard:
 #'   \code{[biomarker, velocity, acceleration]}.
-#'   Positive values indicate increased risk (default: c(0.3, -0.5, 0.8)).
+#'   Positive values indicate increased risk (default: c(0.3, 0.5, -0.8)).
 #' @param beta Numeric vector governing ODE dynamics (length 5). Controls
 #'   biomarker trajectory evolution: \code{[biomarker, velocity,
-#'   x1, x2, time]} (default: c(-0.5, -1.0, 3, 2, 1)).
+#'   x1, x2, time]} (default: c(-0.5, -0.3, -0.5, 0.3, 0.2)).
 #' @param phi Numeric vector of length 2. Baseline covariate effects modulating
 #'   survival hazard independently of biomarker dynamics: \code{[w1, w2]}
 #'   (default: c(0.4, -0.6)).
@@ -213,8 +213,8 @@
 #' @export
 simulate <- function(
   n = 200,
-  alpha = c(0.3, -0.5, 0.8),
-  beta = c(-0.5, -1.0, 3, 2, 1),
+  alpha = c(0.3, 0.5, -0.8),
+  beta = c(-0.5, -0.3, -0.5, 0.3, 0.2),
   phi = c(0.4, -0.6),
   weibull_shape = 1,
   weibull_scale = 8,
@@ -842,8 +842,8 @@ simulate <- function(
   )
 
   # Define coefficients (use simulate function defaults)
-  hazard_coefficients <- c(0.3, -0.5, 0.8, 0.4, -0.6)
-  acceleration_coefficients <- c(-0.5, -1.0, 0, 3, 2, 1)
+  hazard_coefficients <- c(0.3, 0.5, -0.8, 0.4, -0.6)
+  acceleration_coefficients <- c(-0.5, -0.3, 0, -0.5, 0.3, 0.2)
 
   # Create spline configurations
   spline_baseline_config <- .get_spline_config(
