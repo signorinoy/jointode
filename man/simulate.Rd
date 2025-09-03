@@ -6,10 +6,10 @@
 \usage{
 simulate(
   n = 200,
-  alpha = c(0.5, 0, 0.3),
-  beta = c(-1, -2, 2, 1, 0.5),
+  alpha = c(0.3, -0.5, 0.8),
+  beta = c(-0.5, -1, 3, 2, 1),
   phi = c(0.4, -0.6),
-  weibull_shape = 1.5,
+  weibull_shape = 1,
   weibull_scale = 8,
   sigma_b = 0.1,
   sigma_e = 0.1,
@@ -24,11 +24,11 @@ more stable parameter estimates (default: 200).}
 \item{alpha}{Numeric vector of length 3. Association parameters quantifying
 how trajectory features influence survival hazard:
 \code{[biomarker, velocity, acceleration]}.
-Positive values indicate increased risk (default: c(0.5, 0.0, 0.3)).}
+Positive values indicate increased risk (default: c(0.3, -0.5, 0.8)).}
 
 \item{beta}{Numeric vector governing ODE dynamics (length 5). Controls
 biomarker trajectory evolution: \code{[biomarker, velocity,
-  x1, x2, time]} (default: c(-1, -2, 2, 1, 0.5)).}
+  x1, x2, time]} (default: c(-0.5, -1.0, 3, 2, 1)).}
 
 \item{phi}{Numeric vector of length 2. Baseline covariate effects modulating
 survival hazard independently of biomarker dynamics: \code{[w1, w2]}
@@ -37,7 +37,7 @@ survival hazard independently of biomarker dynamics: \code{[w1, w2]}
 \item{weibull_shape}{Numeric. Weibull shape parameter (\eqn{\kappa})
 characterizing baseline hazard evolution. Values > 1 yield increasing
 hazard (aging effect), < 1 decreasing hazard (selection effect), =
-1 constant hazard (exponential) (default: 1.5).}
+1 constant hazard (exponential) (default: 1).}
 
 \item{weibull_scale}{Numeric. Weibull scale parameter (\eqn{\theta})
 determining the characteristic event time. Larger values shift the

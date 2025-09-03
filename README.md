@@ -111,36 +111,30 @@ summary(fit)
 #>
 #> Variance components:
 #> sigma_e sigma_b
-#> 0.10092 0.09506
+#> 0.09996 0.10355
 #>
 #> Fixed effects:
-#>                     Estimate Std. Error z value Pr(>|z|)
-#> baseline:1         -3.867098   0.844898  -4.577 4.72e-06 ***
-#> baseline:2         -2.554384   0.746438  -3.422 0.000621 ***
-#> baseline:3         -2.469201   0.619648  -3.985 6.75e-05 ***
-#> baseline:4         -2.070030   0.441657  -4.687 2.77e-06 ***
-#> baseline:5         -1.974180   0.409197  -4.825 1.40e-06 ***
-#> baseline:6         -1.816067   0.470518  -3.860 0.000114 ***
-#> baseline:7         -1.657955   0.900964  -1.840 0.065739 .
-#> baseline:8         -1.540116   1.267635  -1.215 0.224384
-#> baseline:9         -1.487824   1.350214  -1.102 0.270497
-#> hazard:alpha0       0.468010   0.068575   6.825 8.80e-12 ***
-#> hazard:alpha1       0.006911   0.254299   0.027 0.978318
-#> hazard:alpha2       0.301793   0.307082   0.983 0.325717
-#> hazard:phi1         0.373701   0.083733   4.463 8.08e-06 ***
-#> hazard:phi2        -0.640911   0.082446  -7.774 7.62e-15 ***
-#> longitudinal:beta1 -0.989857   0.013367 -74.052  < 2e-16 ***
-#> longitudinal:beta2 -1.976997   0.037872 -52.202  < 2e-16 ***
-#> longitudinal:beta3  0.005200   0.006199   0.839 0.401579
-#> longitudinal:beta4  1.980852   0.029870  66.317  < 2e-16 ***
-#> longitudinal:beta5  0.990293   0.015023  65.920  < 2e-16 ***
-#> longitudinal:beta6  0.493552   0.008160  60.481  < 2e-16 ***
+#>                      Estimate Std. Error  z value Pr(>|z|)
+#> baseline:1         -2.0573403  0.2335833   -8.808  < 2e-16 ***
+#> baseline:2         -2.1112286  0.1697719  -12.436  < 2e-16 ***
+#> baseline:3         -2.0908873  0.4912967   -4.256 2.08e-05 ***
+#> hazard:alpha0       0.2973353  0.0323395    9.194  < 2e-16 ***
+#> hazard:alpha1      -0.5372366  0.0775390   -6.929 4.25e-12 ***
+#> hazard:alpha2       0.8492806  0.0614666   13.817  < 2e-16 ***
+#> hazard:phi1         0.3426915  0.0836012    4.099 4.15e-05 ***
+#> hazard:phi2        -0.6434636  0.0805711   -7.986 1.39e-15 ***
+#> longitudinal:beta1 -0.4990941  0.0014939 -334.092  < 2e-16 ***
+#> longitudinal:beta2 -0.9957728  0.0056783 -175.366  < 2e-16 ***
+#> longitudinal:beta3 -0.0009904  0.0040998   -0.242    0.809
+#> longitudinal:beta4  2.9961882  0.0111115  269.647  < 2e-16 ***
+#> longitudinal:beta5  2.0001668  0.0073992  270.320  < 2e-16 ***
+#> longitudinal:beta6  0.9985132  0.0042600  234.395  < 2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #>
 #> ---
-#> Log-likelihood: 2042.664   AIC: -4041.328   BIC: -3968.765
-#> N = 200  Convergence: EM algorithm converged after 6 iterations
+#> Log-likelihood: 1634.315   AIC: -3236.631   BIC: -3183.858
+#> N = 200  Convergence: EM algorithm converged after 13 iterations
 
 # Generate predictions
 predictions <- predict(fit, times = seq(0, 10, by = 0.25))

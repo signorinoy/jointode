@@ -298,7 +298,7 @@ summary(fit_tvcox)
 # alpha[1] = 0.5 (value effect), phi = c(0.4, -0.6) for survival covariates
 true_params <- data.frame(
   param = c("Association", "w1", "w2"),
-  true_value = c(0.5, 0.4, -0.6)
+  true_value = c(0.3, 0.4, -0.6)
 )
 
 # Extract and organize coefficients

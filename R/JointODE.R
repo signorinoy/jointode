@@ -35,9 +35,9 @@
 #'   baseline hazard function with the following components:
 #'   \describe{
 #'     \item{\code{degree}}{Polynomial degree of the B-spline basis functions
-#'       (default: 3, cubic splines)}
+#'       (default: 1, linear splines)}
 #'     \item{\code{n_knots}}{Number of interior knots for flexibility
-#'       (default: 5)}
+#'       (default: 1)}
 #'     \item{\code{knot_placement}}{Strategy for positioning knots:
 #'       \code{"quantile"} places knots at quantiles of observed event times,
 #'       \code{"equal"} uses equally-spaced knots (default: \code{"quantile"})}
@@ -196,8 +196,8 @@ JointODE <- function(
   id = "id",
   time = "time",
   spline_baseline = list(
-    degree = 3,
-    n_knots = 5,
+    degree = 1,
+    n_knots = 1,
     knot_placement = "quantile",
     boundary_knots = NULL
   ),

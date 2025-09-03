@@ -55,7 +55,7 @@
 #' parameters. Features include:
 #' \itemize{
 #'   \item 200 subjects with adaptive visit schedules
-#'   \item Weibull baseline hazard (shape=1.5, scale=8)
+#'   \item Weibull baseline hazard (shape=1, scale=8)
 #'   \item 10\% random visit missingness
 #'   \item Administrative censoring between 50-95th percentiles
 #' }

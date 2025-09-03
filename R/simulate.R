@@ -14,17 +14,17 @@
 #' @param alpha Numeric vector of length 3. Association parameters quantifying
 #'   how trajectory features influence survival hazard:
 #'   \code{[biomarker, velocity, acceleration]}.
-#'   Positive values indicate increased risk (default: c(0.5, 0.0, 0.3)).
+#'   Positive values indicate increased risk (default: c(0.3, -0.5, 0.8)).
 #' @param beta Numeric vector governing ODE dynamics (length 5). Controls
 #'   biomarker trajectory evolution: \code{[biomarker, velocity,
-#'   x1, x2, time]} (default: c(-1, -2, 2, 1, 0.5)).
+#'   x1, x2, time]} (default: c(-0.5, -1.0, 3, 2, 1)).
 #' @param phi Numeric vector of length 2. Baseline covariate effects modulating
 #'   survival hazard independently of biomarker dynamics: \code{[w1, w2]}
 #'   (default: c(0.4, -0.6)).
 #' @param weibull_shape Numeric. Weibull shape parameter (\eqn{\kappa})
 #'   characterizing baseline hazard evolution. Values > 1 yield increasing
 #'   hazard (aging effect), < 1 decreasing hazard (selection effect), =
-#'   1 constant hazard (exponential) (default: 1.5).
+#'   1 constant hazard (exponential) (default: 1).
 #' @param weibull_scale Numeric. Weibull scale parameter (\eqn{\theta})
 #'   determining the characteristic event time. Larger values shift the
 #'   hazard curve rightward (default: 8).
@@ -213,10 +213,10 @@
 #' @export
 simulate <- function(
   n = 200,
-  alpha = c(0.5, 0.0, 0.3),
-  beta = c(-1, -2, 2, 1, 0.5),
+  alpha = c(0.3, -0.5, 0.8),
+  beta = c(-0.5, -1.0, 3, 2, 1),
   phi = c(0.4, -0.6),
-  weibull_shape = 1.5,
+  weibull_shape = 1,
   weibull_scale = 8,
   sigma_b = 0.1,
   sigma_e = 0.1,
@@ -456,7 +456,7 @@ simulate <- function(
   surv_times <- simsurv::simsurv(
     hazard = hazard_function,
     x = covariates,
-    interval = c(1e-8, 100)
+    interval = c(0, 100)
   )
 
   # Apply censoring
@@ -817,16 +817,16 @@ simulate <- function(
 #'
 #' @noRd
 .create_example_data <- function(n = 200) {
-  # Define default configurations
+  # Define default configurations (match JointODE defaults)
   spline_baseline <- list(
-    degree = 3,
-    n_knots = 5,
+    degree = 1,
+    n_knots = 1,
     knot_placement = "quantile",
     boundary_knots = NULL
   )
 
-  # Define functions once
-  lambda_0 <- function(t) log((1.5 / 8) * (t / 8)^0.5)
+  # Define functions once (exponential baseline, Weibull shape=1)
+  lambda_0 <- function(t) rep(log(1 / 8), length(t))
 
   # Generate and process data
   data <- simulate(n = n)
@@ -841,9 +841,9 @@ simulate <- function(
     spline_baseline
   )
 
-  # Define coefficients
-  hazard_coefficients <- c(0.5, 0.0, 0.3, 0.4, -0.6)
-  acceleration_coefficients <- c(-1, -2, 0, 2, 1, 0.5)
+  # Define coefficients (use simulate function defaults)
+  hazard_coefficients <- c(0.3, -0.5, 0.8, 0.4, -0.6)
+  acceleration_coefficients <- c(-0.5, -1.0, 0, 3, 2, 1)
 
   # Create spline configurations
   spline_baseline_config <- .get_spline_config(

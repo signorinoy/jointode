@@ -353,3 +353,11 @@ The partial derivatives $\frac{\partial F}{\partial \boldsymbol{\theta}}\bigg|_{
 - Baseline hazard coefficients: $\frac{\partial F}{\partial \boldsymbol{\eta}} = [\mathbf{B}^{(\lambda)}(t) \lambda_i(t|0), 0, 0]^{\top}$
 - Association parameters: $\frac{\partial F}{\partial \boldsymbol{\alpha}} = [\mathbf{m}_i(t) \lambda_i(t|0), 0, 0]^{\top}$
 - Baseline covariate effects: $\frac{\partial F}{\partial \boldsymbol{\phi}} = [\mathbf{W}_i \lambda_i(t|0), 0, 0]^{\top}$
+
+## Known Limitations
+
+The JointODE model includes the biomarker trajectory and its derivatives in the hazard function:
+
+$$\lambda_i(t) = \lambda_0(t) \exp\left[\alpha_0 m_i(t) + \alpha_1 \dot{m}_i(t) + \alpha_2 \ddot{m}_i(t) + \mathbf{W}_i^{\top}\boldsymbol{\phi} + b_i\right]$$
+
+Since $\dot{m}_i(t)$ and $\ddot{m}_i(t)$ are derivatives of $m_i(t)$, these components are correlated, leading to identifiability challenges. The velocity effect is particularly difficult to identify. Additionally, flexible baseline hazards can absorb trajectory effects, creating a trade-off between model flexibility and parameter identifiability.
