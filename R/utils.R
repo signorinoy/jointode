@@ -2,6 +2,9 @@
 
 #' @importFrom stats setNames model.frame model.response model.matrix
 #' @importFrom utils head
+#' @importFrom parallel detectCores
+#' @importFrom future plan multicore multisession sequential
+#' @importFrom future.apply future_lapply
 NULL
 
 # Null coalescing operator

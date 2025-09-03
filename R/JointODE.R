@@ -174,6 +174,8 @@
 #' @importFrom survival Surv
 #' @importFrom cli cli_h2 cli_text cli_alert_success
 #' @importFrom cli cli_alert_warning cli_alert_info
+#' @importFrom future.apply future_lapply
+#' @importFrom numDeriv jacobian
 #'
 #' @examples
 #' \dontrun{
