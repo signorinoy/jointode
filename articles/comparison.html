@@ -140,15 +140,15 @@ association.</p>
 <tbody>
 <tr class="odd">
 <td align="left">Measurement Error SD</td>
-<td align="left">0.144</td>
+<td align="left">0.134</td>
 </tr>
 <tr class="even">
 <td align="left">Signal-to-Noise Ratio</td>
-<td align="left">8.565</td>
+<td align="left">8.060</td>
 </tr>
 <tr class="odd">
 <td align="left">Correlation (True vs Obs)</td>
-<td align="left">0.993</td>
+<td align="left">0.992</td>
 </tr>
 </tbody>
 </table>
@@ -222,19 +222,19 @@ association.</p>
 <tr class="odd">
 <td align="left">biomarker</td>
 <td align="right">1.000</td>
-<td align="right">0.500</td>
-<td align="right">-0.303</td>
+<td align="right">0.507</td>
+<td align="right">-0.281</td>
 </tr>
 <tr class="even">
 <td align="left">velocity</td>
-<td align="right">0.500</td>
+<td align="right">0.507</td>
 <td align="right">1.000</td>
-<td align="right">0.176</td>
+<td align="right">0.240</td>
 </tr>
 <tr class="odd">
 <td align="left">acceleration</td>
-<td align="right">-0.303</td>
-<td align="right">0.176</td>
+<td align="right">-0.281</td>
+<td align="right">0.240</td>
 <td align="right">1.000</td>
 </tr>
 </tbody>
@@ -295,13 +295,13 @@ association.</p>
 <span>  <span class="st">"Dataset: %d subjects, %d observations\n"</span>,</span>
 <span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/n_distinct.html" class="external-link">n_distinct</a></span><span class="op">(</span><span class="va">long_data</span><span class="op">$</span><span class="va">id</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">long_data</span><span class="op">)</span></span>
 <span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Dataset: 200 subjects, 2183 observations</span></span>
+<span><span class="co">#&gt; Dataset: 100 subjects, 1197 observations</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
 <span>  <span class="st">"Events: %.0f%% (median follow-up: %.1f)\n"</span>,</span>
 <span>  <span class="fl">100</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">surv_data</span><span class="op">$</span><span class="va">status</span><span class="op">)</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="va">surv_data</span><span class="op">$</span><span class="va">time</span><span class="op">)</span></span>
 <span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Events: 84% (median follow-up: 3.5)</span></span></code></pre></div>
+<span><span class="co">#&gt; Events: 74% (median follow-up: 4.5)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="data-preparation">Data Preparation<a class="anchor" aria-label="anchor" href="#data-preparation"></a>
@@ -372,32 +372,32 @@ association.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_lme</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Linear mixed-effects model fit by REML</span></span>
 <span><span class="co">#&gt;   Data: jsm_data </span></span>
-<span><span class="co">#&gt;       AIC      BIC    logLik</span></span>
-<span><span class="co">#&gt;   3839.51 3873.629 -1913.755</span></span>
+<span><span class="co">#&gt;        AIC      BIC    logLik</span></span>
+<span><span class="co">#&gt;   1992.579 2023.085 -990.2896</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Random effects:</span></span>
 <span><span class="co">#&gt;  Formula: ~1 | ID</span></span>
 <span><span class="co">#&gt;         (Intercept)  Residual</span></span>
-<span><span class="co">#&gt; StdDev:    0.231629 0.5527508</span></span>
+<span><span class="co">#&gt; StdDev:   0.2289725 0.5235997</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Fixed effects:  v ~ obstime + x1 + x2 </span></span>
-<span><span class="co">#&gt;                  Value   Std.Error   DF   t-value p-value</span></span>
-<span><span class="co">#&gt; (Intercept) -0.3750611 0.024189159 1982 -15.50534       0</span></span>
-<span><span class="co">#&gt; obstime      0.3831677 0.005461407 1982  70.15915       0</span></span>
-<span><span class="co">#&gt; x1          -0.4895653 0.023282056  197 -21.02758       0</span></span>
-<span><span class="co">#&gt; x2           0.3228062 0.019134871  197  16.87005       0</span></span>
+<span><span class="co">#&gt;                  Value  Std.Error   DF   t-value p-value</span></span>
+<span><span class="co">#&gt; (Intercept) -0.2829678 0.03259922 1096  -8.68020       0</span></span>
+<span><span class="co">#&gt; obstime      0.3385990 0.00741596 1096  45.65814       0</span></span>
+<span><span class="co">#&gt; x1          -0.5377370 0.03319557   97 -16.19906       0</span></span>
+<span><span class="co">#&gt; x2           0.2940270 0.02861319   97  10.27592       0</span></span>
 <span><span class="co">#&gt;  Correlation: </span></span>
 <span><span class="co">#&gt;         (Intr) obstim x1    </span></span>
-<span><span class="co">#&gt; obstime -0.464              </span></span>
-<span><span class="co">#&gt; x1       0.153 -0.074       </span></span>
-<span><span class="co">#&gt; x2      -0.072  0.037 -0.048</span></span>
+<span><span class="co">#&gt; obstime -0.478              </span></span>
+<span><span class="co">#&gt; x1      -0.057 -0.085       </span></span>
+<span><span class="co">#&gt; x2       0.097  0.006 -0.186</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Standardized Within-Group Residuals:</span></span>
 <span><span class="co">#&gt;         Min          Q1         Med          Q3         Max </span></span>
-<span><span class="co">#&gt; -4.00941609 -0.48481193 -0.05661198  0.47794728  3.91142947 </span></span>
+<span><span class="co">#&gt; -3.86881273 -0.53793137 -0.07334969  0.61599146  4.04927223 </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Number of Observations: 2183</span></span>
-<span><span class="co">#&gt; Number of Groups: 200</span></span></code></pre></div>
+<span><span class="co">#&gt; Number of Observations: 1197</span></span>
+<span><span class="co">#&gt; Number of Groups: 100</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="baseline-survival">Baseline Survival<a class="anchor" aria-label="anchor" href="#baseline-survival"></a>
@@ -413,22 +413,22 @@ association.</p>
 <span><span class="co">#&gt; coxph(formula = Surv(start, stop, event) ~ w1 + w2, data = jsm_data, </span></span>
 <span><span class="co">#&gt;     x = TRUE)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   n= 2183, number of events= 167 </span></span>
+<span><span class="co">#&gt;   n= 1197, number of events= 74 </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;        coef exp(coef) se(coef)      z Pr(&gt;|z|)    </span></span>
-<span><span class="co">#&gt; w1  0.20366   1.22588  0.08192  2.486   0.0129 *  </span></span>
-<span><span class="co">#&gt; w2 -0.59428   0.55196  0.08434 -7.046 1.84e-12 ***</span></span>
+<span><span class="co">#&gt;       coef exp(coef) se(coef)     z Pr(&gt;|z|)    </span></span>
+<span><span class="co">#&gt; w1  0.3398    1.4047   0.1354  2.51   0.0121 *  </span></span>
+<span><span class="co">#&gt; w2 -0.6582    0.5178   0.1263 -5.21 1.89e-07 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;    exp(coef) exp(-coef) lower .95 upper .95</span></span>
-<span><span class="co">#&gt; w1     1.226     0.8157    1.0440    1.4394</span></span>
-<span><span class="co">#&gt; w2     0.552     1.8117    0.4679    0.6512</span></span>
+<span><span class="co">#&gt; w1    1.4047     0.7119    1.0774    1.8315</span></span>
+<span><span class="co">#&gt; w2    0.5178     1.9313    0.4042    0.6633</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Concordance= 0.671  (se = 0.022 )</span></span>
-<span><span class="co">#&gt; Likelihood ratio test= 54.24  on 2 df,   p=2e-12</span></span>
-<span><span class="co">#&gt; Wald test            = 52.51  on 2 df,   p=4e-12</span></span>
-<span><span class="co">#&gt; Score (logrank) test = 52.59  on 2 df,   p=4e-12</span></span></code></pre></div>
+<span><span class="co">#&gt; Concordance= 0.674  (se = 0.036 )</span></span>
+<span><span class="co">#&gt; Likelihood ratio test= 30.44  on 2 df,   p=2e-07</span></span>
+<span><span class="co">#&gt; Wald test            = 29.3  on 2 df,   p=4e-07</span></span>
+<span><span class="co">#&gt; Score (logrank) test = 30.37  on 2 df,   p=3e-07</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="joint-model">Joint Model<a class="anchor" aria-label="anchor" href="#joint-model"></a>
@@ -456,33 +456,33 @@ association.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Data Descriptives:</span></span>
 <span><span class="co">#&gt; Longitudinal Process     Survival Process</span></span>
-<span><span class="co">#&gt; Number of Observations: 2183 Number of Events: 167 (83.5%)</span></span>
-<span><span class="co">#&gt; Number of Groups: 200 </span></span>
+<span><span class="co">#&gt; Number of Observations: 1197 Number of Events: 74 (74%)</span></span>
+<span><span class="co">#&gt; Number of Groups: 100 </span></span>
 <span><span class="co">#&gt;       AIC      BIC    logLik</span></span>
-<span><span class="co">#&gt;  5583.633 5613.318 -2782.817</span></span>
+<span><span class="co">#&gt;  2659.828 2683.275 -1320.914</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt; Longitudinal Process: Linear mixed-effects model</span></span>
-<span><span class="co">#&gt;               Estimate     StdErr z.value   p.value    </span></span>
-<span><span class="co">#&gt; (Intercept) -0.3741989  0.0242791 -15.412 &lt; 2.2e-16 ***</span></span>
-<span><span class="co">#&gt; obstime      0.3846258  0.0054895  70.066 &lt; 2.2e-16 ***</span></span>
-<span><span class="co">#&gt; x1          -0.4901119  0.0237039 -20.676 &lt; 2.2e-16 ***</span></span>
-<span><span class="co">#&gt; x2           0.3231809  0.0192431  16.795 &lt; 2.2e-16 ***</span></span>
+<span><span class="co">#&gt;               Estimate     StdErr  z.value   p.value    </span></span>
+<span><span class="co">#&gt; (Intercept) -0.2823113  0.0322536  -8.7529 &lt; 2.2e-16 ***</span></span>
+<span><span class="co">#&gt; obstime      0.3407700  0.0074254  45.8923 &lt; 2.2e-16 ***</span></span>
+<span><span class="co">#&gt; x1          -0.5426782  0.0329811 -16.4542 &lt; 2.2e-16 ***</span></span>
+<span><span class="co">#&gt; x2           0.2920205  0.0284767  10.2547 &lt; 2.2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Survival Process: Proportional hazards model with unspecified baseline hazard function</span></span>
-<span><span class="co">#&gt;     Estimate    StdErr z.value   p.value    </span></span>
-<span><span class="co">#&gt; w1  0.268232  0.082170  3.2644 0.0010971 ** </span></span>
-<span><span class="co">#&gt; w2 -0.605953  0.081483 -7.4365 1.034e-13 ***</span></span>
-<span><span class="co">#&gt; v   0.480553  0.133148  3.6092 0.0003072 ***</span></span>
+<span><span class="co">#&gt;    Estimate   StdErr z.value   p.value    </span></span>
+<span><span class="co">#&gt; w1  0.41334  0.13910  2.9716  0.002962 ** </span></span>
+<span><span class="co">#&gt; w2 -0.80977  0.13047 -6.2065 5.419e-10 ***</span></span>
+<span><span class="co">#&gt; v   1.03042  0.24684  4.1744 2.988e-05 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Variance Components:</span></span>
 <span><span class="co">#&gt;             StdDev</span></span>
-<span><span class="co">#&gt; Random   0.2297508</span></span>
-<span><span class="co">#&gt; Residual 0.5525003</span></span>
+<span><span class="co">#&gt; Random   0.2238549</span></span>
+<span><span class="co">#&gt; Residual 0.5233943</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Integration: (Adaptive Gauss-Hermite Quadrature)</span></span>
 <span><span class="co">#&gt; quadrature points: 9 </span></span>
@@ -492,7 +492,7 @@ association.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Optimization:</span></span>
 <span><span class="co">#&gt; convergence: success</span></span>
-<span><span class="co">#&gt; iterations: 9</span></span></code></pre></div>
+<span><span class="co">#&gt; iterations: 8</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="time-varying-cox">Time-Varying Cox<a class="anchor" aria-label="anchor" href="#time-varying-cox"></a>
@@ -509,28 +509,28 @@ association.</p>
 <span><span class="co">#&gt; coxph(formula = Surv(start, stop, event) ~ w1 + w2 + biomarker + </span></span>
 <span><span class="co">#&gt;     velocity + acceleration + offset(b), data = jsm_data, cluster = ID)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   n= 2183, number of events= 167 </span></span>
+<span><span class="co">#&gt;   n= 1197, number of events= 74 </span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;                  coef exp(coef) se(coef) robust se      z Pr(&gt;|z|)    </span></span>
-<span><span class="co">#&gt; w1            0.28823   1.33406  0.08101   0.07734  3.727 0.000194 ***</span></span>
-<span><span class="co">#&gt; w2           -0.60783   0.54453  0.08075   0.09107 -6.674 2.49e-11 ***</span></span>
-<span><span class="co">#&gt; biomarker     0.24636   1.27936  0.11215   0.11650  2.115 0.034457 *  </span></span>
-<span><span class="co">#&gt; velocity      0.61966   1.85830  0.26756   0.25533  2.427 0.015230 *  </span></span>
-<span><span class="co">#&gt; acceleration -0.74781   0.47340  0.31762   0.32359 -2.311 0.020834 *  </span></span>
+<span><span class="co">#&gt;                 coef exp(coef) se(coef) robust se      z Pr(&gt;|z|)    </span></span>
+<span><span class="co">#&gt; w1            0.3751    1.4552   0.1382    0.1298  2.890  0.00386 ** </span></span>
+<span><span class="co">#&gt; w2           -0.7454    0.4745   0.1268    0.1268 -5.878 4.16e-09 ***</span></span>
+<span><span class="co">#&gt; biomarker     0.5423    1.7199   0.1963    0.1858  2.919  0.00351 ** </span></span>
+<span><span class="co">#&gt; velocity      0.6281    1.8741   0.4687    0.4211  1.492  0.13582    </span></span>
+<span><span class="co">#&gt; acceleration -0.2247    0.7987   0.6852    0.7355 -0.306  0.75994    </span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;              exp(coef) exp(-coef) lower .95 upper .95</span></span>
-<span><span class="co">#&gt; w1              1.3341     0.7496    1.1464    1.5524</span></span>
-<span><span class="co">#&gt; w2              0.5445     1.8364    0.4555    0.6509</span></span>
-<span><span class="co">#&gt; biomarker       1.2794     0.7816    1.0182    1.6075</span></span>
-<span><span class="co">#&gt; velocity        1.8583     0.5381    1.1266    3.0652</span></span>
-<span><span class="co">#&gt; acceleration    0.4734     2.1124    0.2511    0.8926</span></span>
+<span><span class="co">#&gt; w1              1.4552     0.6872    1.1283    1.8767</span></span>
+<span><span class="co">#&gt; w2              0.4745     2.1073    0.3701    0.6084</span></span>
+<span><span class="co">#&gt; biomarker       1.7199     0.5814    1.1951    2.4753</span></span>
+<span><span class="co">#&gt; velocity        1.8741     0.5336    0.8210    4.2780</span></span>
+<span><span class="co">#&gt; acceleration    0.7987     1.2520    0.1889    3.3766</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Concordance= 0.705  (se = 0.022 )</span></span>
-<span><span class="co">#&gt; Likelihood ratio test= 91.69  on 5 df,   p=&lt;2e-16</span></span>
-<span><span class="co">#&gt; Wald test            = 74.63  on 5 df,   p=1e-14</span></span>
-<span><span class="co">#&gt; Score (logrank) test = 94.7  on 5 df,   p=&lt;2e-16,   Robust = 75.26  p=8e-15</span></span>
+<span><span class="co">#&gt; Concordance= 0.731  (se = 0.032 )</span></span>
+<span><span class="co">#&gt; Likelihood ratio test= 54.05  on 5 df,   p=2e-10</span></span>
+<span><span class="co">#&gt; Wald test            = 48.7  on 5 df,   p=3e-09</span></span>
+<span><span class="co">#&gt; Score (logrank) test = 54.38  on 5 df,   p=2e-10,   Robust = 42.05  p=6e-08</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   (Note: the likelihood ratio and score tests assume independence of</span></span>
 <span><span class="co">#&gt;      observations within a cluster, the Wald and robust score tests do not).</span></span></code></pre></div>
@@ -628,26 +628,26 @@ p&lt;0.001)</caption>
 <tr class="odd">
 <td align="left">α (Association)</td>
 <td align="center">0.30</td>
-<td align="center">0.481 (0.133)***</td>
-<td align="center">0.246 (0.112)*</td>
-<td align="center">+0.181</td>
-<td align="center">-0.054</td>
+<td align="center">1.030 (0.247)***</td>
+<td align="center">0.542 (0.196)**</td>
+<td align="center">+0.730</td>
+<td align="center">+0.242</td>
 </tr>
 <tr class="even">
 <td align="left">β₁ (w1)</td>
 <td align="center">0.40</td>
-<td align="center">0.268 (0.082)**</td>
-<td align="center">0.288 (0.081)***</td>
-<td align="center">-0.132</td>
-<td align="center">-0.112</td>
+<td align="center">0.413 (0.139)**</td>
+<td align="center">0.375 (0.138)**</td>
+<td align="center">+0.013</td>
+<td align="center">-0.025</td>
 </tr>
 <tr class="odd">
 <td align="left">β₂ (w2)</td>
 <td align="center">-0.60</td>
-<td align="center">-0.606 (0.081)***</td>
-<td align="center">-0.608 (0.081)***</td>
-<td align="center">-0.006</td>
-<td align="center">-0.008</td>
+<td align="center">-0.810 (0.130)***</td>
+<td align="center">-0.745 (0.127)***</td>
+<td align="center">-0.210</td>
+<td align="center">-0.145</td>
 </tr>
 </tbody>
 </table>
@@ -777,11 +777,11 @@ p&lt;0.001)</caption>
 <tbody>
 <tr class="odd">
 <td align="left">Joint Model</td>
-<td align="center">0.691 (0.650-0.732)</td>
+<td align="center">0.733 (0.670-0.797)</td>
 </tr>
 <tr class="even">
 <td align="left">Time-Varying Cox</td>
-<td align="center">0.705 (0.661-0.749)</td>
+<td align="center">0.731 (0.667-0.796)</td>
 </tr>
 </tbody>
 </table>
@@ -818,13 +818,13 @@ p&lt;0.001)</caption>
 <span><span class="co">#&gt; [10] RColorBrewer_1.1-3  fastmap_1.2.0       jsonlite_2.0.0     </span></span>
 <span><span class="co">#&gt; [13] Matrix_1.7-3        deSolve_1.40        mgcv_1.9-3         </span></span>
 <span><span class="co">#&gt; [16] purrr_1.1.0         scales_1.4.0        codetools_0.2-20   </span></span>
-<span><span class="co">#&gt; [19] numDeriv_2016.8-1.1 textshaping_1.0.2   jquerylib_0.1.4    </span></span>
+<span><span class="co">#&gt; [19] numDeriv_2016.8-1.1 textshaping_1.0.3   jquerylib_0.1.4    </span></span>
 <span><span class="co">#&gt; [22] cli_3.6.5           rlang_1.1.6         parallelly_1.45.1  </span></span>
 <span><span class="co">#&gt; [25] future.apply_1.20.0 withr_3.0.2         cachem_1.1.0       </span></span>
 <span><span class="co">#&gt; [28] yaml_2.3.10         tools_4.5.1         parallel_4.5.1     </span></span>
 <span><span class="co">#&gt; [31] globals_0.18.0      vctrs_0.6.5         R6_2.6.1           </span></span>
 <span><span class="co">#&gt; [34] lifecycle_1.0.4     fs_1.6.6            simsurv_1.0.0      </span></span>
-<span><span class="co">#&gt; [37] ragg_1.4.0          pkgconfig_2.0.3     desc_1.4.3         </span></span>
+<span><span class="co">#&gt; [37] ragg_1.5.0          pkgconfig_2.0.3     desc_1.4.3         </span></span>
 <span><span class="co">#&gt; [40] pkgdown_2.1.3       bslib_0.9.0         pillar_1.11.0      </span></span>
 <span><span class="co">#&gt; [43] gtable_0.3.6        glue_1.8.0          Rcpp_1.1.0         </span></span>
 <span><span class="co">#&gt; [46] systemfonts_1.2.3   tidyselect_1.2.1    xfun_0.53          </span></span>

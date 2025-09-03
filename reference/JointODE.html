@@ -73,7 +73,7 @@ shared random effects and flexible hazard specifications.</p>
 <span>  <span class="va">survival_data</span>,</span>
 <span>  id <span class="op">=</span> <span class="st">"id"</span>,</span>
 <span>  time <span class="op">=</span> <span class="st">"time"</span>,</span>
-<span>  spline_baseline <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>degree <span class="op">=</span> <span class="fl">1</span>, n_knots <span class="op">=</span> <span class="fl">1</span>, knot_placement <span class="op">=</span> <span class="st">"quantile"</span>,</span>
+<span>  spline_baseline <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>degree <span class="op">=</span> <span class="fl">1</span>, n_knots <span class="op">=</span> <span class="fl">0</span>, knot_placement <span class="op">=</span> <span class="st">"quantile"</span>,</span>
 <span>    boundary_knots <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
 <span>  init <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -136,7 +136,7 @@ baseline hazard function with the following components:</p><dl><dt><code>degree<
 
 <dt><code>n_knots</code></dt>
 <dd><p>Number of interior knots for flexibility
-(default: 1)</p></dd>
+(default: 0, linear baseline hazard with 2 parameters)</p></dd>
 
 <dt><code>knot_placement</code></dt>
 <dd><p>Strategy for positioning knots:
