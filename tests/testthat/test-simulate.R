@@ -139,9 +139,9 @@ test_that("simulate() produces reasonable values", {
   expect_true(all(sim_data$survival_data$time < 100)) # Should not be extreme
 
   # Check for reasonable event rate
-  # (should be between 20% and 80% for typical settings)
+  # (should be between 20% and 90% for typical settings)
   event_rate <- mean(sim_data$survival_data$status)
-  expect_true(event_rate > 0.2 && event_rate < 0.8)
+  expect_true(event_rate > 0.2 && event_rate < 0.9)
 
   # Check longitudinal measurements are reasonable
   expect_false(any(is.na(sim_data$longitudinal_data$v)))

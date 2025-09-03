@@ -294,7 +294,7 @@ JointODE <- function(
     list(
       method = "L-BFGS-B",
       em_maxit = 100,
-      maxit = 20,
+      maxit = 50,
       tol = 1e-4,
       verbose = FALSE,
       factr = 1e8

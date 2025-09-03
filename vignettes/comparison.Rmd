@@ -70,7 +70,7 @@ measurement_error %>%
   knitr::kable(caption = "Measurement Error Characteristics")
 
 # Visual comparison: observed vs true trajectories
-set.seed(123) # For reproducible sample selection
+set.seed(42) # For reproducible sample selection
 sample_ids <- sample(unique(long_data$id), 4)
 
 # Biomarker trajectories

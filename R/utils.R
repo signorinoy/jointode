@@ -636,6 +636,8 @@ NULL
   parameters
 ) {
   long_cov <- .get_longitudinal_covariates(data, time)
+  # long_cov already includes intercept as first element
+  # z = [biomarker, velocity, (Intercept), x1, x2, ..., time]
   z <- as.vector(c(biomarker, velocity, long_cov, time))
   # Direct linear form: acceleration = β^T Z
   sum(parameters$coefficients$acceleration * z)
@@ -652,7 +654,8 @@ NULL
 ) {
   long_cov <- .get_longitudinal_covariates(data, time)
 
-  # Construct Z vector: [m(t), m_dot(t), X(t), t]
+  # Construct Z vector: [m(t), m_dot(t), (Intercept), X(t), t]
+  # long_cov already includes intercept as first element
   z_vec <- c(biomarker, velocity, long_cov, time)
   beta <- parameters$coefficients$acceleration
 

@@ -14,13 +14,13 @@
 #' @param alpha Numeric vector of length 3. Association parameters quantifying
 #'   how trajectory features influence survival hazard:
 #'   \code{[biomarker, velocity, acceleration]}.
-#'   Positive values indicate increased risk (default: c(0.3, 0.5, -0.8)).
+#'   Positive values indicate increased risk (default: c(0.6, 1.0, -1.5)).
 #' @param beta Numeric vector governing ODE dynamics (length 5). Controls
 #'   biomarker trajectory evolution: \code{[biomarker, velocity,
-#'   x1, x2, time]} (default: c(-0.5, -0.3, -0.5, 0.3, 0.2)).
+#'   x1, x2, time]} (default: c(-1.0, -0.6, -0.8, 0.5, 0.4)).
 #' @param phi Numeric vector of length 2. Baseline covariate effects modulating
 #'   survival hazard independently of biomarker dynamics: \code{[w1, w2]}
-#'   (default: c(0.4, -0.6)).
+#'   (default: c(0.8, -1.2)).
 #' @param weibull_shape Numeric. Weibull shape parameter (\eqn{\kappa})
 #'   characterizing baseline hazard evolution. Values > 1 yield increasing
 #'   hazard (aging effect), < 1 decreasing hazard (selection effect), =
@@ -213,9 +213,9 @@
 #' @export
 simulate <- function(
   n = 100,
-  alpha = c(0.3, 0.5, -0.8),
-  beta = c(-0.5, -0.3, -0.5, 0.3, 0.2),
-  phi = c(0.4, -0.6),
+  alpha = c(0.6, 1.0, -1.5),
+  beta = c(-1.0, -0.6, -0.8, 0.5, 0.4),
+  phi = c(0.8, -1.2),
   weibull_shape = 1,
   weibull_scale = 8,
   sigma_b = 0.1,
@@ -842,8 +842,11 @@ simulate <- function(
   )
 
   # Define coefficients (use simulate function defaults)
-  hazard_coefficients <- c(0.3, 0.5, -0.8, 0.4, -0.6)
-  acceleration_coefficients <- c(-0.5, -0.3, 0, -0.5, 0.3, 0.2)
+  # hazard: [alpha1, alpha2, alpha3, phi1, phi2]
+  hazard_coefficients <- c(0.6, 1.0, -1.5, 0.8, -1.2)
+  # acceleration: [biomarker, velocity, intercept, x1, x2, time]
+  # The intercept (3rd position) is added for estimation
+  acceleration_coefficients <- c(-1.0, -0.6, 0, -0.8, 0.5, 0.4)
 
   # Create spline configurations
   spline_baseline_config <- .get_spline_config(
