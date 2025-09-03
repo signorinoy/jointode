@@ -124,19 +124,19 @@ parameters. Features include:</p><ul><li><p>100 subjects with adaptive visit sch
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Examine structure</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 'data.frame':	1197 obs. of  8 variables:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ id          : int  1 1 1 1 1 1 1 1 1 1 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ time        : num  0 0.25 0.5 0.75 1 1.25 1.5 1.75 2 2.5 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ v           : num  0.0888 0.0678 0.0998 0.0807 0.2447 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 'data.frame':	1010 obs. of  8 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ id          : int  1 1 1 1 1 2 2 2 2 2 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ time        : num  0 0.25 0.5 0.75 1 0 0.5 0.75 1 1.25 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ v           : num  0.0919 0.1938 0.2904 0.3098 0.2987 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ x1          : num  -0.00462 -0.00462 -0.00462 -0.00462 -0.00462 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ x2          : num  1.33 1.33 1.33 1.33 1.33 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ biomarker   : num  0 0.0128 0.0514 0.116 0.2056 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ velocity    : num  0 0.103 0.207 0.309 0.407 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ acceleration: num  0.403 0.416 0.415 0.402 0.378 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ biomarker   : num  0 0.0209 0.0822 0.1806 0.3111 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ velocity    : num  0 0.166 0.322 0.462 0.578 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ acceleration: num  0.671 0.651 0.595 0.514 0.413 ...</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 'data.frame':	100 obs. of  6 variables:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ id    : int  1 2 3 4 5 6 7 8 9 10 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ time  : num  2.89 5.96 1.26 9.79 1.33 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ time  : num  1.039 4.397 2.937 8.928 0.746 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ status: int  1 1 1 1 1 1 1 1 1 1 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ w1    : num  1.201 1.045 -1.003 1.848 -0.667 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ w2    : num  -2.001 0.334 1.171 2.06 -1.377 ...</span>
@@ -147,11 +147,11 @@ parameters. Features include:</p><ul><li><p>100 subjects with adaptive visit sch
 <span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">$</span><span class="va">id</span><span class="op">)</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Number of subjects: 100 </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Event rate:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">$</span><span class="va">status</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Event rate: 0.74 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Event rate: 0.77 </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Average observations per subject:"</span>,</span></span>
 <span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">)</span> <span class="op">/</span></span></span>
 <span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Average observations per subject: 11.97 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Average observations per subject: 10.1 </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Visualize longitudinal trajectories</span></span></span>
 <span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"ggplot2"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>

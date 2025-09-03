@@ -158,29 +158,29 @@
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Variance components:</span></span>
 <span><span class="co">#&gt; sigma_e sigma_b </span></span>
-<span><span class="co">#&gt; 0.09646 0.09394 </span></span>
+<span><span class="co">#&gt; 0.09592 0.10462 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Fixed effects:</span></span>
-<span><span class="co">#&gt;                     Estimate Std. Error  z value Pr(&gt;|z|)    </span></span>
-<span><span class="co">#&gt; baseline:1         -2.083253   0.225528   -9.237  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; baseline:2         -2.078663   0.673679   -3.086  0.00203 ** </span></span>
-<span><span class="co">#&gt; hazard:alpha0       0.313248   0.169553    1.847  0.06468 .  </span></span>
-<span><span class="co">#&gt; hazard:alpha1       0.505112   0.362825    1.392  0.16387    </span></span>
-<span><span class="co">#&gt; hazard:alpha2      -0.799521   0.552611   -1.447  0.14795    </span></span>
-<span><span class="co">#&gt; hazard:phi1         0.396715   0.132758    2.988  0.00281 ** </span></span>
-<span><span class="co">#&gt; hazard:phi2        -0.605996   0.121175   -5.001  5.7e-07 ***</span></span>
-<span><span class="co">#&gt; longitudinal:beta1 -0.495143   0.004103 -120.672  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; longitudinal:beta2 -0.304172   0.009947  -30.580  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; longitudinal:beta3  0.001914   0.003093    0.619  0.53609    </span></span>
-<span><span class="co">#&gt; longitudinal:beta4 -0.496585   0.005767  -86.108  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; longitudinal:beta5  0.300015   0.003721   80.627  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; longitudinal:beta6  0.198027   0.002496   79.335  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt;                     Estimate Std. Error z value Pr(&gt;|z|)    </span></span>
+<span><span class="co">#&gt; baseline:1         -2.084879   0.250521  -8.322  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; baseline:2         -2.070379   0.838190  -2.470  0.01351 *  </span></span>
+<span><span class="co">#&gt; hazard:alpha0       0.675740   0.221085   3.056  0.00224 ** </span></span>
+<span><span class="co">#&gt; hazard:alpha1       1.032208   0.360466   2.864  0.00419 ** </span></span>
+<span><span class="co">#&gt; hazard:alpha2      -1.503094   0.317228  -4.738 2.16e-06 ***</span></span>
+<span><span class="co">#&gt; hazard:phi1         0.774640   0.141422   5.478 4.31e-08 ***</span></span>
+<span><span class="co">#&gt; hazard:phi2        -1.223616   0.143948  -8.500  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; longitudinal:beta1 -1.021807   0.014190 -72.009  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; longitudinal:beta2 -0.602169   0.019091 -31.543  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; longitudinal:beta3 -0.006041   0.006801  -0.888  0.37440    </span></span>
+<span><span class="co">#&gt; longitudinal:beta4 -0.805953   0.012942 -62.273  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; longitudinal:beta5  0.507161   0.008583  59.087  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; longitudinal:beta6  0.406766   0.006644  61.225  &lt; 2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Log-likelihood: 1058.271   AIC: -2086.542   BIC: -2047.465</span></span>
-<span><span class="co">#&gt; N = 100  Convergence: EM algorithm converged after 7 iterations</span></span>
+<span><span class="co">#&gt; Log-likelihood: 931.3818   AIC: -1832.764   BIC: -1793.686</span></span>
+<span><span class="co">#&gt; N = 100  Convergence: EM algorithm converged after 6 iterations</span></span>
 <span></span>
 <span><span class="co"># Generate predictions</span></span>
 <span><span class="va">predictions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, times <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">10</span>, by <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
