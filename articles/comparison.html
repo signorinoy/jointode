@@ -34,8 +34,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started</a></li>
-    <li><a class="dropdown-item" href="../articles/technical-details.html">Technical Details</a></li>
+<li><a class="dropdown-item" href="../articles/technical-details.html">Technical Details</a></li>
     <li><a class="dropdown-item" href="../articles/comparison.html">Comparison</a></li>
   </ul>
 </li>
@@ -77,238 +76,256 @@
     
     
 <div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+<h2 id="simulation-setup">Simulation Setup<a class="anchor" aria-label="anchor" href="#simulation-setup"></a>
 </h2>
-<p>This vignette compares joint modeling (JSM package) with time-varying
-Cox regression using simulated data with known parameters. Joint models
-properly account for measurement error and informative dropout, while
-naive approaches may yield biased estimates.</p>
+<p>The <code>sim</code> dataset was generated using a joint ODE
+framework with the following structure:</p>
+<p><strong>Longitudinal Process:</strong></p>
+<p>The observed biomarker measurements are: <span class="math display">v_{ij} = m_i(t_{ij}) + b_i +
+\epsilon_{ij}</span></p>
+<p>where the true biomarker trajectory <span class="math inline">m_i(t)</span> evolves according to:</p>
+<p><span class="math display">\ddot{m}_i(t) = \beta_1 m_i(t) + \beta_2
+\dot{m}_i(t) + \beta_3 + \beta_4 x_{i1} + \beta_5 x_{i2} + \beta_6
+t</span></p>
+<p>with <span class="math inline">b_i \sim \mathcal{N}(0,
+\sigma_b^2)</span> (random intercept) and <span class="math inline">\epsilon_{ij} \sim \mathcal{N}(0, \sigma_e^2)</span>
+(measurement error).</p>
+<p><strong>Survival Process:</strong></p>
+<p>The hazard function incorporates biomarker dynamics: <span class="math display">\lambda_i(t) = \lambda_0(t) \exp\{\alpha_1 m_i(t) +
+\alpha_2 \dot{m}_i(t) + \alpha_3 \ddot{m}_i(t) + \phi_1 w_{i1} + \phi_2
+w_{i2} + b_i\}</span></p>
+<p>where <span class="math inline">\lambda_0(t)=8</span> is the baseline
+hazard and <span class="math inline">\alpha = (\alpha_1, \alpha_2,
+\alpha_3)</span> captures the association with biomarker value,
+velocity, and acceleration.</p>
+<pre><code><span><span class="co">#&gt; True Parameters:</span></span>
+<span><span class="co">#&gt;   Hazard: α = [0.6, 1.0, -1.5], φ = [0.8, -1.2]</span></span>
+<span><span class="co">#&gt;   ODE: β = [-1.0, -0.6, 0.0, -0.8, 0.5, 0.4]</span></span>
+<span><span class="co">#&gt;   Variance: σ_e = 0.1, σ_b = 0.1</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Dataset: 100 subjects, 1010 observations, 77% events</span></span></code></pre>
 <div class="section level3">
-<h3 id="model-structure">Model Structure<a class="anchor" aria-label="anchor" href="#model-structure"></a>
+<h3 id="ode-dynamics">ODE Dynamics<a class="anchor" aria-label="anchor" href="#ode-dynamics"></a>
 </h3>
-<p><strong>Longitudinal trajectory:</strong> <span class="math display">Y_i(t) = \beta_0 + \beta_1 t + \beta_2 x_{1i} +
-\beta_3 x_{2i} + b_{i} + \epsilon_i(t)</span></p>
-<p><strong>Survival hazard:</strong> <span class="math display">h_i(t) =
-h_0(t) \exp(\gamma_1 w_{1i} + \gamma_2 w_{2i} + \alpha
-m_i(t))</span></p>
-<p>where <span class="math inline">m_i(t)</span> is the true biomarker
-value and <span class="math inline">\alpha</span> quantifies the
-association.</p>
+<p><img src="comparison_files/figure-html/viz-combined-1.png" width="960"></p>
+<p>The left panel shows the complete ODE dynamics for four randomly
+selected subjects, illustrating how the biomarker value, velocity, and
+acceleration evolve over time. The right panel demonstrates the impact
+of random intercept and measurement error by comparing the true
+biomarker trajectories (lines) with the observed measurements
+(points).</p>
+<pre><code><span><span class="co">#&gt; Variance Components:</span></span>
+<span><span class="co">#&gt;   Biomarker: 0.965</span></span>
+<span><span class="co">#&gt;   Velocity: 0.142</span></span>
+<span><span class="co">#&gt;   Acceleration: 0.155</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Pairwise Correlations:</span></span>
+<span><span class="co">#&gt;   ρ(Biomarker, Velocity): 0.461</span></span>
+<span><span class="co">#&gt;   ρ(Biomarker, Acceleration): -0.234</span></span>
+<span><span class="co">#&gt;   ρ(Velocity, Acceleration): 0.148</span></span></code></pre>
+<p>The variance hierarchy and correlation structure reflect the
+fundamental properties of the ODE system. Unlike independent variables
+in traditional models, these components are mechanistically linked
+through differential equations, creating intrinsic dependencies that
+capture the true dynamics of biomarker evolution.</p>
+</div>
+<div class="section level3">
+<h3 id="survival-distribution">Survival Distribution<a class="anchor" aria-label="anchor" href="#survival-distribution"></a>
+</h3>
+<p><img src="comparison_files/figure-html/viz-survival-1.png" width="672"></p>
+<p>The survival curve shows the overall event pattern in the simulated
+dataset, with the shaded area representing the 95% confidence
+interval.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a>
+<h2 id="model-comparison">Model Comparison<a class="anchor" aria-label="anchor" href="#model-comparison"></a>
 </h2>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ziyangg98/JointODE" class="external-link">JointODE</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">JSM</span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://svn.r-project.org/R-packages/trunk/nlme/" class="external-link">nlme</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/therneau/survival" class="external-link">survival</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyr.tidyverse.org" class="external-link">tidyr</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com" class="external-link">patchwork</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2024</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">long_data</span> <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span></span>
-<span><span class="va">surv_data</span> <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span></span></code></pre></div>
+<p>We compare our proposed method against existing approaches:</p>
+<table class="table">
+<colgroup>
+<col width="15%">
+<col width="26%">
+<col width="28%">
+<col width="30%">
+</colgroup>
+<thead><tr class="header">
+<th>Model</th>
+<th>Method Type</th>
+<th>Data Source</th>
+<th>Key Features</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><strong>JointODE</strong></td>
+<td>Proposed</td>
+<td>Noisy observations</td>
+<td>ODE-based; estimates m(t), ṁ(t), m̈(t)</td>
+</tr>
+<tr class="even">
+<td><strong>JSM</strong></td>
+<td>Baseline</td>
+<td>Noisy observations</td>
+<td>Linear mixed effects; only models m(t)</td>
+</tr>
+<tr class="odd">
+<td><strong>Time-varying Cox (Oracle)</strong></td>
+<td>Upper bound</td>
+<td>True ODE values + <span class="math inline">b_i</span>
+</td>
+<td>MPLE benchmark with true values</td>
+</tr>
+</tbody>
+</table>
+<p>The Oracle model uses the true biomarker trajectory, derivatives, and
+random effects at observed time points. While it has perfect
+information, it approximates the time-varying covariates using piecewise
+linear interpolation rather than modeling the continuous ODE
+dynamics.</p>
+<p>Based on 100 simulation replicates, we evaluate the estimation
+accuracy of the association parameters <span class="math inline">(\alpha_1, \alpha_2, \alpha_3)</span> and baseline
+covariate effects <span class="math inline">(\phi_1, \phi_2)</span>
+using Bias, Empirical Standard Error (ESE), Average Standard Error
+(ASE), and Coverage Probability (CP) of 95% confidence intervals.</p>
+<table class="table">
+<thead><tr class="header">
+<th align="left">Parameter</th>
+<th align="left">Model</th>
+<th align="right">Bias</th>
+<th align="right">ESE</th>
+<th align="right">ASE</th>
+<th align="right">CP (%)</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left"><strong>Baseline Covariates</strong></td>
+<td align="left"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="even">
+<td align="left">φ₁ = 0.8</td>
+<td align="left">TVCox</td>
+<td align="right">0.027</td>
+<td align="right">0.150</td>
+<td align="right">0.137</td>
+<td align="right">90.9</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">JSM</td>
+<td align="right">-0.064</td>
+<td align="right">0.150</td>
+<td align="right">0.138</td>
+<td align="right">88.9</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">JointODE</td>
+<td align="right">0.040</td>
+<td align="right">0.137</td>
+<td align="right">0.136</td>
+<td align="right">94.3</td>
+</tr>
+<tr class="odd">
+<td align="left">φ₂ = -1.2</td>
+<td align="left">TVCox</td>
+<td align="right">-0.072</td>
+<td align="right">0.184</td>
+<td align="right">0.159</td>
+<td align="right">92.7</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">JSM</td>
+<td align="right">0.072</td>
+<td align="right">0.155</td>
+<td align="right">0.155</td>
+<td align="right">87.0</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">JointODE</td>
+<td align="right">-0.094</td>
+<td align="right">0.169</td>
+<td align="right">0.155</td>
+<td align="right">92.5</td>
+</tr>
+<tr class="even">
+<td align="left"><strong>Association Parameters</strong></td>
+<td align="left"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+<td align="right"></td>
+</tr>
+<tr class="odd">
+<td align="left">α₁ = 0.6</td>
+<td align="left">TVCox</td>
+<td align="right">-0.084</td>
+<td align="right">0.222</td>
+<td align="right">0.220</td>
+<td align="right">96.4</td>
+</tr>
+<tr class="even">
+<td align="left"></td>
+<td align="left">JSM</td>
+<td align="right">0.276</td>
+<td align="right">0.260</td>
+<td align="right">0.292</td>
+<td align="right">90.7</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">JointODE</td>
+<td align="right">-0.222</td>
+<td align="right">0.161</td>
+<td align="right">0.197</td>
+<td align="right">84.9</td>
+</tr>
+<tr class="even">
+<td align="left">α₂ = 1.0</td>
+<td align="left">TVCox</td>
+<td align="right">0.324</td>
+<td align="right">0.411</td>
+<td align="right">0.413</td>
+<td align="right">87.3</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">JointODE</td>
+<td align="right">-0.091</td>
+<td align="right">0.356</td>
+<td align="right">0.341</td>
+<td align="right">92.5</td>
+</tr>
+<tr class="even">
+<td align="left">α₃ = -1.5</td>
+<td align="left">TVCox</td>
+<td align="right">0.181</td>
+<td align="right">0.335</td>
+<td align="right">0.293</td>
+<td align="right">85.5</td>
+</tr>
+<tr class="odd">
+<td align="left"></td>
+<td align="left">JointODE</td>
+<td align="right">-0.111</td>
+<td align="right">0.319</td>
+<td align="right">0.263</td>
+<td align="right">92.5</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div class="section level2">
-<h2 id="data-exploration">Data Exploration<a class="anchor" aria-label="anchor" href="#data-exploration"></a>
+<h2 id="appendix">Appendix<a class="anchor" aria-label="anchor" href="#appendix"></a>
 </h2>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Compare observed vs true biomarker values</span></span>
-<span><span class="va">measurement_error</span> <span class="op">&lt;-</span> <span class="va">long_data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
-<span>    `Measurement Error SD` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="va">v</span> <span class="op">-</span> <span class="va">biomarker</span><span class="op">)</span>,</span>
-<span>    `Signal-to-Noise Ratio` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="va">biomarker</span><span class="op">)</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="va">v</span> <span class="op">-</span> <span class="va">biomarker</span><span class="op">)</span>,</span>
-<span>    `Correlation (True vs Obs)` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="va">biomarker</span>, <span class="va">v</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Display measurement error statistics</span></span>
-<span><span class="va">measurement_error</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_longer.html" class="external-link">pivot_longer</a></span><span class="op">(</span><span class="fu"><a href="https://tidyselect.r-lib.org/reference/everything.html" class="external-link">everything</a></span><span class="op">(</span><span class="op">)</span>, names_to <span class="op">=</span> <span class="st">"Metric"</span>, values_to <span class="op">=</span> <span class="st">"Value"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>Value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%.3f"</span>, <span class="va">Value</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>caption <span class="op">=</span> <span class="st">"Measurement Error Characteristics"</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>Measurement Error Characteristics</caption>
-<thead><tr class="header">
-<th align="left">Metric</th>
-<th align="left">Value</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">Measurement Error SD</td>
-<td align="left">0.140</td>
-</tr>
-<tr class="even">
-<td align="left">Signal-to-Noise Ratio</td>
-<td align="left">6.991</td>
-</tr>
-<tr class="odd">
-<td align="left">Correlation (True vs Obs)</td>
-<td align="left">0.990</td>
-</tr>
-</tbody>
-</table>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span></span>
-<span><span class="co"># Visual comparison: observed vs true trajectories</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span> <span class="co"># For reproducible sample selection</span></span>
-<span><span class="va">sample_ids</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">long_data</span><span class="op">$</span><span class="va">id</span><span class="op">)</span>, <span class="fl">4</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Biomarker trajectories</span></span>
-<span><span class="va">p1</span> <span class="op">&lt;-</span> <span class="va">long_data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">sample_ids</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_longer.html" class="external-link">pivot_longer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">v</span>, <span class="va">biomarker</span><span class="op">)</span>, names_to <span class="op">=</span> <span class="st">"Type"</span>, values_to <span class="op">=</span> <span class="st">"Value"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>Type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">Type</span> <span class="op">==</span> <span class="st">"v"</span>, <span class="st">"Observed"</span>, <span class="st">"True"</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">time</span>, y <span class="op">=</span> <span class="va">Value</span>, color <span class="op">=</span> <span class="va">Type</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>linewidth <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span><span class="va">id</span>, ncol <span class="op">=</span> <span class="fl">2</span>, scales <span class="op">=</span> <span class="st">"free_y"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Observed"</span> <span class="op">=</span> <span class="st">"#E74C3C"</span>, <span class="st">"True"</span> <span class="op">=</span> <span class="st">"#27AE60"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Biomarker"</span>, x <span class="op">=</span> <span class="st">"Time"</span>, y <span class="op">=</span> <span class="st">"Value"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Biomarker, velocity and acceleration (true values)</span></span>
-<span><span class="va">p2</span> <span class="op">&lt;-</span> <span class="va">long_data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">sample_ids</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_longer.html" class="external-link">pivot_longer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">biomarker</span>, <span class="va">velocity</span>, <span class="va">acceleration</span><span class="op">)</span>,</span>
-<span>    names_to <span class="op">=</span> <span class="st">"Type"</span>, values_to <span class="op">=</span> <span class="st">"Value"</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>Type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">Type</span>,</span>
-<span>    levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"biomarker"</span>, <span class="st">"velocity"</span>, <span class="st">"acceleration"</span><span class="op">)</span>,</span>
-<span>    labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Biomarker"</span>, <span class="st">"Velocity"</span>, <span class="st">"Acceleration"</span><span class="op">)</span></span>
-<span>  <span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">time</span>, y <span class="op">=</span> <span class="va">Value</span>, color <span class="op">=</span> <span class="va">Type</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>linewidth <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span><span class="va">id</span>, ncol <span class="op">=</span> <span class="fl">2</span>, scales <span class="op">=</span> <span class="st">"free_y"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>    <span class="st">"Biomarker"</span> <span class="op">=</span> <span class="st">"#27AE60"</span>,</span>
-<span>    <span class="st">"Velocity"</span> <span class="op">=</span> <span class="st">"#3498DB"</span>,</span>
-<span>    <span class="st">"Acceleration"</span> <span class="op">=</span> <span class="st">"#9B59B6"</span></span>
-<span>  <span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"top"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"True Dynamics"</span>, x <span class="op">=</span> <span class="st">"Time"</span>, y <span class="op">=</span> <span class="st">"Value"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Combine plots</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com" class="external-link">patchwork</a></span><span class="op">)</span></span>
-<span><span class="va">p1</span> <span class="op">/</span> <span class="va">p2</span></span></code></pre></div>
-<p><img src="comparison_files/figure-html/explore-true-values-1.png" width="672"></p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span></span>
-<span><span class="co"># Correlation analysis of dynamics</span></span>
-<span><span class="va">cor_data</span> <span class="op">&lt;-</span> <span class="va">long_data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">biomarker</span>, <span class="va">velocity</span>, <span class="va">acceleration</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Display correlation matrix</span></span>
-<span><span class="va">cor_data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/rownames.html" class="external-link">rownames_to_column</a></span><span class="op">(</span><span class="st">"Variable"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>caption <span class="op">=</span> <span class="st">"Correlation Matrix of True Dynamics"</span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>Correlation Matrix of True Dynamics</caption>
-<thead><tr class="header">
-<th align="left">Variable</th>
-<th align="right">biomarker</th>
-<th align="right">velocity</th>
-<th align="right">acceleration</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">biomarker</td>
-<td align="right">1.000</td>
-<td align="right">0.461</td>
-<td align="right">-0.234</td>
-</tr>
-<tr class="even">
-<td align="left">velocity</td>
-<td align="right">0.461</td>
-<td align="right">1.000</td>
-<td align="right">0.148</td>
-</tr>
-<tr class="odd">
-<td align="left">acceleration</td>
-<td align="right">-0.234</td>
-<td align="right">0.148</td>
-<td align="right">1.000</td>
-</tr>
-</tbody>
-</table>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span></span>
-<span><span class="co"># Visualize correlations with scatter plots</span></span>
-<span><span class="va">cor_plots</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Biomarker vs Velocity</span></span>
-<span><span class="va">cor_plots</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">long_data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">biomarker</span>, y <span class="op">=</span> <span class="va">velocity</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.1</span>, size <span class="op">=</span> <span class="fl">0.5</span>, color <span class="op">=</span> <span class="st">"#3498DB"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_smooth.html" class="external-link">geom_smooth</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"lm"</span>, se <span class="op">=</span> <span class="cn">FALSE</span>, color <span class="op">=</span> <span class="st">"red"</span>, linewidth <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
-<span>    title <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
-<span>      <span class="st">"r ="</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="va">long_data</span><span class="op">$</span><span class="va">biomarker</span>, <span class="va">long_data</span><span class="op">$</span><span class="va">velocity</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span>    <span class="op">)</span>,</span>
-<span>    x <span class="op">=</span> <span class="st">"Biomarker"</span>, y <span class="op">=</span> <span class="st">"Velocity"</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Biomarker vs Acceleration</span></span>
-<span><span class="va">cor_plots</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">long_data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">biomarker</span>, y <span class="op">=</span> <span class="va">acceleration</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.1</span>, size <span class="op">=</span> <span class="fl">0.5</span>, color <span class="op">=</span> <span class="st">"#9B59B6"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_smooth.html" class="external-link">geom_smooth</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"lm"</span>, se <span class="op">=</span> <span class="cn">FALSE</span>, color <span class="op">=</span> <span class="st">"red"</span>, linewidth <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
-<span>    title <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
-<span>      <span class="st">"r ="</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="va">long_data</span><span class="op">$</span><span class="va">biomarker</span>, <span class="va">long_data</span><span class="op">$</span><span class="va">acceleration</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span>    <span class="op">)</span>,</span>
-<span>    x <span class="op">=</span> <span class="st">"Biomarker"</span>, y <span class="op">=</span> <span class="st">"Acceleration"</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Velocity vs Acceleration</span></span>
-<span><span class="va">cor_plots</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">long_data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">velocity</span>, y <span class="op">=</span> <span class="va">acceleration</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.1</span>, size <span class="op">=</span> <span class="fl">0.5</span>, color <span class="op">=</span> <span class="st">"#E74C3C"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_smooth.html" class="external-link">geom_smooth</a></span><span class="op">(</span>method <span class="op">=</span> <span class="st">"lm"</span>, se <span class="op">=</span> <span class="cn">FALSE</span>, color <span class="op">=</span> <span class="st">"red"</span>, linewidth <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
-<span>    title <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span></span>
-<span>      <span class="st">"r ="</span>,</span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="va">long_data</span><span class="op">$</span><span class="va">velocity</span>, <span class="va">long_data</span><span class="op">$</span><span class="va">acceleration</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span></span>
-<span>    <span class="op">)</span>,</span>
-<span>    x <span class="op">=</span> <span class="st">"Velocity"</span>, y <span class="op">=</span> <span class="st">"Acceleration"</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Combine correlation plots</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com" class="external-link">patchwork</a></span><span class="op">)</span></span>
-<span><span class="op">(</span><span class="va">cor_plots</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span> <span class="op">|</span> <span class="va">cor_plots</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span> <span class="op">|</span> <span class="va">cor_plots</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://patchwork.data-imaginist.com/reference/plot_annotation.html" class="external-link">plot_annotation</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"True Dynamics Relationships"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="comparison_files/figure-html/explore-true-values-2.png" width="672"></p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span></span>
-<span><span class="co"># Data summary</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
-<span>  <span class="st">"Dataset: %d subjects, %d observations\n"</span>,</span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/n_distinct.html" class="external-link">n_distinct</a></span><span class="op">(</span><span class="va">long_data</span><span class="op">$</span><span class="va">id</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">long_data</span><span class="op">)</span></span>
-<span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Dataset: 100 subjects, 1010 observations</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
-<span>  <span class="st">"Events: %.0f%% (median follow-up: %.1f)\n"</span>,</span>
-<span>  <span class="fl">100</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">surv_data</span><span class="op">$</span><span class="va">status</span><span class="op">)</span>,</span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="va">surv_data</span><span class="op">$</span><span class="va">time</span><span class="op">)</span></span>
-<span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Events: 77% (median follow-up: 3.2)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="data-preparation">Data Preparation<a class="anchor" aria-label="anchor" href="#data-preparation"></a>
-</h2>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Format data for JSM package</span></span>
-<span><span class="va">jsm_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/JSM/man/dataPreprocess.html" class="external-link">dataPreprocess</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="co"># Data preparation for comparison models</span></span>
+<span><span class="va">jsm_data</span> <span class="op">&lt;-</span> <span class="fu">dataPreprocess</span><span class="op">(</span></span>
 <span>  long <span class="op">=</span> <span class="va">long_data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>ID <span class="op">=</span> <span class="va">id</span><span class="op">)</span>,</span>
 <span>  surv <span class="op">=</span> <span class="va">surv_data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>ID <span class="op">=</span> <span class="va">id</span>, survtime <span class="op">=</span> <span class="va">time</span><span class="op">)</span>,</span>
 <span>  id.col <span class="op">=</span> <span class="st">"ID"</span>,</span>
@@ -323,514 +340,47 @@ association.</p>
 <span>    event <span class="op">=</span> <span class="va">event.join</span></span>
 <span>  <span class="op">)</span></span>
 <span></span>
-<span><span class="va">surv_data_jsm</span> <span class="op">&lt;-</span> <span class="va">surv_data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>ID <span class="op">=</span> <span class="va">id</span>, survtime <span class="op">=</span> <span class="va">time</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="exploratory-analysis">Exploratory Analysis<a class="anchor" aria-label="anchor" href="#exploratory-analysis"></a>
-</h2>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Visualize longitudinal trajectories</span></span>
-<span><span class="va">long_data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">id</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/sample.html" class="external-link">sample</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">id</span><span class="op">)</span>, <span class="fl">20</span><span class="op">)</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">v</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>group <span class="op">=</span> <span class="va">id</span><span class="op">)</span>, alpha <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_smooth.html" class="external-link">geom_smooth</a></span><span class="op">(</span>se <span class="op">=</span> <span class="cn">TRUE</span>, color <span class="op">=</span> <span class="st">"#3498DB"</span>, linewidth <span class="op">=</span> <span class="fl">1.2</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">10</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
-<span>    x <span class="op">=</span> <span class="st">"Time"</span>, y <span class="op">=</span> <span class="st">"Biomarker"</span>,</span>
-<span>    title <span class="op">=</span> <span class="st">"Individual Trajectories with Population Mean"</span></span>
-<span>  <span class="op">)</span></span></code></pre></div>
-<p><img src="comparison_files/figure-html/viz-longitudinal-1.png" width="672"></p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Survival distribution</span></span>
-<span><span class="va">km_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/survfit.html" class="external-link">survfit</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">survtime</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, data <span class="op">=</span> <span class="va">surv_data_jsm</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">km_fit</span>,</span>
-<span>  xlab <span class="op">=</span> <span class="st">"Time"</span>, ylab <span class="op">=</span> <span class="st">"Survival Probability"</span>,</span>
-<span>  main <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span></span>
-<span>    <span class="st">"Event Rate: %.0f%%, Median: %.1f"</span>,</span>
-<span>    <span class="fl">100</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">surv_data_jsm</span><span class="op">$</span><span class="va">status</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="va">km_fit</span><span class="op">)</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  conf.int <span class="op">=</span> <span class="cn">TRUE</span>, mark.time <span class="op">=</span> <span class="cn">FALSE</span>, lwd <span class="op">=</span> <span class="fl">2</span>, col <span class="op">=</span> <span class="st">"#E74C3C"</span></span>
+<span><span class="co">#--------------------------------------------</span></span>
+<span><span class="co"># Model 1: JointODE (Proposed Method)</span></span>
+<span><span class="co">#--------------------------------------------</span></span>
+<span><span class="va">fit_jointode</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/JointODE.html">JointODE</a></span><span class="op">(</span></span>
+<span>  longitudinal_formula <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">formulas</span><span class="op">$</span><span class="va">longitudinal</span>,</span>
+<span>  longitudinal_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span>,</span>
+<span>  survival_formula <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">formulas</span><span class="op">$</span><span class="va">survival</span>,</span>
+<span>  survival_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/graphics/grid.html" class="external-link">grid</a></span><span class="op">(</span>lty <span class="op">=</span> <span class="fl">3</span>, col <span class="op">=</span> <span class="st">"gray90"</span><span class="op">)</span></span></code></pre></div>
-<p><img src="comparison_files/figure-html/viz-survival-1.png" width="672"></p>
-</div>
-<div class="section level2">
-<h2 id="model-fitting">Model Fitting<a class="anchor" aria-label="anchor" href="#model-fitting"></a>
-</h2>
-<div class="section level3">
-<h3 id="longitudinal-model">Longitudinal Model<a class="anchor" aria-label="anchor" href="#longitudinal-model"></a>
-</h3>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit_lme</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/nlme/man/lme.html" class="external-link">lme</a></span><span class="op">(</span></span>
+<span></span>
+<span><span class="co">#--------------------------------------------</span></span>
+<span><span class="co"># Model 2: Traditional Joint Model (JSM)</span></span>
+<span><span class="co">#--------------------------------------------</span></span>
+<span><span class="co"># Step 1: Longitudinal sub-model</span></span>
+<span><span class="va">fit_lme</span> <span class="op">&lt;-</span> <span class="fu">lme</span><span class="op">(</span></span>
 <span>  <span class="va">v</span> <span class="op">~</span> <span class="va">obstime</span> <span class="op">+</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>,</span>
 <span>  random <span class="op">=</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">|</span> <span class="va">ID</span>,</span>
-<span>  data <span class="op">=</span> <span class="va">jsm_data</span>,</span>
-<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/nlme/man/lmeControl.html" class="external-link">lmeControl</a></span><span class="op">(</span>opt <span class="op">=</span> <span class="st">"optim"</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_lme</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Linear mixed-effects model fit by REML</span></span>
-<span><span class="co">#&gt;   Data: jsm_data </span></span>
-<span><span class="co">#&gt;       AIC      BIC   logLik</span></span>
-<span><span class="co">#&gt;   993.722 1023.204 -490.861</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Random effects:</span></span>
-<span><span class="co">#&gt;  Formula: ~1 | ID</span></span>
-<span><span class="co">#&gt;         (Intercept)  Residual</span></span>
-<span><span class="co">#&gt; StdDev:   0.2070306 0.3644348</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Fixed effects:  v ~ obstime + x1 + x2 </span></span>
-<span><span class="co">#&gt;                  Value   Std.Error  DF   t-value p-value</span></span>
-<span><span class="co">#&gt; (Intercept) -0.2410240 0.027085561 909  -8.89862       0</span></span>
-<span><span class="co">#&gt; obstime      0.3576253 0.006073961 909  58.87843       0</span></span>
-<span><span class="co">#&gt; x1          -0.4199163 0.029119308  97 -14.42055       0</span></span>
-<span><span class="co">#&gt; x2           0.2410737 0.025420132  97   9.48357       0</span></span>
-<span><span class="co">#&gt;  Correlation: </span></span>
-<span><span class="co">#&gt;         (Intr) obstim x1    </span></span>
-<span><span class="co">#&gt; obstime -0.394              </span></span>
-<span><span class="co">#&gt; x1      -0.032 -0.065       </span></span>
-<span><span class="co">#&gt; x2       0.086 -0.008 -0.199</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Standardized Within-Group Residuals:</span></span>
-<span><span class="co">#&gt;         Min          Q1         Med          Q3         Max </span></span>
-<span><span class="co">#&gt; -3.73043845 -0.59896075 -0.06543121  0.54631586  4.76862670 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Number of Observations: 1010</span></span>
-<span><span class="co">#&gt; Number of Groups: 100</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="baseline-survival">Baseline Survival<a class="anchor" aria-label="anchor" href="#baseline-survival"></a>
-</h3>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit_cox</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">start</span>, <span class="va">stop</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span>,</span>
-<span>  data <span class="op">=</span> <span class="va">jsm_data</span>,</span>
-<span>  x <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_cox</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Call:</span></span>
-<span><span class="co">#&gt; coxph(formula = Surv(start, stop, event) ~ w1 + w2, data = jsm_data, </span></span>
-<span><span class="co">#&gt;     x = TRUE)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   n= 1010, number of events= 77 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;       coef exp(coef) se(coef)      z Pr(&gt;|z|)    </span></span>
-<span><span class="co">#&gt; w1  0.5956    1.8141   0.1422  4.188 2.81e-05 ***</span></span>
-<span><span class="co">#&gt; w2 -1.1199    0.3263   0.1484 -7.546 4.48e-14 ***</span></span>
-<span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;    exp(coef) exp(-coef) lower .95 upper .95</span></span>
-<span><span class="co">#&gt; w1    1.8141     0.5512     1.373    2.3972</span></span>
-<span><span class="co">#&gt; w2    0.3263     3.0646     0.244    0.4365</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Concordance= 0.767  (se = 0.03 )</span></span>
-<span><span class="co">#&gt; Likelihood ratio test= 69.25  on 2 df,   p=9e-16</span></span>
-<span><span class="co">#&gt; Wald test            = 61.76  on 2 df,   p=4e-14</span></span>
-<span><span class="co">#&gt; Score (logrank) test = 66.48  on 2 df,   p=4e-15</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="joint-model">Joint Model<a class="anchor" aria-label="anchor" href="#joint-model"></a>
-</h3>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit_jsm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/JSM/man/jmodelTM.html" class="external-link">jmodelTM</a></span><span class="op">(</span></span>
-<span>  <span class="va">fit_lme</span>,</span>
-<span>  <span class="va">fit_cox</span>,</span>
-<span>  data <span class="op">=</span> <span class="va">jsm_data</span>,</span>
-<span>  timeVarY <span class="op">=</span> <span class="st">"obstime"</span>,</span>
-<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    delta <span class="op">=</span> <span class="fl">1e-8</span>,</span>
-<span>    max.iter <span class="op">=</span> <span class="fl">500</span>,</span>
-<span>    tol.P <span class="op">=</span> <span class="fl">1e-04</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; Running jmodelTM(), may take some time to finish.</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_jsm</span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Call:</span></span>
-<span><span class="co">#&gt; jmodelTM(fitLME = fit_lme, fitCOX = fit_cox, data = jsm_data, </span></span>
-<span><span class="co">#&gt;     timeVarY = "obstime", control = list(delta = 1e-08, max.iter = 500, </span></span>
-<span><span class="co">#&gt;         tol.P = 1e-04)) </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Data Descriptives:</span></span>
-<span><span class="co">#&gt; Longitudinal Process     Survival Process</span></span>
-<span><span class="co">#&gt; Number of Observations: 1010 Number of Events: 77 (77%)</span></span>
-<span><span class="co">#&gt; Number of Groups: 100 </span></span>
-<span><span class="co">#&gt;       AIC     BIC    logLik</span></span>
-<span><span class="co">#&gt;  1631.224 1654.67 -806.6119</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients:</span></span>
-<span><span class="co">#&gt; Longitudinal Process: Linear mixed-effects model</span></span>
-<span><span class="co">#&gt;               Estimate     StdErr  z.value   p.value    </span></span>
-<span><span class="co">#&gt; (Intercept) -0.2369385  0.0276048  -8.5832 &lt; 2.2e-16 ***</span></span>
-<span><span class="co">#&gt; obstime      0.3589478  0.0060709  59.1260 &lt; 2.2e-16 ***</span></span>
-<span><span class="co">#&gt; x1          -0.4180034  0.0302814 -13.8040 &lt; 2.2e-16 ***</span></span>
-<span><span class="co">#&gt; x2           0.2343597  0.0264853   8.8487 &lt; 2.2e-16 ***</span></span>
-<span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Survival Process: Proportional hazards model with unspecified baseline hazard function</span></span>
-<span><span class="co">#&gt;    Estimate   StdErr z.value   p.value    </span></span>
-<span><span class="co">#&gt; w1  0.73204  0.15188  4.8200 1.436e-06 ***</span></span>
-<span><span class="co">#&gt; w2 -1.33057  0.16041 -8.2948 &lt; 2.2e-16 ***</span></span>
-<span><span class="co">#&gt; v   1.50177  0.32619  4.6039 4.146e-06 ***</span></span>
-<span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Variance Components:</span></span>
-<span><span class="co">#&gt;             StdDev</span></span>
-<span><span class="co">#&gt; Random   0.2114866</span></span>
-<span><span class="co">#&gt; Residual 0.3631908</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Integration: (Adaptive Gauss-Hermite Quadrature)</span></span>
-<span><span class="co">#&gt; quadrature points: 9 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; StdErr Estimation:</span></span>
-<span><span class="co">#&gt; method: profile Fisher score with Richardson extrapolation</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Optimization:</span></span>
-<span><span class="co">#&gt; convergence: success</span></span>
-<span><span class="co">#&gt; iterations: 17</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="time-varying-cox">Time-Varying Cox<a class="anchor" aria-label="anchor" href="#time-varying-cox"></a>
-</h3>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit_tvcox</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">start</span>, <span class="va">stop</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span> <span class="op">+</span> <span class="va">biomarker</span> <span class="op">+</span> <span class="va">velocity</span> <span class="op">+</span> <span class="va">acceleration</span> <span class="op">+</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/cluster.html" class="external-link">cluster</a></span><span class="op">(</span><span class="va">ID</span><span class="op">)</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">jsm_data</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_tvcox</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Call:</span></span>
-<span><span class="co">#&gt; coxph(formula = Surv(start, stop, event) ~ w1 + w2 + biomarker + </span></span>
-<span><span class="co">#&gt;     velocity + acceleration + offset(b), data = jsm_data, cluster = ID)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   n= 1010, number of events= 77 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;                 coef exp(coef) se(coef) robust se      z Pr(&gt;|z|)    </span></span>
-<span><span class="co">#&gt; w1            0.8510    2.3421   0.1578    0.1574  5.408 6.36e-08 ***</span></span>
-<span><span class="co">#&gt; w2           -1.4647    0.2312   0.1722    0.1934 -7.573 3.65e-14 ***</span></span>
-<span><span class="co">#&gt; biomarker     0.9599    2.6116   0.2649    0.2229  4.306 1.66e-05 ***</span></span>
-<span><span class="co">#&gt; velocity      1.1164    3.0539   0.4858    0.4566  2.445  0.01448 *  </span></span>
-<span><span class="co">#&gt; acceleration -1.2942    0.2741   0.4062    0.4705 -2.751  0.00595 ** </span></span>
-<span><span class="co">#&gt; ---</span></span>
-<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;              exp(coef) exp(-coef) lower .95 upper .95</span></span>
-<span><span class="co">#&gt; w1              2.3421     0.4270    1.7205    3.1882</span></span>
-<span><span class="co">#&gt; w2              0.2312     4.3261    0.1582    0.3377</span></span>
-<span><span class="co">#&gt; biomarker       2.6116     0.3829    1.6871    4.0426</span></span>
-<span><span class="co">#&gt; velocity        3.0539     0.3274    1.2480    7.4735</span></span>
-<span><span class="co">#&gt; acceleration    0.2741     3.6483    0.1090    0.6893</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Concordance= 0.831  (se = 0.027 )</span></span>
-<span><span class="co">#&gt; Likelihood ratio test= 123.6  on 5 df,   p=&lt;2e-16</span></span>
-<span><span class="co">#&gt; Wald test            = 64.56  on 5 df,   p=1e-12</span></span>
-<span><span class="co">#&gt; Score (logrank) test = 111.3  on 5 df,   p=&lt;2e-16,   Robust = 58.94  p=2e-11</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   (Note: the likelihood ratio and score tests assume independence of</span></span>
-<span><span class="co">#&gt;      observations within a cluster, the Wald and robust score tests do not).</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="comparison">Comparison<a class="anchor" aria-label="anchor" href="#comparison"></a>
-</h2>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># True parameter values (using defaults from JointODE::simulate)</span></span>
-<span><span class="co"># alpha[1] = 0.5 (value effect), phi = c(0.4, -0.6) for survival covariates</span></span>
-<span><span class="va">true_params</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  param <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Association"</span>, <span class="st">"w1"</span>, <span class="st">"w2"</span><span class="op">)</span>,</span>
-<span>  true_value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.3</span>, <span class="fl">0.4</span>, <span class="op">-</span><span class="fl">0.6</span><span class="op">)</span></span>
+<span><span class="co"># Step 2: Survival sub-model</span></span>
+<span><span class="va">fit_cox</span> <span class="op">&lt;-</span> <span class="fu">coxph</span><span class="op">(</span></span>
+<span>  <span class="fu">Surv</span><span class="op">(</span><span class="va">start</span>, <span class="va">stop</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">jsm_data</span>, x <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Extract and organize coefficients</span></span>
-<span><span class="va">extract_coef</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">jsm</span>, <span class="va">tvcox</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">jsm_vcov</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/diag.html" class="external-link">diag</a></span><span class="op">(</span><span class="va">jsm</span><span class="op">$</span><span class="va">Vcov</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">tvcox_summ</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">tvcox</span><span class="op">)</span><span class="op">$</span><span class="va">coefficients</span></span>
-<span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    param <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Association"</span>, <span class="st">"w1"</span>, <span class="st">"w2"</span><span class="op">)</span>,</span>
-<span>    jsm_est <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>      <span class="va">jsm</span><span class="op">$</span><span class="va">coefficients</span><span class="op">$</span><span class="va">alpha</span>,</span>
-<span>      <span class="va">jsm</span><span class="op">$</span><span class="va">coefficients</span><span class="op">$</span><span class="va">phi</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"w1"</span>, <span class="st">"w2"</span><span class="op">)</span><span class="op">]</span></span>
-<span>    <span class="op">)</span>,</span>
-<span>    jsm_se <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>      <span class="va">jsm_vcov</span><span class="op">[</span><span class="st">"alpha:v"</span><span class="op">]</span>,</span>
-<span>      <span class="va">jsm_vcov</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"phi:w1"</span>, <span class="st">"phi:w2"</span><span class="op">)</span><span class="op">]</span></span>
-<span>    <span class="op">)</span>,</span>
-<span>    tvc_est <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">tvcox</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"biomarker"</span>, <span class="st">"w1"</span>, <span class="st">"w2"</span><span class="op">)</span><span class="op">]</span>,</span>
-<span>    tvc_se <span class="op">=</span> <span class="va">tvcox_summ</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"biomarker"</span>, <span class="st">"w1"</span>, <span class="st">"w2"</span><span class="op">)</span>, <span class="st">"se(coef)"</span><span class="op">]</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>    <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/across.html" class="external-link">across</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"jsm_est"</span>, <span class="st">"jsm_se"</span>, <span class="st">"tvc_est"</span>, <span class="st">"tvc_se"</span><span class="op">)</span>, <span class="va">as.numeric</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="va">comp</span> <span class="op">&lt;-</span> <span class="fu">extract_coef</span><span class="op">(</span><span class="va">fit_jsm</span>, <span class="va">fit_tvcox</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html" class="external-link">left_join</a></span><span class="op">(</span><span class="va">true_params</span>, by <span class="op">=</span> <span class="st">"param"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    diff <span class="op">=</span> <span class="va">jsm_est</span> <span class="op">-</span> <span class="va">tvc_est</span>,</span>
-<span>    diff_pct <span class="op">=</span> <span class="fl">100</span> <span class="op">*</span> <span class="va">diff</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">tvc_est</span><span class="op">)</span>,</span>
-<span>    jsm_p <span class="op">=</span> <span class="fl">2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">pnorm</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">jsm_est</span> <span class="op">/</span> <span class="va">jsm_se</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    tvc_p <span class="op">=</span> <span class="fl">2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">pnorm</a></span><span class="op">(</span><span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">tvc_est</span> <span class="op">/</span> <span class="va">tvc_se</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    jsm_bias <span class="op">=</span> <span class="va">jsm_est</span> <span class="op">-</span> <span class="va">true_value</span>,</span>
-<span>    tvc_bias <span class="op">=</span> <span class="va">tvc_est</span> <span class="op">-</span> <span class="va">true_value</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Summary table with significance stars</span></span>
-<span><span class="va">format_est</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">est</span>, <span class="va">se</span>, <span class="va">p</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">stars</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/case_when.html" class="external-link">case_when</a></span><span class="op">(</span></span>
-<span>    <span class="va">p</span> <span class="op">&lt;</span> <span class="fl">0.001</span> <span class="op">~</span> <span class="st">"***"</span>,</span>
-<span>    <span class="va">p</span> <span class="op">&lt;</span> <span class="fl">0.01</span> <span class="op">~</span> <span class="st">"**"</span>,</span>
-<span>    <span class="va">p</span> <span class="op">&lt;</span> <span class="fl">0.05</span> <span class="op">~</span> <span class="st">"*"</span>,</span>
-<span>    <span class="cn">TRUE</span> <span class="op">~</span> <span class="st">""</span></span>
-<span>  <span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%.3f (%.3f)%s"</span>, <span class="va">est</span>, <span class="va">se</span>, <span class="va">stars</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="co"># Simple comparison table</span></span>
-<span><span class="va">comp</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    Parameter <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"α (Association)"</span>, <span class="st">"β₁ (w1)"</span>, <span class="st">"β₂ (w2)"</span><span class="op">)</span>,</span>
-<span>    True <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%.2f"</span>, <span class="va">true_value</span><span class="op">)</span>,</span>
-<span>    `JSM` <span class="op">=</span> <span class="fu">format_est</span><span class="op">(</span><span class="va">jsm_est</span>, <span class="va">jsm_se</span>, <span class="va">jsm_p</span><span class="op">)</span>,</span>
-<span>    `TVC` <span class="op">=</span> <span class="fu">format_est</span><span class="op">(</span><span class="va">tvc_est</span>, <span class="va">tvc_se</span>, <span class="va">tvc_p</span><span class="op">)</span>,</span>
-<span>    `JSM Bias` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%+.3f"</span>, <span class="va">jsm_bias</span><span class="op">)</span>,</span>
-<span>    `TVC Bias` <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%+.3f"</span>, <span class="va">tvc_bias</span><span class="op">)</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">Parameter</span>, <span class="va">True</span>, <span class="va">JSM</span>, <span class="va">TVC</span>, <span class="va">`JSM Bias`</span>, <span class="va">`TVC Bias`</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
-<span>    caption <span class="op">=</span> <span class="st">"Parameter Estimates (* p&lt;0.05, ** p&lt;0.01, *** p&lt;0.001)"</span>,</span>
-<span>    align <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"l"</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="st">"c"</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>Parameter Estimates (* p&lt;0.05, ** p&lt;0.01, ***
-p&lt;0.001)</caption>
-<colgroup>
-<col width="19%">
-<col width="8%">
-<col width="23%">
-<col width="23%">
-<col width="12%">
-<col width="12%">
-</colgroup>
-<thead><tr class="header">
-<th align="left">Parameter</th>
-<th align="center">True</th>
-<th align="center">JSM</th>
-<th align="center">TVC</th>
-<th align="center">JSM Bias</th>
-<th align="center">TVC Bias</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">α (Association)</td>
-<td align="center">0.30</td>
-<td align="center">1.502 (0.326)***</td>
-<td align="center">0.960 (0.265)***</td>
-<td align="center">+1.202</td>
-<td align="center">+0.660</td>
-</tr>
-<tr class="even">
-<td align="left">β₁ (w1)</td>
-<td align="center">0.40</td>
-<td align="center">0.732 (0.152)***</td>
-<td align="center">0.851 (0.158)***</td>
-<td align="center">+0.332</td>
-<td align="center">+0.451</td>
-</tr>
-<tr class="odd">
-<td align="left">β₂ (w2)</td>
-<td align="center">-0.60</td>
-<td align="center">-1.331 (0.160)***</td>
-<td align="center">-1.465 (0.172)***</td>
-<td align="center">-0.731</td>
-<td align="center">-0.865</td>
-</tr>
-</tbody>
-</table>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span></span>
-<span><span class="co"># Combined visualization</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://patchwork.data-imaginist.com" class="external-link">patchwork</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tidyr.tidyverse.org" class="external-link">tidyr</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Clean forest plot</span></span>
-<span><span class="va">forest_data</span> <span class="op">&lt;-</span> <span class="va">comp</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_longer.html" class="external-link">pivot_longer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">jsm_est</span>, <span class="va">tvc_est</span><span class="op">)</span>, names_to <span class="op">=</span> <span class="st">"model"</span>, values_to <span class="op">=</span> <span class="st">"est"</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    se <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">model</span> <span class="op">==</span> <span class="st">"jsm_est"</span>, <span class="va">jsm_se</span>, <span class="va">tvc_se</span><span class="op">)</span>,</span>
-<span>    lower <span class="op">=</span> <span class="va">est</span> <span class="op">-</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="va">se</span>,</span>
-<span>    upper <span class="op">=</span> <span class="va">est</span> <span class="op">+</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="va">se</span>,</span>
-<span>    model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">model</span>, labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"JSM"</span>, <span class="st">"TVC"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    param_label <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"α"</span>, <span class="st">"β₁"</span>, <span class="st">"β₂"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">param</span><span class="op">)</span><span class="op">)</span><span class="op">]</span>,</span>
-<span>    param <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">param</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Association"</span>, <span class="st">"w1"</span>, <span class="st">"w2"</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span><span class="va">p_forest</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">forest_data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">est</span>, y <span class="op">=</span> <span class="va">param_label</span>, color <span class="op">=</span> <span class="va">model</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_vline</a></span><span class="op">(</span>xintercept <span class="op">=</span> <span class="fl">0</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span>, alpha <span class="op">=</span> <span class="fl">0.3</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_vline</a></span><span class="op">(</span></span>
-<span>    data <span class="op">=</span> <span class="va">true_params</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>      <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span>param_label <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"α"</span>, <span class="st">"β₁"</span>, <span class="st">"β₂"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>xintercept <span class="op">=</span> <span class="va">true_value</span><span class="op">)</span>,</span>
-<span>    color <span class="op">=</span> <span class="st">"darkgreen"</span>, alpha <span class="op">=</span> <span class="fl">0.4</span>, size <span class="op">=</span> <span class="fl">1</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_errorbarh.html" class="external-link">geom_errorbarh</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>xmin <span class="op">=</span> <span class="va">lower</span>, xmax <span class="op">=</span> <span class="va">upper</span><span class="op">)</span>,</span>
-<span>    position <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/position_dodge.html" class="external-link">position_dodge</a></span><span class="op">(</span><span class="fl">0.5</span><span class="op">)</span>, height <span class="op">=</span> <span class="fl">0.2</span>, size <span class="op">=</span> <span class="fl">0.8</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span>position <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/position_dodge.html" class="external-link">position_dodge</a></span><span class="op">(</span><span class="fl">0.5</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">3</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"JSM"</span> <span class="op">=</span> <span class="st">"#3498DB"</span>, <span class="st">"TVC"</span> <span class="op">=</span> <span class="st">"#E74C3C"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">11</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span></span>
-<span>    legend.position <span class="op">=</span> <span class="st">"top"</span>,</span>
-<span>    panel.grid.major.y <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
-<span>    x <span class="op">=</span> <span class="st">"Estimate (95% CI)"</span>, y <span class="op">=</span> <span class="cn">NULL</span>, color <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>    title <span class="op">=</span> <span class="st">"Parameter Estimates"</span>,</span>
-<span>    subtitle <span class="op">=</span> <span class="st">"Green line = true value"</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Simple bias plot</span></span>
-<span><span class="va">bias_data</span> <span class="op">&lt;-</span> <span class="va">comp</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_longer.html" class="external-link">pivot_longer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">jsm_bias</span>, <span class="va">tvc_bias</span><span class="op">)</span>,</span>
-<span>    names_to <span class="op">=</span> <span class="st">"method"</span>, values_to <span class="op">=</span> <span class="st">"bias"</span></span>
-<span>  <span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    method <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">method</span>, labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"JSM"</span>, <span class="st">"TVC"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    param_label <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"α"</span>, <span class="st">"β₁"</span>, <span class="st">"β₂"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">param</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span><span class="va">p_bias</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">bias_data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">param_label</span>, y <span class="op">=</span> <span class="va">bias</span>, fill <span class="op">=</span> <span class="va">method</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">0</span>, linetype <span class="op">=</span> <span class="st">"solid"</span>, alpha <span class="op">=</span> <span class="fl">0.3</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html" class="external-link">geom_col</a></span><span class="op">(</span>position <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/position_dodge.html" class="external-link">position_dodge</a></span><span class="op">(</span><span class="fl">0.7</span><span class="op">)</span>, alpha <span class="op">=</span> <span class="fl">0.8</span>, width <span class="op">=</span> <span class="fl">0.6</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_text.html" class="external-link">geom_text</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>label <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%+.3f"</span>, <span class="va">bias</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    position <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/position_dodge.html" class="external-link">position_dodge</a></span><span class="op">(</span><span class="fl">0.7</span><span class="op">)</span>,</span>
-<span>    vjust <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">bias_data</span><span class="op">$</span><span class="va">bias</span> <span class="op">&gt;</span> <span class="fl">0</span>, <span class="op">-</span><span class="fl">0.5</span>, <span class="fl">1.5</span><span class="op">)</span>,</span>
-<span>    size <span class="op">=</span> <span class="fl">3</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_fill_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"JSM"</span> <span class="op">=</span> <span class="st">"#3498DB"</span>, <span class="st">"TVC"</span> <span class="op">=</span> <span class="st">"#E74C3C"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_continuous.html" class="external-link">scale_y_continuous</a></span><span class="op">(</span>expand <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/expansion.html" class="external-link">expansion</a></span><span class="op">(</span>mult <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.15</span>, <span class="fl">0.15</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">11</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span></span>
-<span>    legend.position <span class="op">=</span> <span class="st">"top"</span>,</span>
-<span>    panel.grid.major.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_blank</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span></span>
-<span>    x <span class="op">=</span> <span class="st">"Parameter"</span>, y <span class="op">=</span> <span class="st">"Bias"</span>, color <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>    title <span class="op">=</span> <span class="st">"Estimation Bias"</span>,</span>
-<span>    subtitle <span class="op">=</span> <span class="st">"Estimate - True Value"</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Combine plots</span></span>
-<span><span class="va">p_forest</span> <span class="op">/</span> <span class="va">p_bias</span></span></code></pre></div>
-<p><img src="comparison_files/figure-html/compare-models-1.png" width="864"></p>
-</div>
-<div class="section level2">
-<h2 id="model-performance">Model Performance<a class="anchor" aria-label="anchor" href="#model-performance"></a>
-</h2>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Calculate C-index for model comparison</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/therneau/survival" class="external-link">survival</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># JSM: Combine survival predictors with longitudinal predictions</span></span>
-<span><span class="va">jsm_risk</span> <span class="op">&lt;-</span> <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span></span>
-<span>  <span class="va">jsm_data</span>,</span>
-<span>  <span class="va">fit_jsm</span><span class="op">$</span><span class="va">coefficients</span><span class="op">$</span><span class="va">phi</span><span class="op">[</span><span class="st">"w1"</span><span class="op">]</span> <span class="op">*</span> <span class="va">w1</span> <span class="op">+</span></span>
-<span>    <span class="va">fit_jsm</span><span class="op">$</span><span class="va">coefficients</span><span class="op">$</span><span class="va">phi</span><span class="op">[</span><span class="st">"w2"</span><span class="op">]</span> <span class="op">*</span> <span class="va">w2</span> <span class="op">+</span></span>
-<span>    <span class="va">fit_jsm</span><span class="op">$</span><span class="va">coefficients</span><span class="op">$</span><span class="va">alpha</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/stats/fitted.values.html" class="external-link">fitted</a></span><span class="op">(</span><span class="va">fit_lme</span><span class="op">)</span></span>
+<span><span class="co"># Step 3: Joint model</span></span>
+<span><span class="va">fit_jsm</span> <span class="op">&lt;-</span> <span class="fu">jmodelTM</span><span class="op">(</span></span>
+<span>  <span class="va">fit_lme</span>, <span class="va">fit_cox</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">jsm_data</span>,</span>
+<span>  timeVarY <span class="op">=</span> <span class="st">"obstime"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Time-varying Cox: Use built-in linear predictor</span></span>
-<span><span class="va">tvc_risk</span> <span class="op">&lt;-</span> <span class="op">-</span><span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit_tvcox</span>, type <span class="op">=</span> <span class="st">"lp"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Calculate concordance for both models</span></span>
-<span><span class="va">jsm_conc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/concordance.html" class="external-link">concordance</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">start</span>, <span class="va">stop</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">jsm_risk</span>, data <span class="op">=</span> <span class="va">jsm_data</span><span class="op">)</span></span>
-<span><span class="va">tvc_conc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/concordance.html" class="external-link">concordance</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">start</span>, <span class="va">stop</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">tvc_risk</span>, data <span class="op">=</span> <span class="va">jsm_data</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Create comparison</span></span>
-<span><span class="va">cindex_comp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  Model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Joint Model"</span>, <span class="st">"Time-Varying Cox"</span><span class="op">)</span>,</span>
-<span>  Cindex <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">jsm_conc</span><span class="op">$</span><span class="va">concordance</span>, <span class="va">tvc_conc</span><span class="op">$</span><span class="va">concordance</span><span class="op">)</span>,</span>
-<span>  SE <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">jsm_conc</span><span class="op">$</span><span class="va">var</span>, <span class="va">tvc_conc</span><span class="op">$</span><span class="va">var</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate.html" class="external-link">mutate</a></span><span class="op">(</span></span>
-<span>    Lower <span class="op">=</span> <span class="va">Cindex</span> <span class="op">-</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="va">SE</span>,</span>
-<span>    Upper <span class="op">=</span> <span class="va">Cindex</span> <span class="op">+</span> <span class="fl">1.96</span> <span class="op">*</span> <span class="va">SE</span>,</span>
-<span>    CI <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"%.3f (%.3f-%.3f)"</span>, <span class="va">Cindex</span>, <span class="va">Lower</span>, <span class="va">Upper</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Display table</span></span>
-<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">cindex_comp</span>, <span class="va">Model</span>, `C-index (95% CI)` <span class="op">=</span> <span class="va">CI</span><span class="op">)</span>,</span>
-<span>  caption <span class="op">=</span> <span class="st">"Concordance Index: Higher = Better Discrimination"</span>,</span>
-<span>  align <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"l"</span>, <span class="st">"c"</span><span class="op">)</span></span>
+<span><span class="co">#--------------------------------------------</span></span>
+<span><span class="co"># Model 3: Time-varying Cox (Oracle - Theoretical Benchmark)</span></span>
+<span><span class="co">#--------------------------------------------</span></span>
+<span><span class="va">fit_oracle</span> <span class="op">&lt;-</span> <span class="fu">coxph</span><span class="op">(</span></span>
+<span>  <span class="fu">Surv</span><span class="op">(</span><span class="va">start</span>, <span class="va">stop</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span> <span class="op">+</span> <span class="va">biomarker</span> <span class="op">+</span> <span class="va">velocity</span> <span class="op">+</span> <span class="va">acceleration</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span> <span class="op">+</span> <span class="fu">cluster</span><span class="op">(</span><span class="va">ID</span><span class="op">)</span>,</span>
+<span>  data <span class="op">=</span> <span class="va">jsm_data</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<table class="table">
-<caption>Concordance Index: Higher = Better Discrimination</caption>
-<thead><tr class="header">
-<th align="left">Model</th>
-<th align="center">C-index (95% CI)</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left">Joint Model</td>
-<td align="center">0.801 (0.748-0.854)</td>
-</tr>
-<tr class="even">
-<td align="left">Time-Varying Cox</td>
-<td align="center">0.831 (0.775-0.886)</td>
-</tr>
-</tbody>
-</table>
-<pre><code><span><span class="co">#&gt; R version 4.5.1 (2025-06-13)</span></span>
-<span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu</span></span>
-<span><span class="co">#&gt; Running under: Ubuntu 24.04.3 LTS</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Matrix products: default</span></span>
-<span><span class="co">#&gt; BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 </span></span>
-<span><span class="co">#&gt; LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; locale:</span></span>
-<span><span class="co">#&gt;  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       </span></span>
-<span><span class="co">#&gt;  [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   </span></span>
-<span><span class="co">#&gt;  [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          </span></span>
-<span><span class="co">#&gt; [10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; time zone: UTC</span></span>
-<span><span class="co">#&gt; tzcode source: system (glibc)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; attached base packages:</span></span>
-<span><span class="co">#&gt; [1] splines   stats     graphics  grDevices utils     datasets  methods  </span></span>
-<span><span class="co">#&gt; [8] base     </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt; [1] patchwork_1.3.2     tidyr_1.3.1         dplyr_1.1.4        </span></span>
-<span><span class="co">#&gt; [4] ggplot2_3.5.2       JSM_1.0.2           survival_3.8-3     </span></span>
-<span><span class="co">#&gt; [7] statmod_1.5.0       nlme_3.1-168        JointODE_0.0.0.9000</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
-<span><span class="co">#&gt;  [1] generics_0.1.4      sass_0.4.10         future_1.67.0      </span></span>
-<span><span class="co">#&gt;  [4] lattice_0.22-7      listenv_0.9.1       digest_0.6.37      </span></span>
-<span><span class="co">#&gt;  [7] magrittr_2.0.3      evaluate_1.0.5      grid_4.5.1         </span></span>
-<span><span class="co">#&gt; [10] RColorBrewer_1.1-3  fastmap_1.2.0       jsonlite_2.0.0     </span></span>
-<span><span class="co">#&gt; [13] Matrix_1.7-3        deSolve_1.40        mgcv_1.9-3         </span></span>
-<span><span class="co">#&gt; [16] purrr_1.1.0         scales_1.4.0        codetools_0.2-20   </span></span>
-<span><span class="co">#&gt; [19] numDeriv_2016.8-1.1 textshaping_1.0.3   jquerylib_0.1.4    </span></span>
-<span><span class="co">#&gt; [22] cli_3.6.5           rlang_1.1.6         parallelly_1.45.1  </span></span>
-<span><span class="co">#&gt; [25] future.apply_1.20.0 withr_3.0.2         cachem_1.1.0       </span></span>
-<span><span class="co">#&gt; [28] yaml_2.3.10         tools_4.5.1         parallel_4.5.1     </span></span>
-<span><span class="co">#&gt; [31] globals_0.18.0      vctrs_0.6.5         R6_2.6.1           </span></span>
-<span><span class="co">#&gt; [34] lifecycle_1.0.4     fs_1.6.6            simsurv_1.0.0      </span></span>
-<span><span class="co">#&gt; [37] ragg_1.5.0          pkgconfig_2.0.3     desc_1.4.3         </span></span>
-<span><span class="co">#&gt; [40] pkgdown_2.1.3       bslib_0.9.0         pillar_1.11.0      </span></span>
-<span><span class="co">#&gt; [43] gtable_0.3.6        glue_1.8.0          Rcpp_1.1.0         </span></span>
-<span><span class="co">#&gt; [46] systemfonts_1.2.3   tidyselect_1.2.1    xfun_0.53          </span></span>
-<span><span class="co">#&gt; [49] tibble_3.3.0        knitr_1.50          farver_2.1.2       </span></span>
-<span><span class="co">#&gt; [52] htmltools_0.5.8.1   labeling_0.4.3      rmarkdown_2.29     </span></span>
-<span><span class="co">#&gt; [55] compiler_4.5.1</span></span></code></pre>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
