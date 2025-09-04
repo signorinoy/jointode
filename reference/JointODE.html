@@ -210,8 +210,8 @@ for silent operation, <code>1</code>/<code>TRUE</code> for iteration progress,
 <dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
 <dd><p>Logical flag enabling parallel computation for
 computationally intensive operations including posterior calculations,
-gradient evaluations, and likelihood computations. Only works on Unix/Linux
-systems using mclapply from the parallel package
+gradient evaluations, and likelihood computations. Requires <span class="pkg">future</span>
+and <span class="pkg">future.apply</span> packages
 (default: <code>FALSE</code>).</p></dd>
 
 
