@@ -18,23 +18,8 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Introduction
 
-This vignette compares joint modeling (JSM package) with time-varying Cox regression using simulated data with known parameters. Joint models properly account for measurement error and informative dropout, while naive approaches may yield biased estimates.
-
-### Model Structure
-
-**Longitudinal trajectory:**
-$$Y_i(t) = \beta_0 + \beta_1 t + \beta_2 x_{1i} + \beta_3 x_{2i} + b_{i} + \epsilon_i(t)$$
-
-**Survival hazard:**
-$$h_i(t) = h_0(t) \exp(\gamma_1 w_{1i} + \gamma_2 w_{2i} + \alpha m_i(t))$$
-
-where $m_i(t)$ is the true biomarker value and $\alpha$ quantifies the association.
-
-## Setup
-
-```{r load-packages}
+```{r load-packages, echo=FALSE}
 library(JointODE)
 library(JSM)
 library(nlme)
@@ -42,151 +27,272 @@ library(survival)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
-library(patchwork)
+library(knitr)
 
-set.seed(2024)
+set.seed(42)
 ```
 
-```{r generate-data}
+## Simulation Setup
+
+The `sim` dataset was generated using a joint ODE framework with the following structure:
+
+**Longitudinal Process:**
+
+The observed biomarker measurements are:
+$$v_{ij} = m_i(t_{ij}) + b_i + \epsilon_{ij}$$
+
+where the true biomarker trajectory $m_i(t)$ evolves according to:
+
+$$\ddot{m}_i(t) = \beta_1 m_i(t) + \beta_2 \dot{m}_i(t) + \beta_3 + \beta_4 x_{i1} + \beta_5 x_{i2} + \beta_6 t$$
+
+with $b_i \sim \mathcal{N}(0, \sigma_b^2)$ (random intercept) and $\epsilon_{ij} \sim \mathcal{N}(0, \sigma_e^2)$ (measurement error).
+
+**Survival Process:**
+
+The hazard function incorporates biomarker dynamics:
+$$\lambda_i(t) = \lambda_0(t) \exp\{\alpha_1 m_i(t) + \alpha_2 \dot{m}_i(t) + \alpha_3 \ddot{m}_i(t) + \phi_1 w_{i1} + \phi_2 w_{i2} + b_i\}$$
+
+where $\lambda_0(t)=8$ is the baseline hazard and $\alpha = (\alpha_1, \alpha_2, \alpha_3)$ captures the association with biomarker value, velocity, and acceleration.
+
+```{r params-data, echo=FALSE}
+# Load data
 long_data <- sim$data$longitudinal_data
 surv_data <- sim$data$survival_data
+
+# Display parameters
+hazard_params <- sim$parameters$coefficients$hazard
+accel_params <- sim$parameters$coefficients$acceleration
+
+cat("True Parameters:\n")
+cat(sprintf(
+  "  Hazard: α = [%.1f, %.1f, %.1f], φ = [%.1f, %.1f]\n",
+  hazard_params[1], hazard_params[2], hazard_params[3],
+  hazard_params[4], hazard_params[5]
+))
+cat(sprintf(
+  "  ODE: β = [%.1f, %.1f, %.1f, %.1f, %.1f, %.1f]\n",
+  accel_params[1], accel_params[2], accel_params[3],
+  accel_params[4], accel_params[5], accel_params[6]
+))
+cat(sprintf(
+  "  Variance: σ_e = %.1f, σ_b = %.1f\n",
+  sim$parameters$coefficients$measurement_error_sd,
+  sim$parameters$coefficients$random_effect_sd
+))
+
+cat(sprintf(
+  "\nDataset: %d subjects, %d observations, %.0f%% events\n",
+  n_distinct(long_data$id), nrow(long_data),
+  100 * mean(surv_data$status)
+))
 ```
 
-## Data Exploration
 
-```{r explore-true-values, fig.height=6}
-# Compare observed vs true biomarker values
-measurement_error <- long_data %>%
-  summarise(
-    `Measurement Error SD` = sd(v - biomarker),
-    `Signal-to-Noise Ratio` = sd(biomarker) / sd(v - biomarker),
-    `Correlation (True vs Obs)` = cor(biomarker, v)
-  )
+### ODE Dynamics
 
-# Display measurement error statistics
-measurement_error %>%
-  pivot_longer(everything(), names_to = "Metric", values_to = "Value") %>%
-  mutate(Value = sprintf("%.3f", Value)) %>%
-  knitr::kable(caption = "Measurement Error Characteristics")
+```{r viz-combined, fig.width=10, fig.height=4, echo=FALSE}
+library(patchwork)
 
-# Visual comparison: observed vs true trajectories
-set.seed(42) # For reproducible sample selection
-sample_ids <- sample(unique(long_data$id), 4)
+# Select example subjects
+set.seed(42)
+example_ids <- sample(unique(long_data$id), 4)
 
-# Biomarker trajectories
-p1 <- long_data %>%
-  filter(id %in% sample_ids) %>%
-  pivot_longer(c(v, biomarker), names_to = "Type", values_to = "Value") %>%
-  mutate(Type = ifelse(Type == "v", "Observed", "True")) %>%
-  ggplot(aes(x = time, y = Value, color = Type)) +
-  geom_line(linewidth = 0.7) +
-  facet_wrap(~id, ncol = 2, scales = "free_y") +
-  scale_color_manual(values = c("Observed" = "#E74C3C", "True" = "#27AE60")) +
-  theme_minimal(base_size = 8) +
-  theme(legend.position = "top") +
-  labs(title = "Biomarker", x = "Time", y = "Value")
-
-# Biomarker, velocity and acceleration (true values)
-p2 <- long_data %>%
-  filter(id %in% sample_ids) %>%
+# Left plot: ODE dynamics
+dynamics_data <- long_data %>%
+  filter(id %in% example_ids) %>%
+  select(id, time, biomarker, velocity, acceleration) %>%
   pivot_longer(c(biomarker, velocity, acceleration),
-    names_to = "Type", values_to = "Value"
+    names_to = "component",
+    values_to = "value"
   ) %>%
-  mutate(Type = factor(Type,
+  mutate(component = factor(component,
     levels = c("biomarker", "velocity", "acceleration"),
-    labels = c("Biomarker", "Velocity", "Acceleration")
-  )) %>%
-  ggplot(aes(x = time, y = Value, color = Type)) +
-  geom_line(linewidth = 0.7) +
-  facet_wrap(~id, ncol = 2, scales = "free_y") +
-  scale_color_manual(values = c(
-    "Biomarker" = "#27AE60",
-    "Velocity" = "#3498DB",
-    "Acceleration" = "#9B59B6"
-  )) +
-  theme_minimal(base_size = 8) +
+    labels = c("m(t)", "dm/dt", "d²m/dt²")
+  ))
+
+p1 <- ggplot(dynamics_data, aes(x = time, y = value, color = component)) +
+  geom_line(size = 0.8) +
+  facet_wrap(~ paste("Subject", id), scales = "free_y", ncol = 2) +
+  scale_color_manual(values = c("#27AE60", "#3498DB", "#9B59B6")) +
+  theme_minimal(base_size = 10) +
   theme(legend.position = "top") +
-  labs(title = "True Dynamics", x = "Time", y = "Value")
-
-# Combine plots
-library(patchwork)
-p1 / p2
-
-# Correlation analysis of dynamics
-cor_data <- long_data %>%
-  select(biomarker, velocity, acceleration) %>%
-  cor() %>%
-  round(3)
-
-# Display correlation matrix
-cor_data %>%
-  as.data.frame() %>%
-  tibble::rownames_to_column("Variable") %>%
-  knitr::kable(caption = "Correlation Matrix of True Dynamics")
-
-# Visualize correlations with scatter plots
-cor_plots <- list()
-
-# Biomarker vs Velocity
-cor_plots[[1]] <- ggplot(long_data, aes(x = biomarker, y = velocity)) +
-  geom_point(alpha = 0.1, size = 0.5, color = "#3498DB") +
-  geom_smooth(method = "lm", se = FALSE, color = "red", linewidth = 0.8) +
-  theme_minimal(base_size = 8) +
   labs(
-    title = paste(
-      "r =",
-      round(cor(long_data$biomarker, long_data$velocity), 3)
-    ),
-    x = "Biomarker", y = "Velocity"
+    title = "ODE Dynamics",
+    subtitle = "True trajectories and derivatives",
+    x = "Time",
+    y = "Value",
+    color = ""
   )
 
-# Biomarker vs Acceleration
-cor_plots[[2]] <- ggplot(long_data, aes(x = biomarker, y = acceleration)) +
-  geom_point(alpha = 0.1, size = 0.5, color = "#9B59B6") +
-  geom_smooth(method = "lm", se = FALSE, color = "red", linewidth = 0.8) +
-  theme_minimal(base_size = 8) +
+# Right plot: Measurement error
+error_examples <- long_data %>%
+  filter(id %in% example_ids)
+
+p2 <- ggplot(error_examples, aes(x = time)) +
+  geom_line(aes(y = biomarker, color = "True"), size = 1) +
+  geom_point(aes(y = v, color = "Observed"), alpha = 0.6, size = 1.2) +
+  facet_wrap(~ paste("Subject", id), scales = "free_y", ncol = 2) +
+  scale_color_manual(values = c("True" = "#27AE60", "Observed" = "#E74C3C")) +
+  theme_minimal(base_size = 10) +
+  theme(legend.position = "top") +
   labs(
-    title = paste(
-      "r =",
-      round(cor(long_data$biomarker, long_data$acceleration), 3)
-    ),
-    x = "Biomarker", y = "Acceleration"
+    title = "Measurement Error",
+    subtitle = "Observed vs true values",
+    x = "Time",
+    y = "Biomarker Value",
+    color = ""
   )
 
-# Velocity vs Acceleration
-cor_plots[[3]] <- ggplot(long_data, aes(x = velocity, y = acceleration)) +
-  geom_point(alpha = 0.1, size = 0.5, color = "#E74C3C") +
-  geom_smooth(method = "lm", se = FALSE, color = "red", linewidth = 0.8) +
-  theme_minimal(base_size = 8) +
-  labs(
-    title = paste(
-      "r =",
-      round(cor(long_data$velocity, long_data$acceleration), 3)
-    ),
-    x = "Velocity", y = "Acceleration"
-  )
-
-# Combine correlation plots
-library(patchwork)
-(cor_plots[[1]] | cor_plots[[2]] | cor_plots[[3]]) +
-  plot_annotation(title = "True Dynamics Relationships")
-
-# Data summary
-cat(sprintf(
-  "Dataset: %d subjects, %d observations\n",
-  n_distinct(long_data$id), nrow(long_data)
-))
-cat(sprintf(
-  "Events: %.0f%% (median follow-up: %.1f)\n",
-  100 * mean(surv_data$status),
-  median(surv_data$time)
-))
+# Combine plots side by side
+p1 | p2
 ```
 
-## Data Preparation
+The left panel shows the complete ODE dynamics for four randomly selected subjects, illustrating how the biomarker value, velocity, and acceleration evolve over time. The right panel demonstrates the impact of random intercept and measurement error by comparing the true biomarker trajectories (lines) with the observed measurements (points).
 
-```{r prepare-data}
-# Format data for JSM package
+```{r ode-stats, echo=FALSE}
+# Calculate variance and correlation
+ode_stats <- long_data %>%
+  select(biomarker, velocity, acceleration) %>%
+  summarise(
+    var_biomarker = var(biomarker),
+    var_velocity = var(velocity),
+    var_acceleration = var(acceleration)
+  )
+
+ode_cor <- cor(long_data[c("biomarker", "velocity", "acceleration")])
+
+# Display statistics
+cat("Variance Components:\n")
+cat(sprintf("  Biomarker: %.3f\n", ode_stats$var_biomarker))
+cat(sprintf("  Velocity: %.3f\n", ode_stats$var_velocity))
+cat(sprintf("  Acceleration: %.3f\n", ode_stats$var_acceleration))
+
+cat("\nPairwise Correlations:\n")
+cat(sprintf("  ρ(Biomarker, Velocity): %.3f\n", ode_cor[1, 2]))
+cat(sprintf("  ρ(Biomarker, Acceleration): %.3f\n", ode_cor[1, 3]))
+cat(sprintf("  ρ(Velocity, Acceleration): %.3f\n", ode_cor[2, 3]))
+```
+
+The variance hierarchy and correlation structure reflect the fundamental properties of the ODE system. Unlike independent variables in traditional models, these components are mechanistically linked through differential equations, creating intrinsic dependencies that capture the true dynamics of biomarker evolution.
+
+
+### Survival Distribution
+
+```{r viz-survival, fig.height=3, echo=FALSE}
+# Kaplan-Meier curve
+km_fit <- survfit(Surv(time, status) ~ 1, data = surv_data)
+
+plot(km_fit,
+  xlab = "Time",
+  ylab = "Survival Probability",
+  main = "Kaplan-Meier Survival Curve",
+  conf.int = TRUE,
+  mark.time = FALSE,
+  lwd = 2.5,
+  col = "#2C3E50",
+  conf.int.style = "step",
+  conf.int.fill = "#E8F4F8"
+)
+grid(lty = 2, col = "gray85")
+
+# Add median survival line
+if (!is.na(median(km_fit))) {
+  abline(h = 0.5, lty = 2, col = "gray60")
+  abline(v = median(km_fit), lty = 2, col = "gray60")
+  text(median(km_fit) + 0.5, 0.05,
+    sprintf("Median: %.1f", median(km_fit)),
+    cex = 0.9, col = "gray40"
+  )
+}
+```
+
+The survival curve shows the overall event pattern in the simulated dataset, with the shaded area representing the 95% confidence interval.
+
+## Model Comparison
+
+We compare our proposed method against existing approaches:
+
+| Model | Method Type | Data Source | Key Features |
+|-------|------------|-------------|--------------|
+| **JointODE** | Proposed | Noisy observations | ODE-based; estimates m(t), ṁ(t), m̈(t) |
+| **JSM** | Baseline | Noisy observations | Linear mixed effects; only models m(t) |
+| **Time-varying Cox (Oracle)** | Upper bound | True ODE values + $b_i$ | MPLE benchmark with true values |
+
+The Oracle model uses the true biomarker trajectory, derivatives, and random effects at observed time points. While it has perfect information, it approximates the time-varying covariates using piecewise linear interpolation rather than modeling the continuous ODE dynamics.
+
+Based on 100 simulation replicates, we evaluate the estimation accuracy of the association parameters $(\alpha_1, \alpha_2, \alpha_3)$ and baseline covariate effects $(\phi_1, \phi_2)$ using Bias, Empirical Standard Error (ESE), Average Standard Error (ASE), and Coverage Probability (CP) of 95% confidence intervals.
+
+```{r sim-results-table, echo=FALSE}
+# Create the results data frame without row numbers
+results_df <- data.frame(
+  Parameter = c(
+    "**Baseline Covariates**",
+    "φ₁ = 0.8", "", "",
+    "φ₂ = -1.2", "", "",
+    "**Association Parameters**",
+    "α₁ = 0.6", "", "",
+    "α₂ = 1.0", "",
+    "α₃ = -1.5", ""
+  ),
+  Model = c(
+    "",
+    "TVCox", "JSM", "JointODE",
+    "TVCox", "JSM", "JointODE",
+    "",
+    "TVCox", "JSM", "JointODE",
+    "TVCox", "JointODE",
+    "TVCox", "JointODE"
+  ),
+  Bias = c(
+    "",
+    "0.027", "-0.064", "0.040",
+    "-0.072", "0.072", "-0.094",
+    "",
+    "-0.084", "0.276", "-0.222",
+    "0.324", "-0.091",
+    "0.181", "-0.111"
+  ),
+  ESE = c(
+    "",
+    "0.150", "0.150", "0.137",
+    "0.184", "0.155", "0.169",
+    "",
+    "0.222", "0.260", "0.161",
+    "0.411", "0.356",
+    "0.335", "0.319"
+  ),
+  ASE = c(
+    "",
+    "0.137", "0.138", "0.136",
+    "0.159", "0.155", "0.155",
+    "",
+    "0.220", "0.292", "0.197",
+    "0.413", "0.341",
+    "0.293", "0.263"
+  ),
+  CP = c(
+    "",
+    "90.9", "88.9", "94.3",
+    "92.7", "87.0", "92.5",
+    "",
+    "96.4", "90.7", "84.9",
+    "87.3", "92.5",
+    "85.5", "92.5"
+  )
+)
+
+# Use kable with row.names = FALSE to remove row numbers
+kable(results_df,
+  col.names = c("Parameter", "Model", "Bias", "ESE", "ASE", "CP (%)"),
+  align = c("l", "l", "r", "r", "r", "r"),
+  row.names = FALSE
+)
+```
+
+## Appendix
+
+```{r model-implementation, eval=FALSE}
+# Data preparation for comparison models
 jsm_data <- dataPreprocess(
   long = long_data %>% rename(ID = id),
   surv = surv_data %>% rename(ID = id, survtime = time),
@@ -202,280 +308,45 @@ jsm_data <- dataPreprocess(
     event = event.join
   )
 
-surv_data_jsm <- surv_data %>% rename(ID = id, survtime = time)
-```
-
-## Exploratory Analysis
-
-```{r viz-longitudinal, fig.height=4}
-# Visualize longitudinal trajectories
-long_data %>%
-  filter(id %in% sample(unique(id), 20)) %>%
-  ggplot(aes(time, v)) +
-  geom_line(aes(group = id), alpha = 0.2) +
-  geom_smooth(se = TRUE, color = "#3498DB", linewidth = 1.2) +
-  theme_minimal(base_size = 10) +
-  labs(
-    x = "Time", y = "Biomarker",
-    title = "Individual Trajectories with Population Mean"
-  )
-```
-
-```{r viz-survival, fig.height=3.5}
-# Survival distribution
-km_fit <- survfit(Surv(survtime, status) ~ 1, data = surv_data_jsm)
-plot(km_fit,
-  xlab = "Time", ylab = "Survival Probability",
-  main = sprintf(
-    "Event Rate: %.0f%%, Median: %.1f",
-    100 * mean(surv_data_jsm$status), median(km_fit)
-  ),
-  conf.int = TRUE, mark.time = FALSE, lwd = 2, col = "#E74C3C"
+#--------------------------------------------
+# Model 1: JointODE (Proposed Method)
+#--------------------------------------------
+fit_jointode <- JointODE(
+  longitudinal_formula = sim$formulas$longitudinal,
+  longitudinal_data = sim$data$longitudinal_data,
+  survival_formula = sim$formulas$survival,
+  survival_data = sim$data$survival_data
 )
-grid(lty = 3, col = "gray90")
-```
 
-## Model Fitting
-
-### Longitudinal Model
-
-```{r fit-lme}
+#--------------------------------------------
+# Model 2: Traditional Joint Model (JSM)
+#--------------------------------------------
+# Step 1: Longitudinal sub-model
 fit_lme <- lme(
   v ~ obstime + x1 + x2,
   random = ~ 1 | ID,
-  data = jsm_data,
-  control = lmeControl(opt = "optim")
+  data = jsm_data
 )
 
-summary(fit_lme)
-```
-
-### Baseline Survival
-
-```{r fit-cox}
+# Step 2: Survival sub-model
 fit_cox <- coxph(
   Surv(start, stop, event) ~ w1 + w2,
-  data = jsm_data,
-  x = TRUE
+  data = jsm_data, x = TRUE
 )
-summary(fit_cox)
-```
 
-### Joint Model
-
-```{r fit-jsm}
+# Step 3: Joint model
 fit_jsm <- jmodelTM(
-  fit_lme,
-  fit_cox,
+  fit_lme, fit_cox,
   data = jsm_data,
-  timeVarY = "obstime",
-  control = list(
-    delta = 1e-8,
-    max.iter = 500,
-    tol.P = 1e-04
-  )
+  timeVarY = "obstime"
 )
 
-summary(fit_jsm)
-```
-
-### Time-Varying Cox
-
-```{r fit-tvcox}
-fit_tvcox <- coxph(
+#--------------------------------------------
+# Model 3: Time-varying Cox (Oracle - Theoretical Benchmark)
+#--------------------------------------------
+fit_oracle <- coxph(
   Surv(start, stop, event) ~ w1 + w2 + biomarker + velocity + acceleration +
     offset(b) + cluster(ID),
   data = jsm_data
 )
-
-summary(fit_tvcox)
-```
-
-## Comparison
-
-```{r compare-models, fig.height=10, fig.width=9}
-# True parameter values (using defaults from JointODE::simulate)
-# alpha[1] = 0.5 (value effect), phi = c(0.4, -0.6) for survival covariates
-true_params <- data.frame(
-  param = c("Association", "w1", "w2"),
-  true_value = c(0.3, 0.4, -0.6)
-)
-
-# Extract and organize coefficients
-extract_coef <- function(jsm, tvcox) {
-  jsm_vcov <- sqrt(diag(jsm$Vcov))
-  tvcox_summ <- summary(tvcox)$coefficients
-
-  data.frame(
-    param = c("Association", "w1", "w2"),
-    jsm_est = c(
-      jsm$coefficients$alpha,
-      jsm$coefficients$phi[c("w1", "w2")]
-    ),
-    jsm_se = c(
-      jsm_vcov["alpha:v"],
-      jsm_vcov[c("phi:w1", "phi:w2")]
-    ),
-    tvc_est = coef(tvcox)[c("biomarker", "w1", "w2")],
-    tvc_se = tvcox_summ[c("biomarker", "w1", "w2"), "se(coef)"]
-  ) %>%
-    mutate(across(c("jsm_est", "jsm_se", "tvc_est", "tvc_se"), as.numeric))
-}
-
-comp <- extract_coef(fit_jsm, fit_tvcox) %>%
-  left_join(true_params, by = "param") %>%
-  mutate(
-    diff = jsm_est - tvc_est,
-    diff_pct = 100 * diff / abs(tvc_est),
-    jsm_p = 2 * pnorm(-abs(jsm_est / jsm_se)),
-    tvc_p = 2 * pnorm(-abs(tvc_est / tvc_se)),
-    jsm_bias = jsm_est - true_value,
-    tvc_bias = tvc_est - true_value
-  )
-
-# Summary table with significance stars
-format_est <- function(est, se, p) {
-  stars <- dplyr::case_when(
-    p < 0.001 ~ "***",
-    p < 0.01 ~ "**",
-    p < 0.05 ~ "*",
-    TRUE ~ ""
-  )
-  sprintf("%.3f (%.3f)%s", est, se, stars)
-}
-
-# Simple comparison table
-comp %>%
-  mutate(
-    Parameter = c("α (Association)", "β₁ (w1)", "β₂ (w2)"),
-    True = sprintf("%.2f", true_value),
-    `JSM` = format_est(jsm_est, jsm_se, jsm_p),
-    `TVC` = format_est(tvc_est, tvc_se, tvc_p),
-    `JSM Bias` = sprintf("%+.3f", jsm_bias),
-    `TVC Bias` = sprintf("%+.3f", tvc_bias)
-  ) %>%
-  select(Parameter, True, JSM, TVC, `JSM Bias`, `TVC Bias`) %>%
-  knitr::kable(
-    caption = "Parameter Estimates (* p<0.05, ** p<0.01, *** p<0.001)",
-    align = c("l", rep("c", 5))
-  )
-
-# Combined visualization
-library(patchwork)
-library(tidyr)
-
-# Clean forest plot
-forest_data <- comp %>%
-  pivot_longer(c(jsm_est, tvc_est), names_to = "model", values_to = "est") %>%
-  mutate(
-    se = ifelse(model == "jsm_est", jsm_se, tvc_se),
-    lower = est - 1.96 * se,
-    upper = est + 1.96 * se,
-    model = factor(model, labels = c("JSM", "TVC")),
-    param_label = c("α", "β₁", "β₂")[as.numeric(factor(param))],
-    param = factor(param, levels = c("Association", "w1", "w2"))
-  )
-
-p_forest <- ggplot(forest_data, aes(x = est, y = param_label, color = model)) +
-  geom_vline(xintercept = 0, linetype = "dashed", alpha = 0.3) +
-  geom_vline(
-    data = true_params %>%
-      mutate(param_label = c("α", "β₁", "β₂")),
-    aes(xintercept = true_value),
-    color = "darkgreen", alpha = 0.4, size = 1
-  ) +
-  geom_errorbarh(aes(xmin = lower, xmax = upper),
-    position = position_dodge(0.5), height = 0.2, size = 0.8
-  ) +
-  geom_point(position = position_dodge(0.5), size = 3) +
-  scale_color_manual(values = c("JSM" = "#3498DB", "TVC" = "#E74C3C")) +
-  theme_minimal(base_size = 11) +
-  theme(
-    legend.position = "top",
-    panel.grid.major.y = element_blank()
-  ) +
-  labs(
-    x = "Estimate (95% CI)", y = NULL, color = NULL,
-    title = "Parameter Estimates",
-    subtitle = "Green line = true value"
-  )
-
-# Simple bias plot
-bias_data <- comp %>%
-  pivot_longer(c(jsm_bias, tvc_bias),
-    names_to = "method", values_to = "bias"
-  ) %>%
-  mutate(
-    method = factor(method, labels = c("JSM", "TVC")),
-    param_label = c("α", "β₁", "β₂")[as.numeric(factor(param))]
-  )
-
-p_bias <- ggplot(bias_data, aes(x = param_label, y = bias, fill = method)) +
-  geom_hline(yintercept = 0, linetype = "solid", alpha = 0.3) +
-  geom_col(position = position_dodge(0.7), alpha = 0.8, width = 0.6) +
-  geom_text(aes(label = sprintf("%+.3f", bias)),
-    position = position_dodge(0.7),
-    vjust = ifelse(bias_data$bias > 0, -0.5, 1.5),
-    size = 3
-  ) +
-  scale_fill_manual(values = c("JSM" = "#3498DB", "TVC" = "#E74C3C")) +
-  scale_y_continuous(expand = expansion(mult = c(0.15, 0.15))) +
-  theme_minimal(base_size = 11) +
-  theme(
-    legend.position = "top",
-    panel.grid.major.x = element_blank()
-  ) +
-  labs(
-    x = "Parameter", y = "Bias", color = NULL,
-    title = "Estimation Bias",
-    subtitle = "Estimate - True Value"
-  )
-
-# Combine plots
-p_forest / p_bias
-```
-
-## Model Performance
-
-```{r cindex-comparison}
-# Calculate C-index for model comparison
-library(survival)
-
-# JSM: Combine survival predictors with longitudinal predictions
-jsm_risk <- -with(
-  jsm_data,
-  fit_jsm$coefficients$phi["w1"] * w1 +
-    fit_jsm$coefficients$phi["w2"] * w2 +
-    fit_jsm$coefficients$alpha * fitted(fit_lme)
-)
-
-# Time-varying Cox: Use built-in linear predictor
-tvc_risk <- -predict(fit_tvcox, type = "lp")
-
-# Calculate concordance for both models
-jsm_conc <- concordance(Surv(start, stop, event) ~ jsm_risk, data = jsm_data)
-tvc_conc <- concordance(Surv(start, stop, event) ~ tvc_risk, data = jsm_data)
-
-# Create comparison
-cindex_comp <- data.frame(
-  Model = c("Joint Model", "Time-Varying Cox"),
-  Cindex = c(jsm_conc$concordance, tvc_conc$concordance),
-  SE = sqrt(c(jsm_conc$var, tvc_conc$var))
-) %>%
-  mutate(
-    Lower = Cindex - 1.96 * SE,
-    Upper = Cindex + 1.96 * SE,
-    CI = sprintf("%.3f (%.3f-%.3f)", Cindex, Lower, Upper)
-  )
-
-# Display table
-knitr::kable(
-  select(cindex_comp, Model, `C-index (95% CI)` = CI),
-  caption = "Concordance Index: Higher = Better Discrimination",
-  align = c("l", "c")
-)
-```
-
-```{r session-info, echo=FALSE}
-sessionInfo()
 ```

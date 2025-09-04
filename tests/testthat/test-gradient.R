@@ -52,7 +52,7 @@ test_that("compute_gradient_joint matches numerical gradient", {
   )
 
   # Overall comparison TODO: Relax tolerance due to ODE precision
-  n_hazard = length(c(coefficients$baseline, coefficients$hazard))
+  n_hazard <- length(c(coefficients$baseline, coefficients$hazard))
   compare_gradient_component(
     grad_analytical[1:n_hazard],
     grad_numerical[1:n_hazard],

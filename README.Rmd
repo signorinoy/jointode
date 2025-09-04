@@ -102,10 +102,11 @@ predictions <- predict(fit, times = seq(0, 10, by = 0.25))
 
 ## Visualization
 
-```{r visualization, fig.width=10, fig.height=6}
+```{r visualization, fig.width=12, fig.height=4, echo=FALSE}
 library(ggplot2)
 library(dplyr)
 library(tidyr)
+library(patchwork)
 
 # Prepare data
 ids <- c(1, 5, 10, 15)
@@ -124,34 +125,51 @@ df <- lapply(ids, \(i) {
 }) %>% bind_rows()
 
 # Biomarker plot
-ggplot(df, aes(x = time)) +
+p1 <- ggplot(df, aes(x = time)) +
   geom_line(aes(y = biomarker_est, color = "Estimated")) +
   geom_line(
-    aes(y = biomarker_true, color = "True"), linetype = 2, na.rm = TRUE
+    aes(y = biomarker_true, color = "True"),
+    linetype = 2, na.rm = TRUE
   ) +
   geom_point(aes(y = v, color = "Observed"), alpha = 0.3, na.rm = TRUE) +
-  facet_wrap(~id) +
-  theme_minimal() +
-  labs(y = "Biomarker", color = "")
+  facet_wrap(~id, ncol = 2) +
+  theme_minimal(base_size = 9) +
+  theme(legend.position = "top") +
+  labs(x = "Time", y = "Biomarker", color = "")
 
 # Dynamics plot
-df %>%
+p2 <- df %>%
   pivot_longer(matches("(velocity|acceleration)_(est|true)"),
     names_to = c("type", "source"), names_sep = "_"
   ) %>%
   filter(!is.na(value)) %>%
+  mutate(
+    type = factor(type,
+      levels = c("velocity", "acceleration"),
+      labels = c("Velocity", "Acceleration")
+    ),
+    source = factor(source,
+      levels = c("est", "true"),
+      labels = c("Estimated", "True")
+    )
+  ) %>%
   ggplot(aes(x = time, y = value, color = type, linetype = source)) +
   geom_line() +
-  facet_wrap(~id, scales = "free_y") +
-  theme_minimal() +
-  labs(y = "Value", color = "Type", linetype = "Source")
+  facet_wrap(~id, scales = "free_y", ncol = 2) +
+  theme_minimal(base_size = 9) +
+  theme(legend.position = "top") +
+  labs(x = "Time", y = "Value", color = "Type", linetype = "Source")
 
 # Survival plot
-ggplot(df, aes(x = time, y = survival, color = factor(id))) +
-  geom_line(linewidth = 1.2) +
-  theme_minimal() +
+p3 <- ggplot(df, aes(x = time, y = survival, color = factor(id))) +
+  geom_line(linewidth = 1) +
+  theme_minimal(base_size = 9) +
+  theme(legend.position = "top") +
   ylim(0, 1) +
-  labs(y = "Survival Probability", color = "Subject")
+  labs(x = "Time", y = "Survival Probability", color = "Subject")
+
+# Combine plots
+p1 | p2 | p3
 ```
 
 

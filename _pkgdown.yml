@@ -14,8 +14,6 @@ template:
       articles:
         text: Vignettes
         menu:
-        - text: Getting Started
-          href: articles/getting-started.html
         - text: Technical Details
           href: articles/technical-details.html
         - text: Comparison
@@ -23,11 +21,6 @@ template:
 
 # Article index configuration
 articles:
-- title: Getting Started
-  navbar: ~
-  contents:
-  - getting-started
-
 - title: Technical Documentation
   navbar: ~
   contents:
