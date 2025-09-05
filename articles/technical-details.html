@@ -69,7 +69,7 @@
       <h1>Technical Details</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/ziyangg98/JointODE/blob/v0.1.0/vignettes/technical-details.Rmd" class="external-link"><code>vignettes/technical-details.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/ziyangg98/JointODE/blob/main/vignettes/technical-details.Rmd" class="external-link"><code>vignettes/technical-details.Rmd</code></a></small>
       <div class="d-none name"><code>technical-details.Rmd</code></div>
     </div>
 
@@ -130,12 +130,11 @@ current value <span class="math inline">m_i(t)</span>, velocity <span class="mat
 (e.g., Weibull, piecewise constant)</li>
 <li>
 <span class="math inline">\mathbf{m}_i(t)=\left(m_i(t),
-\dot{m}_i(t), \ddot{m}_i(t)\right)^{\top}</span>: Biomarker value and
-derivatives</li>
+\dot{m}_i(t)\right)^{\top}</span>: Biomarker value and derivatives</li>
 <li>
-<span class="math inline">\boldsymbol{\alpha}=(\alpha_0, \alpha_1,
-\alpha_2)^{\top}</span>: Association parameters for value, velocity, and
-acceleration</li>
+<span class="math inline">\boldsymbol{\alpha}=(\alpha_1,
+\alpha_2)^{\top}</span>: Association parameters for value and
+velocity</li>
 <li>
 <span class="math inline">\mathbf{W}_i</span>: Baseline covariates
 with coefficients <span class="math inline">\boldsymbol{\phi}</span>
@@ -530,85 +529,8 @@ parts: <span class="math display">\frac{\partial \mathbf{s}(T)}{\partial
 dt</span></p>
 <p>where <span class="math inline">\mathbf{e}_k</span> is the <span class="math inline">k</span>-th unit vector (i.e., a vector with 1 in
 the <span class="math inline">k</span>-th position and 0 elsewhere).</p>
-<p><strong>Application to JointODE</strong></p>
-<p>For the state vector <span class="math inline">\mathbf{s} =
-[\Lambda_i, m_i, \dot{m}_i]^{\top}</span>, we need: 1. <span class="math inline">\frac{\partial m_i(T_{ij})}{\partial
-\boldsymbol{\theta}}</span> for each observation time <span class="math inline">T_{ij}</span> 2. <span class="math inline">\frac{\partial \Lambda_i(T_i)}{\partial
-\boldsymbol{\theta}}</span> for the event time <span class="math inline">T_i</span></p>
-<div class="section level5">
-<h5 id="adjoint-system">Adjoint System<a class="anchor" aria-label="anchor" href="#adjoint-system"></a>
-</h5>
-<p>The transposed Jacobian for the JointODE dynamics is: <span class="math display">\left(\frac{\partial F}{\partial
-\mathbf{s}}\right)^{\top} = \begin{bmatrix}
-0 &amp; 0 &amp; 0 \\
-\alpha_0 \lambda_i(t|0) &amp; 0 &amp; \beta_1 \\
-\alpha_1 \lambda_i(t|0) &amp; 1 &amp; \beta_2
-\end{bmatrix}</span></p>
-<p>where <span class="math inline">\beta_1</span> and <span class="math inline">\beta_2</span> are the first two components of the
-linear coefficient vector <span class="math inline">\boldsymbol{\beta}</span> corresponding to <span class="math inline">m_i(t)</span> and <span class="math inline">\dot{m}_i(t)</span>, respectively.</p>
-<p>This yields the adjoint differential equations (solved backward in
-time): <span class="math display">\begin{aligned}
-\frac{d\tilde{\kappa}_1}{dt} &amp;= 0 \\
-\frac{d\tilde{\kappa}_2}{dt} &amp;= -\alpha_0 \lambda_i(t|0)
-\tilde{\kappa}_1 - \tilde{\kappa}_3 \\
-\frac{d\tilde{\kappa}_3}{dt} &amp;= -\alpha_1 \lambda_i(t|0)
-\tilde{\kappa}_1 - \beta_1 \tilde{\kappa}_2 - \beta_2 \tilde{\kappa}_3
-\end{aligned}</span></p>
-<p>with terminal conditions:</p>
-<ul>
-<li>For <span class="math inline">m_i(T_{ij})</span> sensitivity: <span class="math inline">\tilde{\boldsymbol{\kappa}}(T_{ij}) = [0, 1,
-0]^{\top}</span>
-</li>
-<li>For <span class="math inline">\Lambda_i(T_i)</span> sensitivity:
-<span class="math inline">\tilde{\boldsymbol{\kappa}}(T_i) = [1, 0,
-0]^{\top}</span>
-</li>
-</ul>
-</div>
-<div class="section level5">
-<h5 id="parameter-derivatives">Parameter Derivatives<a class="anchor" aria-label="anchor" href="#parameter-derivatives"></a>
-</h5>
-<p>The partial derivatives <span class="math inline">\frac{\partial
-F}{\partial \boldsymbol{\theta}}\bigg|_{\mathbf{s}}</span> needed for
-the sensitivity integrals:</p>
-<p><strong>Trajectory parameters:</strong></p>
-<ul>
-<li>Linear acceleration coefficients: <span class="math inline">\frac{\partial F}{\partial \boldsymbol{\beta}} = [0,
-0, \mathbf{Z}_i(t)]^{\top}</span>
-</li>
-</ul>
-<p><strong>Survival parameters:</strong></p>
-<ul>
-<li>Baseline hazard coefficients: <span class="math inline">\frac{\partial F}{\partial \boldsymbol{\eta}} =
-[\mathbf{B}^{(\lambda)}(t) \lambda_i(t|0), 0, 0]^{\top}</span>
-</li>
-<li>Association parameters: <span class="math inline">\frac{\partial
-F}{\partial \boldsymbol{\alpha}} = [\mathbf{m}_i(t) \lambda_i(t|0), 0,
-0]^{\top}</span>
-</li>
-<li>Baseline covariate effects: <span class="math inline">\frac{\partial
-F}{\partial \boldsymbol{\phi}} = [\mathbf{W}_i \lambda_i(t|0), 0,
-0]^{\top}</span>
-</li>
-</ul>
 </div>
 </div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="known-limitations">Known Limitations<a class="anchor" aria-label="anchor" href="#known-limitations"></a>
-</h2>
-<p>The JointODE model includes the biomarker trajectory and its
-derivatives in the hazard function:</p>
-<p><span class="math display">\lambda_i(t) = \lambda_0(t)
-\exp\left[\alpha_0 m_i(t) + \alpha_1 \dot{m}_i(t) + \alpha_2
-\ddot{m}_i(t) + \mathbf{W}_i^{\top}\boldsymbol{\phi} +
-b_i\right]</span></p>
-<p>Since <span class="math inline">\dot{m}_i(t)</span> and <span class="math inline">\ddot{m}_i(t)</span> are derivatives of <span class="math inline">m_i(t)</span>, these components are correlated,
-leading to identifiability challenges. The velocity effect is
-particularly difficult to identify. Additionally, flexible baseline
-hazards can absorb trajectory effects, creating a trade-off between
-model flexibility and parameter identifiability.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

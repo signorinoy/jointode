@@ -50,7 +50,7 @@ shared random effects and flexible hazard specifications."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Joint Modeling of Longitudinal and Survival Data Using ODEs</h1>
-      <small class="dont-index">Source: <a href="https://github.com/ziyangg98/JointODE/blob/v0.1.0/R/JointODE.R" class="external-link"><code>R/JointODE.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/ziyangg98/JointODE/blob/main/R/JointODE.R" class="external-link"><code>R/JointODE.R</code></a></small>
       <div class="d-none name"><code>JointODE.Rd</code></div>
     </div>
 
@@ -72,7 +72,7 @@ shared random effects and flexible hazard specifications.</p>
 <span>  <span class="va">survival_data</span>,</span>
 <span>  id <span class="op">=</span> <span class="st">"id"</span>,</span>
 <span>  time <span class="op">=</span> <span class="st">"time"</span>,</span>
-<span>  spline_baseline <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>degree <span class="op">=</span> <span class="fl">1</span>, n_knots <span class="op">=</span> <span class="fl">0</span>, knot_placement <span class="op">=</span> <span class="st">"quantile"</span>,</span>
+<span>  spline_baseline <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>degree <span class="op">=</span> <span class="fl">3</span>, n_knots <span class="op">=</span> <span class="fl">5</span>, knot_placement <span class="op">=</span> <span class="st">"quantile"</span>,</span>
 <span>    boundary_knots <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
 <span>  init <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -131,11 +131,11 @@ in the longitudinal dataset (default: <code>"time"</code>).</p></dd>
 <dd><p>A list controlling the B-spline representation of the
 baseline hazard function with the following components:</p><dl><dt><code>degree</code></dt>
 <dd><p>Polynomial degree of the B-spline basis functions
-(default: 1, linear splines)</p></dd>
+(default: 3, cubic splines)</p></dd>
 
 <dt><code>n_knots</code></dt>
 <dd><p>Number of interior knots for flexibility
-(default: 0, linear baseline hazard with 2 parameters)</p></dd>
+(default: 5, providing moderate flexibility)</p></dd>
 
 <dt><code>knot_placement</code></dt>
 <dd><p>Strategy for positioning knots:
@@ -158,7 +158,7 @@ component with elements:</p><dl><dt><code>coefficients</code></dt>
 <dd><p>A list containing:</p><ul><li><p><code>baseline</code>: Vector of B-spline coefficients for baseline
 hazard (length = number of spline basis functions)</p></li>
 <li><p><code>hazard</code>: Vector of hazard parameters including
-association parameters (3) and survival covariates</p></li>
+association parameters (2) and survival covariates</p></li>
 <li><p><code>acceleration</code>: Vector of longitudinal fixed effects
 including intercept and covariates</p></li>
 <li><p><code>measurement_error_sd</code>: Residual standard deviation

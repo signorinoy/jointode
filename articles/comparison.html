@@ -69,7 +69,7 @@
       <h1>Comparison</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/ziyangg98/JointODE/blob/v0.1.0/vignettes/comparison.Rmd" class="external-link"><code>vignettes/comparison.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/ziyangg98/JointODE/blob/main/vignettes/comparison.Rmd" class="external-link"><code>vignettes/comparison.Rmd</code></a></small>
       <div class="d-none name"><code>comparison.Rmd</code></div>
     </div>
 
@@ -92,18 +92,17 @@ t</span></p>
 (measurement error).</p>
 <p><strong>Survival Process:</strong></p>
 <p>The hazard function incorporates biomarker dynamics: <span class="math display">\lambda_i(t) = \lambda_0(t) \exp\{\alpha_1 m_i(t) +
-\alpha_2 \dot{m}_i(t) + \alpha_3 \ddot{m}_i(t) + \phi_1 w_{i1} + \phi_2
-w_{i2} + b_i\}</span></p>
+\alpha_2 \dot{m}_i(t) + \phi_1 w_{i1} + \phi_2 w_{i2} + b_i\}</span></p>
 <p>where <span class="math inline">\lambda_0(t)=8</span> is the baseline
-hazard and <span class="math inline">\alpha = (\alpha_1, \alpha_2,
-\alpha_3)</span> captures the association with biomarker value,
-velocity, and acceleration.</p>
+hazard and <span class="math inline">\alpha = (\alpha_1,
+\alpha_2)</span> captures the association with biomarker value and
+velocity.</p>
 <pre><code><span><span class="co">#&gt; True Parameters:</span></span>
-<span><span class="co">#&gt;   Hazard: α = [0.6, 1.0, -1.5], φ = [0.8, -1.2]</span></span>
+<span><span class="co">#&gt;   Hazard: α = [0.6, 1.0, 0.8], φ = [-1.2, NA]</span></span>
 <span><span class="co">#&gt;   ODE: β = [-1.0, -0.6, 0.0, -0.8, 0.5, 0.4]</span></span>
 <span><span class="co">#&gt;   Variance: σ_e = 0.1, σ_b = 0.1</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Dataset: 100 subjects, 1010 observations, 77% events</span></span></code></pre>
+<span><span class="co">#&gt; Dataset: 100 subjects, 1013 observations, 79% events</span></span></code></pre>
 <div class="section level3">
 <h3 id="ode-dynamics">ODE Dynamics<a class="anchor" aria-label="anchor" href="#ode-dynamics"></a>
 </h3>
@@ -115,14 +114,14 @@ of random intercept and measurement error by comparing the true
 biomarker trajectories (lines) with the observed measurements
 (points).</p>
 <pre><code><span><span class="co">#&gt; Variance Components:</span></span>
-<span><span class="co">#&gt;   Biomarker: 0.965</span></span>
-<span><span class="co">#&gt;   Velocity: 0.142</span></span>
-<span><span class="co">#&gt;   Acceleration: 0.155</span></span>
+<span><span class="co">#&gt;   Biomarker: 1.063</span></span>
+<span><span class="co">#&gt;   Velocity: 0.145</span></span>
+<span><span class="co">#&gt;   Acceleration: 0.159</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Pairwise Correlations:</span></span>
-<span><span class="co">#&gt;   ρ(Biomarker, Velocity): 0.461</span></span>
-<span><span class="co">#&gt;   ρ(Biomarker, Acceleration): -0.234</span></span>
-<span><span class="co">#&gt;   ρ(Velocity, Acceleration): 0.148</span></span></code></pre>
+<span><span class="co">#&gt;   ρ(Biomarker, Velocity): 0.478</span></span>
+<span><span class="co">#&gt;   ρ(Biomarker, Acceleration): -0.233</span></span>
+<span><span class="co">#&gt;   ρ(Velocity, Acceleration): 0.138</span></span></code></pre>
 <p>The variance hierarchy and correlation structure reflect the
 fundamental properties of the ODE system. Unlike independent variables
 in traditional models, these components are mechanistically linked
@@ -183,31 +182,21 @@ information, it approximates the time-varying covariates using piecewise
 linear interpolation rather than modeling the continuous ODE
 dynamics.</p>
 <p>Based on 200 simulation replicates, we evaluate the estimation
-accuracy of the association parameters <span class="math inline">(\alpha_1, \alpha_2, \alpha_3)</span> and baseline
-covariate effects <span class="math inline">(\phi_1, \phi_2)</span>
-using Bias, Empirical Standard Error (ESE), Average Standard Error
-(ASE), and Coverage Probability (CP) of 95% confidence intervals.</p>
+accuracy of the association parameters <span class="math inline">(\alpha_1, \alpha_2)</span> and baseline covariate
+effects <span class="math inline">(\phi_1, \phi_2)</span> using Bias,
+Empirical Standard Error (ESE), Average Standard Error (ASE), and
+Coverage Probability (CP) of 95% confidence intervals.</p>
 <div class="figure">
 <img src="../reference/figures/simulation-1.png" alt="Simulation Results" width="100%"><p class="caption">
 Simulation Results
 </p>
 </div>
-<p>The simulation results reveal persistent parameter biases in the
-joint ODE-Cox model across different sample sizes. For <span class="math inline">n=400</span>, the JointODE method yields biases of
-<span class="math inline">0.027</span>, <span class="math inline">-0.154</span>, and <span class="math inline">0.214</span> for <span class="math inline">\alpha_1</span>, <span class="math inline">\alpha_2</span>, and <span class="math inline">\alpha_3</span> respectively, with coverage
-probabilities of <span class="math inline">98.1\%</span>, <span class="math inline">74.1\%</span>, and <span class="math inline">55.6\%</span>. The poor coverage for <span class="math inline">\alpha_2</span> and <span class="math inline">\alpha_3</span> indicates systematic bias rather
-than random variation.</p>
-<p>This identifiability issue arises from the ODE structure <span class="math inline">\ddot{m}(t) = \beta_1 m(t) + \beta_2 \dot{m}(t) +
-Z(t)</span>, where <span class="math inline">\beta_1=-1.0</span>, <span class="math inline">\beta_2=-0.6</span>, and <span class="math inline">Z(t) = \sum_{j=3}^{6}\beta_j z_j(t)</span>.
-Substituting into the Cox model yields <span class="math inline">h(t) =
-h_0(t)\exp[(\alpha_1+\alpha_3\beta_1)m +
-(\alpha_2+\alpha_3\beta_2)\dot{m} + \alpha_3 Z]</span>. The model can
-only identify the composite effects <span class="math inline">\gamma_1 =
-\alpha_1+\alpha_3\beta_1</span> and <span class="math inline">\gamma_2 =
-\alpha_2+\alpha_3\beta_2</span>, not the individual parameters. With
-<span class="math inline">\beta_3=0</span>, the constant term that would
-provide direct information about <span class="math inline">\alpha_3</span> is absent, forcing identification to
-rely solely on the weaker signals from time-varying covariates.</p>
+<p>The simulation results demonstrate good estimation accuracy for the
+joint ODE-Cox model across different sample sizes. For <span class="math inline">n=400</span>, the JointODE method yields minimal
+biases for both association parameters <span class="math inline">\alpha_1</span> and <span class="math inline">\alpha_2</span>, as well as the baseline covariate
+effects <span class="math inline">\phi_1</span> and <span class="math inline">\phi_2</span>. The coverage probabilities remain
+close to the nominal 95% level, indicating proper uncertainty
+quantification.</p>
 </div>
 <div class="section level2">
 <h2 id="appendix">Appendix<a class="anchor" aria-label="anchor" href="#appendix"></a>
