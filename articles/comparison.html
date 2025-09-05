@@ -182,7 +182,7 @@ random effects at observed time points. While it has perfect
 information, it approximates the time-varying covariates using piecewise
 linear interpolation rather than modeling the continuous ODE
 dynamics.</p>
-<p>Based on 100 simulation replicates, we evaluate the estimation
+<p>Based on 200 simulation replicates, we evaluate the estimation
 accuracy of the association parameters <span class="math inline">(\alpha_1, \alpha_2, \alpha_3)</span> and baseline
 covariate effects <span class="math inline">(\phi_1, \phi_2)</span>
 using Bias, Empirical Standard Error (ESE), Average Standard Error
@@ -208,50 +208,50 @@ using Bias, Empirical Standard Error (ESE), Average Standard Error
 <tr class="even">
 <td align="left">φ₁ = 0.8</td>
 <td align="left">TVCox</td>
-<td align="right">0.027</td>
-<td align="right">0.150</td>
-<td align="right">0.137</td>
-<td align="right">90.9</td>
+<td align="right">0.032</td>
+<td align="right">0.147</td>
+<td align="right">0.136</td>
+<td align="right">92.5</td>
 </tr>
 <tr class="odd">
 <td align="left"></td>
 <td align="left">JSM</td>
-<td align="right">-0.064</td>
-<td align="right">0.150</td>
-<td align="right">0.138</td>
-<td align="right">88.9</td>
+<td align="right">-0.067</td>
+<td align="right">0.135</td>
+<td align="right">0.137</td>
+<td align="right">90.4</td>
 </tr>
 <tr class="even">
 <td align="left"></td>
 <td align="left">JointODE</td>
-<td align="right">0.040</td>
+<td align="right">0.036</td>
+<td align="right">0.135</td>
 <td align="right">0.137</td>
-<td align="right">0.136</td>
-<td align="right">94.3</td>
+<td align="right">95.9</td>
 </tr>
 <tr class="odd">
 <td align="left">φ₂ = -1.2</td>
 <td align="left">TVCox</td>
-<td align="right">-0.072</td>
-<td align="right">0.184</td>
-<td align="right">0.159</td>
-<td align="right">92.7</td>
+<td align="right">-0.038</td>
+<td align="right">0.156</td>
+<td align="right">0.155</td>
+<td align="right">95.5</td>
 </tr>
 <tr class="even">
 <td align="left"></td>
 <td align="left">JSM</td>
-<td align="right">0.072</td>
-<td align="right">0.155</td>
-<td align="right">0.155</td>
-<td align="right">87.0</td>
+<td align="right">0.109</td>
+<td align="right">0.138</td>
+<td align="right">0.153</td>
+<td align="right">88.9</td>
 </tr>
 <tr class="odd">
 <td align="left"></td>
 <td align="left">JointODE</td>
-<td align="right">-0.094</td>
-<td align="right">0.169</td>
-<td align="right">0.155</td>
-<td align="right">92.5</td>
+<td align="right">-0.046</td>
+<td align="right">0.145</td>
+<td align="right">0.154</td>
+<td align="right">96.4</td>
 </tr>
 <tr class="even">
 <td align="left"><strong>Association Parameters</strong></td>
@@ -264,58 +264,58 @@ using Bias, Empirical Standard Error (ESE), Average Standard Error
 <tr class="odd">
 <td align="left">α₁ = 0.6</td>
 <td align="left">TVCox</td>
-<td align="right">-0.084</td>
-<td align="right">0.222</td>
-<td align="right">0.220</td>
-<td align="right">96.4</td>
+<td align="right">-0.057</td>
+<td align="right">0.235</td>
+<td align="right">0.219</td>
+<td align="right">93.5</td>
 </tr>
 <tr class="even">
 <td align="left"></td>
 <td align="left">JSM</td>
-<td align="right">0.276</td>
-<td align="right">0.260</td>
-<td align="right">0.292</td>
-<td align="right">90.7</td>
+<td align="right">0.300</td>
+<td align="right">0.252</td>
+<td align="right">0.290</td>
+<td align="right">86.9</td>
 </tr>
 <tr class="odd">
 <td align="left"></td>
 <td align="left">JointODE</td>
-<td align="right">-0.222</td>
+<td align="right">0.062</td>
 <td align="right">0.161</td>
-<td align="right">0.197</td>
-<td align="right">84.9</td>
+<td align="right">0.210</td>
+<td align="right">98.5</td>
 </tr>
 <tr class="even">
 <td align="left">α₂ = 1.0</td>
 <td align="left">TVCox</td>
-<td align="right">0.324</td>
-<td align="right">0.411</td>
-<td align="right">0.413</td>
-<td align="right">87.3</td>
+<td align="right">0.361</td>
+<td align="right">0.459</td>
+<td align="right">0.423</td>
+<td align="right">85.0</td>
 </tr>
 <tr class="odd">
 <td align="left"></td>
 <td align="left">JointODE</td>
-<td align="right">-0.091</td>
-<td align="right">0.356</td>
-<td align="right">0.341</td>
-<td align="right">92.5</td>
+<td align="right">-0.193</td>
+<td align="right">0.360</td>
+<td align="right">0.339</td>
+<td align="right">91.4</td>
 </tr>
 <tr class="even">
 <td align="left">α₃ = -1.5</td>
 <td align="left">TVCox</td>
-<td align="right">0.181</td>
-<td align="right">0.335</td>
-<td align="right">0.293</td>
-<td align="right">85.5</td>
+<td align="right">0.182</td>
+<td align="right">0.332</td>
+<td align="right">0.299</td>
+<td align="right">84.5</td>
 </tr>
 <tr class="odd">
 <td align="left"></td>
 <td align="left">JointODE</td>
-<td align="right">-0.111</td>
-<td align="right">0.319</td>
-<td align="right">0.263</td>
-<td align="right">92.5</td>
+<td align="right">0.168</td>
+<td align="right">0.339</td>
+<td align="right">0.282</td>
+<td align="right">87.8</td>
 </tr>
 </tbody>
 </table>
