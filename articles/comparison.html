@@ -21,7 +21,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">JointODE</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -197,7 +197,7 @@ joint ODE-Cox model across different sample sizes. For <span class="math inline"
 <span class="math inline">0.027</span>, <span class="math inline">-0.154</span>, and <span class="math inline">0.214</span> for <span class="math inline">\alpha_1</span>, <span class="math inline">\alpha_2</span>, and <span class="math inline">\alpha_3</span> respectively, with coverage
 probabilities of <span class="math inline">98.1\%</span>, <span class="math inline">74.1\%</span>, and <span class="math inline">55.6\%</span>. The poor coverage for <span class="math inline">\alpha_2</span> and <span class="math inline">\alpha_3</span> indicates systematic bias rather
 than random variation.</p>
-<p>This identifiability issue arises from the ODE structure <span class="math inline">\ddot{x}(t) = \beta_1 m(t) + \beta_2 \dot{m}(t) +
+<p>This identifiability issue arises from the ODE structure <span class="math inline">\ddot{m}(t) = \beta_1 m(t) + \beta_2 \dot{m}(t) +
 Z(t)</span>, where <span class="math inline">\beta_1=-1.0</span>, <span class="math inline">\beta_2=-0.6</span>, and <span class="math inline">Z(t) = \sum_{j=3}^{6}\beta_j z_j(t)</span>.
 Substituting into the Cox model yields <span class="math inline">h(t) =
 h_0(t)\exp[(\alpha_1+\alpha_3\beta_1)m +
