@@ -187,138 +187,27 @@ accuracy of the association parameters <span class="math inline">(\alpha_1, \alp
 covariate effects <span class="math inline">(\phi_1, \phi_2)</span>
 using Bias, Empirical Standard Error (ESE), Average Standard Error
 (ASE), and Coverage Probability (CP) of 95% confidence intervals.</p>
-<table class="table">
-<thead><tr class="header">
-<th align="left">Parameter</th>
-<th align="left">Model</th>
-<th align="right">Bias</th>
-<th align="right">ESE</th>
-<th align="right">ASE</th>
-<th align="right">CP (%)</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td align="left"><strong>Baseline Covariates</strong></td>
-<td align="left"></td>
-<td align="right"></td>
-<td align="right"></td>
-<td align="right"></td>
-<td align="right"></td>
-</tr>
-<tr class="even">
-<td align="left">φ₁ = 0.8</td>
-<td align="left">TVCox</td>
-<td align="right">0.032</td>
-<td align="right">0.147</td>
-<td align="right">0.136</td>
-<td align="right">92.5</td>
-</tr>
-<tr class="odd">
-<td align="left"></td>
-<td align="left">JSM</td>
-<td align="right">-0.067</td>
-<td align="right">0.135</td>
-<td align="right">0.137</td>
-<td align="right">90.4</td>
-</tr>
-<tr class="even">
-<td align="left"></td>
-<td align="left">JointODE</td>
-<td align="right">0.036</td>
-<td align="right">0.135</td>
-<td align="right">0.137</td>
-<td align="right">95.9</td>
-</tr>
-<tr class="odd">
-<td align="left">φ₂ = -1.2</td>
-<td align="left">TVCox</td>
-<td align="right">-0.038</td>
-<td align="right">0.156</td>
-<td align="right">0.155</td>
-<td align="right">95.5</td>
-</tr>
-<tr class="even">
-<td align="left"></td>
-<td align="left">JSM</td>
-<td align="right">0.109</td>
-<td align="right">0.138</td>
-<td align="right">0.153</td>
-<td align="right">88.9</td>
-</tr>
-<tr class="odd">
-<td align="left"></td>
-<td align="left">JointODE</td>
-<td align="right">-0.046</td>
-<td align="right">0.145</td>
-<td align="right">0.154</td>
-<td align="right">96.4</td>
-</tr>
-<tr class="even">
-<td align="left"><strong>Association Parameters</strong></td>
-<td align="left"></td>
-<td align="right"></td>
-<td align="right"></td>
-<td align="right"></td>
-<td align="right"></td>
-</tr>
-<tr class="odd">
-<td align="left">α₁ = 0.6</td>
-<td align="left">TVCox</td>
-<td align="right">-0.057</td>
-<td align="right">0.235</td>
-<td align="right">0.219</td>
-<td align="right">93.5</td>
-</tr>
-<tr class="even">
-<td align="left"></td>
-<td align="left">JSM</td>
-<td align="right">0.300</td>
-<td align="right">0.252</td>
-<td align="right">0.290</td>
-<td align="right">86.9</td>
-</tr>
-<tr class="odd">
-<td align="left"></td>
-<td align="left">JointODE</td>
-<td align="right">0.062</td>
-<td align="right">0.161</td>
-<td align="right">0.210</td>
-<td align="right">98.5</td>
-</tr>
-<tr class="even">
-<td align="left">α₂ = 1.0</td>
-<td align="left">TVCox</td>
-<td align="right">0.361</td>
-<td align="right">0.459</td>
-<td align="right">0.423</td>
-<td align="right">85.0</td>
-</tr>
-<tr class="odd">
-<td align="left"></td>
-<td align="left">JointODE</td>
-<td align="right">-0.193</td>
-<td align="right">0.360</td>
-<td align="right">0.339</td>
-<td align="right">91.4</td>
-</tr>
-<tr class="even">
-<td align="left">α₃ = -1.5</td>
-<td align="left">TVCox</td>
-<td align="right">0.182</td>
-<td align="right">0.332</td>
-<td align="right">0.299</td>
-<td align="right">84.5</td>
-</tr>
-<tr class="odd">
-<td align="left"></td>
-<td align="left">JointODE</td>
-<td align="right">0.168</td>
-<td align="right">0.339</td>
-<td align="right">0.282</td>
-<td align="right">87.8</td>
-</tr>
-</tbody>
-</table>
+<div class="figure">
+<img src="../reference/figures/simulation-1.png" alt="Simulation Results" width="100%"><p class="caption">
+Simulation Results
+</p>
+</div>
+<p>The simulation results reveal persistent parameter biases in the
+joint ODE-Cox model across different sample sizes. For <span class="math inline">n=400</span>, the JointODE method yields biases of
+<span class="math inline">0.027</span>, <span class="math inline">-0.154</span>, and <span class="math inline">0.214</span> for <span class="math inline">\alpha_1</span>, <span class="math inline">\alpha_2</span>, and <span class="math inline">\alpha_3</span> respectively, with coverage
+probabilities of <span class="math inline">98.1\%</span>, <span class="math inline">74.1\%</span>, and <span class="math inline">55.6\%</span>. The poor coverage for <span class="math inline">\alpha_2</span> and <span class="math inline">\alpha_3</span> indicates systematic bias rather
+than random variation.</p>
+<p>This identifiability issue arises from the ODE structure <span class="math inline">\ddot{x}(t) = \beta_1 m(t) + \beta_2 \dot{m}(t) +
+Z(t)</span>, where <span class="math inline">\beta_1=-1.0</span>, <span class="math inline">\beta_2=-0.6</span>, and <span class="math inline">Z(t) = \sum_{j=3}^{6}\beta_j z_j(t)</span>.
+Substituting into the Cox model yields <span class="math inline">h(t) =
+h_0(t)\exp[(\alpha_1+\alpha_3\beta_1)m +
+(\alpha_2+\alpha_3\beta_2)\dot{m} + \alpha_3 Z]</span>. The model can
+only identify the composite effects <span class="math inline">\gamma_1 =
+\alpha_1+\alpha_3\beta_1</span> and <span class="math inline">\gamma_2 =
+\alpha_2+\alpha_3\beta_2</span>, not the individual parameters. With
+<span class="math inline">\beta_3=0</span>, the constant term that would
+provide direct information about <span class="math inline">\alpha_3</span> is absent, forcing identification to
+rely solely on the weaker signals from time-varying covariates.</p>
 </div>
 <div class="section level2">
 <h2 id="appendix">Appendix<a class="anchor" aria-label="anchor" href="#appendix"></a>
