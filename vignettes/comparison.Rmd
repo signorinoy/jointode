@@ -222,72 +222,14 @@ The Oracle model uses the true biomarker trajectory, derivatives, and random eff
 
 Based on 200 simulation replicates, we evaluate the estimation accuracy of the association parameters $(\alpha_1, \alpha_2, \alpha_3)$ and baseline covariate effects $(\phi_1, \phi_2)$ using Bias, Empirical Standard Error (ESE), Average Standard Error (ASE), and Coverage Probability (CP) of 95% confidence intervals.
 
-```{r sim-results-table, echo=FALSE}
-# Create the results data frame without row numbers
-results_df <- data.frame(
-  Parameter = c(
-    "**Baseline Covariates**",
-    "φ₁ = 0.8", "", "",
-    "φ₂ = -1.2", "", "",
-    "**Association Parameters**",
-    "α₁ = 0.6", "", "",
-    "α₂ = 1.0", "",
-    "α₃ = -1.5", ""
-  ),
-  Model = c(
-    "",
-    "TVCox", "JSM", "JointODE",
-    "TVCox", "JSM", "JointODE",
-    "",
-    "TVCox", "JSM", "JointODE",
-    "TVCox", "JointODE",
-    "TVCox", "JointODE"
-  ),
-  Bias = c(
-    "",
-    "0.032", "-0.067", "0.036",
-    "-0.038", "0.109", "-0.046",
-    "",
-    "-0.057", "0.300", "0.062",
-    "0.361", "-0.193",
-    "0.182", "0.168"
-  ),
-  ESE = c(
-    "",
-    "0.147", "0.135", "0.135",
-    "0.156", "0.138", "0.145",
-    "",
-    "0.235", "0.252", "0.161",
-    "0.459", "0.360",
-    "0.332", "0.339"
-  ),
-  ASE = c(
-    "",
-    "0.136", "0.137", "0.137",
-    "0.155", "0.153", "0.154",
-    "",
-    "0.219", "0.290", "0.210",
-    "0.423", "0.339",
-    "0.299", "0.282"
-  ),
-  CP = c(
-    "",
-    "92.5", "90.4", "95.9",
-    "95.5", "88.9", "96.4",
-    "",
-    "93.5", "86.9", "98.5",
-    "85.0", "91.4",
-    "84.5", "87.8"
-  )
-)
 
-# Use kable with row.names = FALSE to remove row numbers
-kable(results_df,
-  col.names = c("Parameter", "Model", "Bias", "ESE", "ASE", "CP (%)"),
-  align = c("l", "l", "r", "r", "r", "r"),
-  row.names = FALSE
-)
+```{r simulation-figure, echo=FALSE, fig.cap="Simulation Results", out.width="100%"}
+knitr::include_graphics("../man/figures/simulation-1.png")
 ```
+
+The simulation results reveal persistent parameter biases in the joint ODE-Cox model across different sample sizes. For $n=400$, the JointODE method yields biases of $0.027$, $-0.154$, and $0.214$ for $\alpha_1$, $\alpha_2$, and $\alpha_3$ respectively, with coverage probabilities of $98.1\%$, $74.1\%$, and $55.6\%$. The poor coverage for $\alpha_2$ and $\alpha_3$ indicates systematic bias rather than random variation.
+
+This identifiability issue arises from the ODE structure $\ddot{x}(t) = \beta_1 m(t) + \beta_2 \dot{m}(t) + Z(t)$, where $\beta_1=-1.0$, $\beta_2=-0.6$, and $Z(t) = \sum_{j=3}^{6}\beta_j z_j(t)$. Substituting into the Cox model yields $h(t) = h_0(t)\exp[(\alpha_1+\alpha_3\beta_1)m + (\alpha_2+\alpha_3\beta_2)\dot{m} + \alpha_3 Z]$. The model can only identify the composite effects $\gamma_1 = \alpha_1+\alpha_3\beta_1$ and $\gamma_2 = \alpha_2+\alpha_3\beta_2$, not the individual parameters. With $\beta_3=0$, the constant term that would provide direct information about $\alpha_3$ is absent, forcing identification to rely solely on the weaker signals from time-varying covariates.
 
 ## Appendix
 
