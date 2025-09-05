@@ -57,8 +57,8 @@ $$
 where:
 
 -   $\lambda_{0}(t)$: Baseline hazard (e.g., Weibull, piecewise constant)
--   $\mathbf{m}_i(t)=\left(m_i(t), \dot{m}_i(t), \ddot{m}_i(t)\right)^{\top}$: Biomarker value and derivatives
--   $\boldsymbol{\alpha}=(\alpha_0, \alpha_1, \alpha_2)^{\top}$: Association parameters for value, velocity, and acceleration
+-   $\mathbf{m}_i(t)=\left(m_i(t), \dot{m}_i(t)\right)^{\top}$: Biomarker value and velocity
+-   $\boldsymbol{\alpha}=(\alpha_1, \alpha_2)^{\top}$: Association parameters for value and velocity
 -   $\mathbf{W}_i$: Baseline covariates with coefficients $\boldsymbol{\phi}$
 -   $b_i$: Subject-specific random intercept
 
@@ -89,7 +89,6 @@ fit <- JointODE(
   longitudinal_data = sim$data$longitudinal_data,
   survival_formula = sim$formulas$survival,
   survival_data = sim$data$survival_data,
-  init = sim$parameters,
   parallel = TRUE
 )
 

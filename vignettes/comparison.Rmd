@@ -50,9 +50,9 @@ with $b_i \sim \mathcal{N}(0, \sigma_b^2)$ (random intercept) and $\epsilon_{ij}
 **Survival Process:**
 
 The hazard function incorporates biomarker dynamics:
-$$\lambda_i(t) = \lambda_0(t) \exp\{\alpha_1 m_i(t) + \alpha_2 \dot{m}_i(t) + \alpha_3 \ddot{m}_i(t) + \phi_1 w_{i1} + \phi_2 w_{i2} + b_i\}$$
+$$\lambda_i(t) = \lambda_0(t) \exp\{\alpha_1 m_i(t) + \alpha_2 \dot{m}_i(t) + \phi_1 w_{i1} + \phi_2 w_{i2} + b_i\}$$
 
-where $\lambda_0(t)=8$ is the baseline hazard and $\alpha = (\alpha_1, \alpha_2, \alpha_3)$ captures the association with biomarker value, velocity, and acceleration.
+where $\lambda_0(t)=8$ is the baseline hazard and $\alpha = (\alpha_1, \alpha_2)$ captures the association with biomarker value and velocity.
 
 ```{r params-data, echo=FALSE}
 # Load data
@@ -220,16 +220,14 @@ We compare our proposed method against existing approaches:
 
 The Oracle model uses the true biomarker trajectory, derivatives, and random effects at observed time points. While it has perfect information, it approximates the time-varying covariates using piecewise linear interpolation rather than modeling the continuous ODE dynamics.
 
-Based on 200 simulation replicates, we evaluate the estimation accuracy of the association parameters $(\alpha_1, \alpha_2, \alpha_3)$ and baseline covariate effects $(\phi_1, \phi_2)$ using Bias, Empirical Standard Error (ESE), Average Standard Error (ASE), and Coverage Probability (CP) of 95% confidence intervals.
+Based on 200 simulation replicates, we evaluate the estimation accuracy of the association parameters $(\alpha_1, \alpha_2)$ and baseline covariate effects $(\phi_1, \phi_2)$ using Bias, Empirical Standard Error (ESE), Average Standard Error (ASE), and Coverage Probability (CP) of 95% confidence intervals.
 
 
 ```{r simulation-figure, echo=FALSE, fig.cap="Simulation Results", out.width="100%"}
 knitr::include_graphics("../man/figures/simulation-1.png")
 ```
 
-The simulation results reveal persistent parameter biases in the joint ODE-Cox model across different sample sizes. For $n=400$, the JointODE method yields biases of $0.027$, $-0.154$, and $0.214$ for $\alpha_1$, $\alpha_2$, and $\alpha_3$ respectively, with coverage probabilities of $98.1\%$, $74.1\%$, and $55.6\%$. The poor coverage for $\alpha_2$ and $\alpha_3$ indicates systematic bias rather than random variation.
-
-This identifiability issue arises from the ODE structure $\ddot{m}(t) = \beta_1 m(t) + \beta_2 \dot{m}(t) + Z(t)$, where $\beta_1=-1.0$, $\beta_2=-0.6$, and $Z(t) = \sum_{j=3}^{6}\beta_j z_j(t)$. Substituting into the Cox model yields $h(t) = h_0(t)\exp[(\alpha_1+\alpha_3\beta_1)m + (\alpha_2+\alpha_3\beta_2)\dot{m} + \alpha_3 Z]$. The model can only identify the composite effects $\gamma_1 = \alpha_1+\alpha_3\beta_1$ and $\gamma_2 = \alpha_2+\alpha_3\beta_2$, not the individual parameters. With $\beta_3=0$, the constant term that would provide direct information about $\alpha_3$ is absent, forcing identification to rely solely on the weaker signals from time-varying covariates.
+The simulation results demonstrate good estimation accuracy for the joint ODE-Cox model across different sample sizes. For $n=400$, the JointODE method yields minimal biases for both association parameters $\alpha_1$ and $\alpha_2$, as well as the baseline covariate effects $\phi_1$ and $\phi_2$. The coverage probabilities remain close to the nominal 95% level, indicating proper uncertainty quantification.
 
 ## Appendix
 

@@ -11,7 +11,7 @@ JointODE(
   survival_data,
   id = "id",
   time = "time",
-  spline_baseline = list(degree = 1, n_knots = 0, knot_placement = "quantile",
+  spline_baseline = list(degree = 3, n_knots = 5, knot_placement = "quantile",
     boundary_knots = NULL),
   init = NULL,
   control = list(),
@@ -54,9 +54,9 @@ in the longitudinal dataset (default: \code{"time"}).}
 baseline hazard function with the following components:
 \describe{
 \item{\code{degree}}{Polynomial degree of the B-spline basis functions
-(default: 1, linear splines)}
+(default: 3, cubic splines)}
 \item{\code{n_knots}}{Number of interior knots for flexibility
-(default: 0, linear baseline hazard with 2 parameters)}
+(default: 5, providing moderate flexibility)}
 \item{\code{knot_placement}}{Strategy for positioning knots:
 \code{"quantile"} places knots at quantiles of observed event times,
 \code{"equal"} uses equally-spaced knots (default: \code{"quantile"})}
@@ -74,7 +74,7 @@ component with elements:
 \item \code{baseline}: Vector of B-spline coefficients for baseline
 hazard (length = number of spline basis functions)
 \item \code{hazard}: Vector of hazard parameters including
-association parameters (3) and survival covariates
+association parameters (2) and survival covariates
 \item \code{acceleration}: Vector of longitudinal fixed effects
 including intercept and covariates
 \item \code{measurement_error_sd}: Residual standard deviation

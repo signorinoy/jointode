@@ -81,7 +81,7 @@ test_that("simulate() respects input parameters", {
   set.seed(123)
 
   # Test with custom parameters
-  custom_alpha <- c(0.3, 0.2, -0.4)
+  custom_alpha <- c(0.3, 0.2)
   custom_beta <- c(-0.2, -0.3, 0.1, 0.15, 0.08)
   custom_phi <- c(0.3, -0.2)
 
@@ -160,8 +160,8 @@ test_that("simulate() input validation works", {
 
   # Invalid alpha
   expect_error(
-    simulate(n = 10, alpha = c(0.5, 0.4)),
-    "alpha must be a numeric vector of length 3"
+    simulate(n = 10, alpha = c(0.5)),
+    "alpha must be a numeric vector of length 2"
   )
 
   # Invalid beta
@@ -394,7 +394,7 @@ test_that(".create_example_data generates valid dataset structure", {
 
   # Check specific coefficient properties
   expect_type(coef$hazard, "double")
-  expect_equal(length(coef$hazard), 5)
+  expect_equal(length(coef$hazard), 4)
   expect_equal(coef$measurement_error_sd, 0.1)
   expect_equal(coef$random_effect_sd, 0.1)
 

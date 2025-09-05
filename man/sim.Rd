@@ -35,7 +35,7 @@ with columns: \code{id}, \code{time} (event/censoring),
 \item \code{baseline}: B-spline coefficients for
 baseline hazard
 \item \code{hazard}: Association parameters
-(biomarker, velocity, acceleration, w1, w2)
+(biomarker, velocity, w1, w2)
 \item \code{acceleration}: ODE acceleration parameters
 \item \code{measurement_error_sd}: Measurement error
 SD (0.1)

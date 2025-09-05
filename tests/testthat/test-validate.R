@@ -1069,7 +1069,7 @@ test_that(".validate checks init parameter lengths correctly", {
     )
   )
 
-  # Wrong hazard length (should be 3 + 1 survival covariate = 4)
+  # Wrong hazard length (should be 2 + 1 survival covariate = 3)
   expect_error(
     JointODE:::.validate(
       v ~ x1,
@@ -1079,11 +1079,11 @@ test_that(".validate checks init parameter lengths correctly", {
       "id",
       "time",
       spline_baseline = list(),
-      init = list(coefficients = list(hazard = rep(0, 2)))
+      init = list(coefficients = list(hazard = rep(0, 1)))
     ),
     paste(
       "Invalid 'init\\$coefficients\\$hazard':",
-      "must have at least 3 elements for association parameters"
+      "must have at least 2 elements for association parameters"
     )
   )
 
@@ -1096,11 +1096,11 @@ test_that(".validate checks init parameter lengths correctly", {
       "id",
       "time",
       spline_baseline = list(),
-      init = list(coefficients = list(hazard = rep(0, 5)))
+      init = list(coefficients = list(hazard = rep(0, 4)))
     ),
     paste(
       "Invalid 'init\\$coefficients\\$hazard':",
-      "wrong length \\(expected 4, got 5\\)"
+      "wrong length \\(expected 3, got 4\\)"
     )
   )
 
@@ -1234,7 +1234,7 @@ test_that(".validate accepts valid init parameter", {
   valid_init <- list(
     coefficients = list(
       baseline = rep(0.1, 9), # 9 spline basis functions
-      hazard = rep(0.2, 4), # 3 association + 1 survival covariate
+      hazard = rep(0.2, 3), # 2 association + 1 survival covariate
       acceleration = rep(0.3, 5), # 3 ODE params + intercept + 1 covariate
       measurement_error_sd = 0.5,
       random_effect_sd = 0.8

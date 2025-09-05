@@ -35,9 +35,9 @@
 #'   baseline hazard function with the following components:
 #'   \describe{
 #'     \item{\code{degree}}{Polynomial degree of the B-spline basis functions
-#'       (default: 1, linear splines)}
+#'       (default: 3, cubic splines)}
 #'     \item{\code{n_knots}}{Number of interior knots for flexibility
-#'       (default: 0, linear baseline hazard with 2 parameters)}
+#'       (default: 5, providing moderate flexibility)}
 #'     \item{\code{knot_placement}}{Strategy for positioning knots:
 #'       \code{"quantile"} places knots at quantiles of observed event times,
 #'       \code{"equal"} uses equally-spaced knots (default: \code{"quantile"})}
@@ -72,7 +72,7 @@
 #'         \item \code{baseline}: Vector of B-spline coefficients for baseline
 #'           hazard (length = number of spline basis functions)
 #'         \item \code{hazard}: Vector of hazard parameters including
-#'           association parameters (3) and survival covariates
+#'           association parameters (2) and survival covariates
 #'         \item \code{acceleration}: Vector of longitudinal fixed effects
 #'           including intercept and covariates
 #'         \item \code{measurement_error_sd}: Residual standard deviation
@@ -198,8 +198,8 @@ JointODE <- function(
   id = "id",
   time = "time",
   spline_baseline = list(
-    degree = 1,
-    n_knots = 0,
+    degree = 3,
+    n_knots = 5,
     knot_placement = "quantile",
     boundary_knots = NULL
   ),
@@ -260,7 +260,7 @@ JointODE <- function(
   parameters <- list(
     coefficients = list(
       baseline = rep(0, spline_baseline_config$df),
-      hazard = rep(0, n_survival_covariates + 3),
+      hazard = rep(0, n_survival_covariates + 2),
       acceleration = rep(0, n_longitudinal_covariates + 3),
       measurement_error_sd = 1,
       random_effect_sd = 1
@@ -308,7 +308,7 @@ JointODE <- function(
   converged <- FALSE
   old_loglik <- -Inf
   n_baseline <- spline_baseline_config$df
-  n_hazard <- n_survival_covariates + 3
+  n_hazard <- n_survival_covariates + 2
 
   # Convert verbose to numeric level
   verbose_level <- if (is.logical(control_settings$verbose)) {
@@ -414,12 +414,12 @@ JointODE <- function(
         )
         cli::cli_text(
           "  \u03b1: [{paste(sprintf('%.3f',
-            parameters$coefficients$hazard[1:3]), collapse=', ')}]"
+            parameters$coefficients$hazard[1:2]), collapse=', ')}]"
         )
-        if (n_hazard > 3) {
+        if (n_hazard > 2) {
           cli::cli_text(
             "  \u03c6: [{paste(sprintf('%.3f',
-              parameters$coefficients$hazard[4:n_hazard]), collapse=', ')}]"
+              parameters$coefficients$hazard[3:n_hazard]), collapse=', ')}]"
           )
         }
         cli::cli_text(
@@ -520,8 +520,8 @@ JointODE <- function(
         n_accel <- length(res$par) - n_baseline - n_hazard
         param_names <- c(
           paste0("baseline:", seq_len(n_baseline)),
-          paste0("hazard:", c("alpha0", "alpha1", "alpha2")),
-          if (n_hazard > 3) paste0("hazard:phi", seq_len(n_hazard - 3)),
+          paste0("hazard:", c("alpha1", "alpha2")),
+          if (n_hazard > 2) paste0("hazard:phi", seq_len(n_hazard - 2)),
           paste0("longitudinal:beta", seq_len(n_accel))
         )
         dimnames(V) <- list(param_names, param_names)
@@ -655,10 +655,9 @@ coef.JointODE <- function(object, ...) {
     paste0(
       "hazard:",
       c(
-        "alpha0",
         "alpha1",
         "alpha2",
-        if (length(cf$hazard) > 3) paste0("phi", seq_len(length(cf$hazard) - 3))
+        if (length(cf$hazard) > 2) paste0("phi", seq_len(length(cf$hazard) - 2))
       )
     ),
     paste0("longitudinal:beta", seq_along(cf$acceleration))

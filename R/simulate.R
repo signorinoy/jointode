@@ -11,10 +11,10 @@
 #'
 #' @param n Integer. Number of subjects to simulate. Larger cohorts provide
 #'   more stable parameter estimates (default: 100).
-#' @param alpha Numeric vector of length 3. Association parameters quantifying
+#' @param alpha Numeric vector of length 2. Association parameters quantifying
 #'   how trajectory features influence survival hazard:
-#'   \code{[biomarker, velocity, acceleration]}.
-#'   Positive values indicate increased risk (default: c(0.6, 1.0, -1.5)).
+#'   \code{[biomarker, velocity]}.
+#'   Positive values indicate increased risk (default: c(0.6, 1.0)).
 #' @param beta Numeric vector governing ODE dynamics (length 5). Controls
 #'   biomarker trajectory evolution: \code{[biomarker, velocity,
 #'   x1, x2, time]} (default: c(-1.0, -0.6, -0.8, 0.5, 0.4)).
@@ -104,7 +104,7 @@
 #' \itemize{
 #'   \item \eqn{\lambda_0(t) = (\kappa/\theta)(t/\theta)^{\kappa-1}}:
 #'     Weibull baseline hazard capturing population-level risk evolution
-#'   \item \eqn{\mathbf{m}_i(t) = [m_i(t), \dot{m}_i(t), \ddot{m}_i(t)]^{\top}}:
+#'   \item \eqn{\mathbf{m}_i(t) = [m_i(t), \dot{m}_i(t)]^{\top}}:
 #'     Comprehensive trajectory feature vector
 #'   \item \eqn{\mathbf{W}_i}: Time-invariant baseline characteristics
 #'   \item \eqn{b_i}: Shared random effect inducing correlation between
@@ -148,8 +148,6 @@
 #'         indicates deleterious biomarker)
 #'       \item \code{alpha[2]}: Velocity effect capturing prognostic value
 #'         of trajectory direction
-#'       \item \code{alpha[3]}: Acceleration effect reflecting stability
-#'         importance (negative suggests protective stability)
 #'     }
 #' }
 #'
@@ -213,7 +211,7 @@
 #' @export
 simulate <- function(
   n = 100,
-  alpha = c(0.6, 1.0, -1.5),
+  alpha = c(0.6, 1.0),
   beta = c(-1.0, -0.6, -0.8, 0.5, 0.4),
   phi = c(0.8, -1.2),
   weibull_shape = 1,
@@ -227,8 +225,8 @@ simulate <- function(
   if (!is.numeric(n) || n <= 0 || n != as.integer(n)) {
     stop("n must be a positive integer")
   }
-  if (!is.numeric(alpha) || length(alpha) != 3) {
-    stop("alpha must be a numeric vector of length 3")
+  if (!is.numeric(alpha) || length(alpha) != 2) {
+    stop("alpha must be a numeric vector of length 2")
   }
   if (!is.numeric(beta) || length(beta) != 5) {
     stop("beta must be a numeric vector of length 5")
@@ -445,7 +443,6 @@ simulate <- function(
     eta <- parameters$alpha[1] *
       biomarker$biomarker +
       parameters$alpha[2] * biomarker$velocity +
-      parameters$alpha[3] * biomarker$acceleration +
       parameters$phi[1] * x["w1"] +
       parameters$phi[2] * x["w2"] +
       x["b"]
@@ -819,8 +816,8 @@ simulate <- function(
 .create_example_data <- function(n = 100) {
   # Define default configurations (match JointODE defaults)
   spline_baseline <- list(
-    degree = 1,
-    n_knots = 0,
+    degree = 3,
+    n_knots = 5,
     knot_placement = "quantile",
     boundary_knots = NULL
   )
@@ -842,8 +839,8 @@ simulate <- function(
   )
 
   # Define coefficients (use simulate function defaults)
-  # hazard: [alpha1, alpha2, alpha3, phi1, phi2]
-  hazard_coefficients <- c(0.6, 1.0, -1.5, 0.8, -1.2)
+  # hazard: [alpha1, alpha2, phi1, phi2]
+  hazard_coefficients <- c(0.6, 1.0, 0.8, -1.2)
   # acceleration: [biomarker, velocity, intercept, x1, x2, time]
   # The intercept (3rd position) is added for estimation
   acceleration_coefficients <- c(-1.0, -0.6, 0, -0.8, 0.5, 0.4)

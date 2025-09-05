@@ -355,14 +355,14 @@ NULL
         if (any(!is.finite(init$coefficients$hazard))) {
           stop("Invalid 'init$coefficients$hazard': must contain finite values")
         }
-        if (length(init$coefficients$hazard) < 3) {
+        if (length(init$coefficients$hazard) < 2) {
           stop(paste(
             "Invalid 'init$coefficients$hazard':",
-            "must have at least 3 elements for association parameters"
+            "must have at least 2 elements for association parameters"
           ))
         }
         # Check exact length
-        expected_len <- n_survival_covariates + 3
+        expected_len <- n_survival_covariates + 2
         if (length(init$coefficients$hazard) != expected_len) {
           stop(sprintf(
             paste(
@@ -688,7 +688,6 @@ NULL
   time,
   biomarker,
   velocity,
-  acceleration,
   data,
   parameters
 ) {
@@ -700,15 +699,15 @@ NULL
   log_baseline <- sum(basis_lambda * parameters$coefficients$baseline)
 
   # Biomarker effects: m_i(t)' * α
-  biomarker_vec <- c(biomarker, velocity, acceleration)
-  log_biomarker <- sum(biomarker_vec * parameters$coefficients$hazard[1:3])
+  biomarker_vec <- c(biomarker, velocity)
+  log_biomarker <- sum(biomarker_vec * parameters$coefficients$hazard[1:2])
 
   # Covariate effects: W_i' * φ
   n_hazard <- length(parameters$coefficients$hazard)
-  log_covariate <- if (n_hazard > 3 && !is.null(data$covariates)) {
+  log_covariate <- if (n_hazard > 2 && !is.null(data$covariates)) {
     w <- data$covariates
     if (nrow(w) > 0) {
-      sum(parameters$coefficients$hazard[4:n_hazard] * w)
+      sum(parameters$coefficients$hazard[3:n_hazard] * w)
     } else {
       0
     }
@@ -737,7 +736,7 @@ NULL
       # Augmented for parameters needing ODE: (η, α, β)
       # [Λ, m, ṁ, ∂Λ/∂η, ∂Λ/∂α, ∂m/∂β, ∂ṁ/∂β, ∂Λ/∂β]
       n_eta <- coefficients$config$baseline$df
-      n_alpha <- 3
+      n_alpha <- 2
       n_beta <- length(coefficients$coef$acceleration)
       c(
         basic_state,
@@ -785,7 +784,6 @@ NULL
     event_time,
     biomarker_final,
     velocity_final,
-    acceleration_final,
     data,
     parameters
   )
@@ -833,7 +831,7 @@ NULL
   if (sensitivity_type == "forward") {
     # Extract sensitivities for θ = (η, α, β)
     n_eta <- parameters$configurations$baseline$df
-    n_alpha <- 3
+    n_alpha <- 2
     n_beta <- length(parameters$coefficients$acceleration)
 
     # Extract sensitivities from final state (matching ODE output order)
@@ -970,7 +968,6 @@ NULL
       time,
       biomarker,
       velocity,
-      acceleration,
       parameters$data,
       parameters$parameters
     )
@@ -987,7 +984,7 @@ NULL
       # Forward sensitivity for parameters needing ODE: (η, α, β)
       # Note: φ (survival covariates) don't need ODE integration
       n_eta <- parameters$parameters$configurations$baseline$df
-      n_alpha <- 3
+      n_alpha <- 2
       n_beta <- length(parameters$parameters$coefficients$acceleration)
 
       # Compute direct hazard sensitivities
@@ -995,7 +992,7 @@ NULL
         time,
         parameters$parameters$configurations$baseline
       )
-      m_vec <- c(biomarker, velocity, acceleration)
+      m_vec <- c(biomarker, velocity)
 
       # Extract β sensitivity states from augmented state
       idx <- 4 + n_eta + n_alpha
@@ -1015,11 +1012,10 @@ NULL
       )
 
       # Compute ∂λ/∂β using chain rule
-      alpha <- parameters$parameters$coefficients$hazard[1:3]
+      alpha <- parameters$parameters$coefficients$hazard[1:2]
       dm_vec_dbeta <- rbind(
         dbiomarker_dbeta,
-        dvelocity_dbeta,
-        dacceleration_dbeta
+        dvelocity_dbeta
       )
       # Fix: Use proper matrix multiplication
       dhazard_dbeta <- as.vector(
@@ -1289,7 +1285,7 @@ NULL
 
   # Parse parameters
   n_eta <- configurations$baseline$df
-  n_alpha <- 3
+  n_alpha <- 2
   n_phi <- if (!is.null(data_list[[1]]$covariates)) {
     ncol(data_list[[1]]$covariates)
   } else {
@@ -1407,7 +1403,7 @@ NULL
 
   # Parse parameters
   n_eta <- configurations$baseline$df
-  n_alpha <- 3
+  n_alpha <- 2
   n_phi <- if (!is.null(data_list[[1]]$covariates)) {
     ncol(data_list[[1]]$covariates)
   } else {
@@ -1478,8 +1474,7 @@ NULL
     # α (association parameters)
     m_vec <- c(
       ode_sol$biomarker_at_event,
-      ode_sol$velocity_at_event,
-      ode_sol$acceleration_at_event
+      ode_sol$velocity_at_event
     )
     grad_alpha_i <- status_i *
       m_vec -
@@ -1507,10 +1502,7 @@ NULL
     }
 
     # Survival component for β
-    grad_beta_i <- grad_beta_i +
-      status_i *
-        ode_sol$dacceleration_dbeta_at_event *
-        parameters$coefficients$hazard[3] -
+    grad_beta_i <- grad_beta_i -
       exp_b_i * ode_sol$dcumhazard_dbeta_at_event
 
     # Return gradient components

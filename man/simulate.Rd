@@ -6,7 +6,7 @@
 \usage{
 simulate(
   n = 100,
-  alpha = c(0.6, 1, -1.5),
+  alpha = c(0.6, 1),
   beta = c(-1, -0.6, -0.8, 0.5, 0.4),
   phi = c(0.8, -1.2),
   weibull_shape = 1,
@@ -21,10 +21,10 @@ simulate(
 \item{n}{Integer. Number of subjects to simulate. Larger cohorts provide
 more stable parameter estimates (default: 100).}
 
-\item{alpha}{Numeric vector of length 3. Association parameters quantifying
+\item{alpha}{Numeric vector of length 2. Association parameters quantifying
 how trajectory features influence survival hazard:
-\code{[biomarker, velocity, acceleration]}.
-Positive values indicate increased risk (default: c(0.6, 1.0, -1.5)).}
+\code{[biomarker, velocity]}.
+Positive values indicate increased risk (default: c(0.6, 1.0)).}
 
 \item{beta}{Numeric vector governing ODE dynamics (length 5). Controls
 biomarker trajectory evolution: \code{[biomarker, velocity,
@@ -132,7 +132,7 @@ where:
 \itemize{
 \item \eqn{\lambda_0(t) = (\kappa/\theta)(t/\theta)^{\kappa-1}}:
 Weibull baseline hazard capturing population-level risk evolution
-\item \eqn{\mathbf{m}_i(t) = [m_i(t), \dot{m}_i(t), \ddot{m}_i(t)]^{\top}}:
+\item \eqn{\mathbf{m}_i(t) = [m_i(t), \dot{m}_i(t)]^{\top}}:
 Comprehensive trajectory feature vector
 \item \eqn{\mathbf{W}_i}: Time-invariant baseline characteristics
 \item \eqn{b_i}: Shared random effect inducing correlation between
@@ -176,8 +176,6 @@ suppression
 indicates deleterious biomarker)
 \item \code{alpha[2]}: Velocity effect capturing prognostic value
 of trajectory direction
-\item \code{alpha[3]}: Acceleration effect reflecting stability
-importance (negative suggests protective stability)
 }
 }
 }

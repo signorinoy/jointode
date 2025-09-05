@@ -54,10 +54,10 @@ $$\lambda_i(t) = \lambda_{0}(t)\exp\left[\mathbf{m}_i(t)^{\top}\boldsymbol{\alph
 where:
 
 - $\lambda_{0}(t)$: Baseline hazard (e.g., Weibull, piecewise constant)
-- $\mathbf{m}_i(t)=\left(m_i(t), \dot{m}_i(t), \ddot{m}_i(t)\right)^{\top}$:
-  Biomarker value and derivatives
-- $\boldsymbol{\alpha}=(\alpha_0, \alpha_1, \alpha_2)^{\top}$:
-  Association parameters for value, velocity, and acceleration
+- $\mathbf{m}_i(t)=\left(m_i(t), \dot{m}_i(t)\right)^{\top}$: Biomarker
+  value and velocity
+- $\boldsymbol{\alpha}=(\alpha_1, \alpha_2)^{\top}$: Association
+  parameters for value and velocity
 - $\mathbf{W}_i$: Baseline covariates with coefficients
   $\boldsymbol{\phi}$
 - $b_i$: Subject-specific random intercept
@@ -97,7 +97,6 @@ fit <- JointODE(
   longitudinal_data = sim$data$longitudinal_data,
   survival_formula = sim$formulas$survival,
   survival_data = sim$data$survival_data,
-  init = sim$parameters,
   parallel = TRUE
 )
 
@@ -107,33 +106,39 @@ summary(fit)
 #> Call:
 #> JointODE(longitudinal_formula = sim$formulas$longitudinal, longitudinal_data = sim$data$longitudinal_data,
 #>     survival_formula = sim$formulas$survival, survival_data = sim$data$survival_data,
-#>     init = sim$parameters, parallel = TRUE)
+#>     parallel = TRUE)
 #>
 #> Variance components:
 #> sigma_e sigma_b
-#> 0.09592 0.10462
+#> 0.09686 0.09890
 #>
 #> Fixed effects:
 #>                     Estimate Std. Error z value Pr(>|z|)
-#> baseline:1         -2.084879   0.250521  -8.322  < 2e-16 ***
-#> baseline:2         -2.070379   0.838190  -2.470  0.01351 *
-#> hazard:alpha0       0.675740   0.221085   3.056  0.00224 **
-#> hazard:alpha1       1.032208   0.360466   2.864  0.00419 **
-#> hazard:alpha2      -1.503094   0.317228  -4.738 2.16e-06 ***
-#> hazard:phi1         0.774640   0.141422   5.478 4.31e-08 ***
-#> hazard:phi2        -1.223616   0.143948  -8.500  < 2e-16 ***
-#> longitudinal:beta1 -1.021807   0.014190 -72.009  < 2e-16 ***
-#> longitudinal:beta2 -0.602169   0.019091 -31.543  < 2e-16 ***
-#> longitudinal:beta3 -0.006041   0.006801  -0.888  0.37440
-#> longitudinal:beta4 -0.805953   0.012942 -62.273  < 2e-16 ***
-#> longitudinal:beta5  0.507161   0.008583  59.087  < 2e-16 ***
-#> longitudinal:beta6  0.406766   0.006644  61.225  < 2e-16 ***
+#> baseline:1         -3.183809   0.850407  -3.744 0.000181 ***
+#> baseline:2         -3.056206   0.960422  -3.182 0.001462 **
+#> baseline:3         -2.076161   0.698387  -2.973 0.002951 **
+#> baseline:4         -1.482894   0.597729  -2.481 0.013106 *
+#> baseline:5         -1.971558   0.619057  -3.185 0.001449 **
+#> baseline:6         -1.770042   0.701663  -2.523 0.011648 *
+#> baseline:7         -2.332177   1.456576  -1.601 0.109347
+#> baseline:8         -0.387564   1.518789  -0.255 0.798584
+#> baseline:9         -0.075105   1.393381  -0.054 0.957014
+#> hazard:alpha1       0.593704   0.224000   2.650 0.008038 **
+#> hazard:alpha2       0.919493   0.424881   2.164 0.030455 *
+#> hazard:phi1         0.881763   0.149444   5.900 3.63e-09 ***
+#> hazard:phi2        -1.471150   0.164842  -8.925  < 2e-16 ***
+#> longitudinal:beta1 -1.013110   0.013813 -73.346  < 2e-16 ***
+#> longitudinal:beta2 -0.604980   0.018811 -32.162  < 2e-16 ***
+#> longitudinal:beta3 -0.001932   0.006591  -0.293 0.769465
+#> longitudinal:beta4 -0.812085   0.012918 -62.866  < 2e-16 ***
+#> longitudinal:beta5  0.500869   0.008569  58.449  < 2e-16 ***
+#> longitudinal:beta6  0.405590   0.006437  63.014  < 2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #>
 #> ---
-#> Log-likelihood: 931.3818   AIC: -1832.764   BIC: -1793.686
-#> N = 100  Convergence: EM algorithm converged after 6 iterations
+#> Log-likelihood: 918.1049   AIC: -1794.21   BIC: -1739.501
+#> N = 100  Convergence: EM algorithm converged after 21 iterations
 
 # Generate predictions
 predictions <- predict(fit, times = seq(0, 10, by = 0.25))
