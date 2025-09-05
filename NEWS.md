@@ -1,15 +1,5 @@
-# JointODE 0.0.0.9000 (Development Version)
+# JointODE 0.1.0
 
-## Initial Release
-
-* Added basic package structure and documentation
-* Created data simulation vignette demonstrating the intended modeling framework
-* Included mathematical formulation in technical details vignette
-* Set up testing infrastructure with basic tests
-
-## To Do
-
-* Implement core estimation functions
-* Add model fitting capabilities
-* Include real data examples
-* Expand test coverage
+* Joint modeling of longitudinal biomarkers and survival outcomes using ordinary differential equations (ODE)
+* Support for both first and second-order derivatives in the ODE formulation
+* Parallel processing support for computational efficiency

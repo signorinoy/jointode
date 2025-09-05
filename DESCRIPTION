@@ -1,6 +1,6 @@
 Package: JointODE
 Title: Joint Modeling of Longitudinal and Survival Data Using ODEs
-Version: 0.0.0.9000
+Version: 0.1.0
 Author: Ziyang Gong
 Maintainer: Ziyang Gong <meetziyang@gmail.com>
 Authors@R:
