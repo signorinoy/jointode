@@ -6,10 +6,10 @@
 \usage{
 simulate(
   n = 100,
-  alpha = c(0.6, 1),
-  beta = c(-1, -0.6, -0.8, 0.5, 0.4),
-  phi = c(0.8, -1.2),
-  weibull_shape = 1,
+  alpha = c(0.3, 0.7),
+  beta = c(-0.6, -0.4, 0.3, -0.8, 0.5, 0),
+  phi = c(0.4, -0.6),
+  weibull_shape = 1.5,
   weibull_scale = 8,
   sigma_b = 0.1,
   sigma_e = 0.1,
@@ -24,15 +24,15 @@ more stable parameter estimates (default: 100).}
 \item{alpha}{Numeric vector of length 2. Association parameters quantifying
 how trajectory features influence survival hazard:
 \code{[biomarker, velocity]}.
-Positive values indicate increased risk (default: c(0.6, 1.0)).}
+Positive values indicate increased risk (default: c(0.3, 0.7)).}
 
-\item{beta}{Numeric vector governing ODE dynamics (length 5). Controls
+\item{beta}{Numeric vector governing ODE dynamics (length 6). Controls
 biomarker trajectory evolution: \code{[biomarker, velocity,
-  x1, x2, time]} (default: c(-1.0, -0.6, -0.8, 0.5, 0.4)).}
+  intercept, x1, x2, time]} (default: c(-0.6, -0.4, 0.3, -0.8, 0.5, 0.0)).}
 
 \item{phi}{Numeric vector of length 2. Baseline covariate effects modulating
 survival hazard independently of biomarker dynamics: \code{[w1, w2]}
-(default: c(0.8, -1.2)).}
+(default: c(0.4, -0.6)).}
 
 \item{weibull_shape}{Numeric. Weibull shape parameter (\eqn{\kappa})
 characterizing baseline hazard evolution. Values > 1 yield increasing
@@ -107,7 +107,7 @@ that captures temporal dynamics:
 where:
 \itemize{
 \item \eqn{m_i(t)}: Latent biomarker trajectory for subject \eqn{i}
-\item \eqn{\mathbf{Z}_i(t) = [m_i(t), \dot{m}_i(t), X_1, X_2, t]^{\top}}:
+\item \eqn{\mathbf{Z}_i(t) = [m_i(t), \dot{m}_i(t), 1, X_1, X_2]^{\top}}:
 State vector (5-dimensional)
 \item \eqn{\boldsymbol{\beta}}: Parameter vector governing homeostatic
 feedback, damping forces, and external influences
@@ -167,8 +167,8 @@ semi-annual subsequently) and stochastic 10\% missingness
 promote stability)
 \item \code{beta[2]}: Damping coefficient controlling oscillation
 suppression
-\item \code{beta[3-4]}: Sensitivity to longitudinal covariates
-\item \code{beta[5]}: Time trend capturing systematic changes
+\item \code{beta[3]}: Intercept term for baseline acceleration
+\item \code{beta[4-5]}: Sensitivity to covariates X1 and X2
 }
 \item \strong{Hazard Association (\code{alpha})}:
 \itemize{

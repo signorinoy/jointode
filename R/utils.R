@@ -31,11 +31,12 @@ NULL
 # ===== SECTION 1: DATA VALIDATION AND PROCESSING =====
 .validate <- function(
   longitudinal_formula,
-  longitudinal_data,
   survival_formula,
+  longitudinal_data,
   survival_data,
   id,
   time,
+  autonomous = TRUE,
   spline_baseline = list(),
   init = NULL
 ) {
@@ -54,7 +55,9 @@ NULL
       length(id) == 1,
     "time must be a single character string" = is.character(time) &&
       length(time) == 1,
-    "spline_baseline must be a list" = is.list(spline_baseline)
+    "spline_baseline must be a list" = is.list(spline_baseline),
+    "autonomous must be logical" = is.logical(autonomous) &&
+      length(autonomous) == 1
   )
 
   stopifnot(
@@ -389,14 +392,17 @@ NULL
             "must contain finite values"
           ))
         }
-        if (length(init$coefficients$acceleration) < 3) {
+        min_len <- if (isTRUE(autonomous)) 2 else 3
+        if (length(init$coefficients$acceleration) < min_len) {
           stop(paste(
             "Invalid 'init$coefficients$acceleration':",
-            "must have at least 3 elements (intercept + ODE parameters)"
+            "must have at least",
+            min_len,
+            "elements"
           ))
         }
         # Check exact length
-        expected_len <- n_longitudinal_covariates + 3
+        expected_len <- n_longitudinal_covariates + min_len
         if (length(init$coefficients$acceleration) != expected_len) {
           stop(sprintf(
             paste(
@@ -473,8 +479,8 @@ NULL
 
 .process <- function(
   longitudinal_formula,
-  longitudinal_data,
   survival_formula,
+  longitudinal_data,
   survival_data,
   id,
   time
@@ -636,10 +642,12 @@ NULL
   parameters
 ) {
   long_cov <- .get_longitudinal_covariates(data, time)
-  # long_cov already includes intercept as first element
-  # z = [biomarker, velocity, (Intercept), x1, x2, ..., time]
-  z <- as.vector(c(biomarker, velocity, long_cov, time))
-  # Direct linear form: acceleration = β^T Z
+  # Construct z vector
+  z <- if (isTRUE(parameters$configurations$autonomous)) {
+    c(biomarker, velocity, long_cov)
+  } else {
+    c(biomarker, velocity, long_cov, time)
+  }
   sum(parameters$coefficients$acceleration * z)
 }
 
@@ -654,9 +662,12 @@ NULL
 ) {
   long_cov <- .get_longitudinal_covariates(data, time)
 
-  # Construct Z vector: [m(t), m_dot(t), (Intercept), X(t), t]
-  # long_cov already includes intercept as first element
-  z_vec <- c(biomarker, velocity, long_cov, time)
+  # Construct Z vector
+  z_vec <- if (isTRUE(parameters$configurations$autonomous)) {
+    c(biomarker, velocity, long_cov)
+  } else {
+    c(biomarker, velocity, long_cov, time)
+  }
   beta <- parameters$coefficients$acceleration
 
   # For linear model: acceleration = beta' * Z

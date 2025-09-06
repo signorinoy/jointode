@@ -43,7 +43,7 @@ $$v_{ij} = m_i(t_{ij}) + b_i + \epsilon_{ij}$$
 
 where the true biomarker trajectory $m_i(t)$ evolves according to:
 
-$$\ddot{m}_i(t) = \beta_1 m_i(t) + \beta_2 \dot{m}_i(t) + \beta_3 + \beta_4 x_{i1} + \beta_5 x_{i2} + \beta_6 t$$
+$$\ddot{m}_i(t) = \beta_1 m_i(t) + \beta_2 \dot{m}_i(t) + \beta_3 + \beta_4 x_{i1} + \beta_5 x_{i2}$$
 
 with $b_i \sim \mathcal{N}(0, \sigma_b^2)$ (random intercept) and $\epsilon_{ij} \sim \mathcal{N}(0, \sigma_e^2)$ (measurement error).
 
@@ -65,14 +65,13 @@ accel_params <- sim$parameters$coefficients$acceleration
 
 cat("True Parameters:\n")
 cat(sprintf(
-  "  Hazard: α = [%.1f, %.1f, %.1f], φ = [%.1f, %.1f]\n",
-  hazard_params[1], hazard_params[2], hazard_params[3],
-  hazard_params[4], hazard_params[5]
+  "  Hazard: α = [%.1f, %.1f], φ = [%.1f, %.1f]\n",
+  hazard_params[1], hazard_params[2], hazard_params[3], hazard_params[4]
 ))
 cat(sprintf(
-  "  ODE: β = [%.1f, %.1f, %.1f, %.1f, %.1f, %.1f]\n",
+  "  ODE: β = [%.1f, %.1f, %.1f, %.1f, %.1f]\n",
   accel_params[1], accel_params[2], accel_params[3],
-  accel_params[4], accel_params[5], accel_params[6]
+  accel_params[4], accel_params[5]
 ))
 cat(sprintf(
   "  Variance: σ_e = %.1f, σ_b = %.1f\n",
@@ -253,8 +252,8 @@ jsm_data <- dataPreprocess(
 #--------------------------------------------
 fit_jointode <- JointODE(
   longitudinal_formula = sim$formulas$longitudinal,
-  longitudinal_data = sim$data$longitudinal_data,
   survival_formula = sim$formulas$survival,
+  longitudinal_data = sim$data$longitudinal_data,
   survival_data = sim$data$survival_data
 )
 
@@ -285,7 +284,7 @@ fit_jsm <- jmodelTM(
 # Model 3: Time-varying Cox (Oracle - Theoretical Benchmark)
 #--------------------------------------------
 fit_oracle <- coxph(
-  Surv(start, stop, event) ~ w1 + w2 + biomarker + velocity + acceleration +
+  Surv(start, stop, event) ~ w1 + w2 + biomarker + velocity  +
     offset(b) + cluster(ID),
   data = jsm_data
 )

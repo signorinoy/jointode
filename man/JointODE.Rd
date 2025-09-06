@@ -6,15 +6,16 @@
 \usage{
 JointODE(
   longitudinal_formula,
-  longitudinal_data,
   survival_formula,
+  longitudinal_data,
   survival_data,
   id = "id",
   time = "time",
-  spline_baseline = list(degree = 3, n_knots = 5, knot_placement = "quantile",
+  autonomous = TRUE,
+  spline_baseline = list(degree = 3, n_knots = 3, knot_placement = "quantile",
     boundary_knots = NULL),
-  init = NULL,
   control = list(),
+  init = NULL,
   parallel = FALSE,
   n_cores = NULL,
   ...
@@ -27,15 +28,15 @@ side specifies fixed effects including time-varying and baseline
 covariates
 (e.g., \code{biomarker ~ time + treatment + age}).}
 
-\item{longitudinal_data}{A data frame containing repeated measurements with
-one row per observation. Required columns include subject identifier,
-measurement times, response values, and any covariates specified in the
-formula.}
-
 \item{survival_formula}{A formula for the survival submodel using
 \code{Surv(time, status)} notation on the left-hand side. The right-hand
 side specifies baseline hazard covariates
 (e.g., \code{Surv(event_time, event) ~ treatment + age}).}
+
+\item{longitudinal_data}{A data frame containing repeated measurements with
+one row per observation. Required columns include subject identifier,
+measurement times, response values, and any covariates specified in the
+formula.}
 
 \item{survival_data}{A data frame with time-to-event information containing
 one row per subject. Must include event/censoring times, event indicators,
@@ -50,19 +51,46 @@ to link observations (default: \code{"id"}).}
 times
 in the longitudinal dataset (default: \code{"time"}).}
 
+\item{autonomous}{Logical flag indicating whether the ODE system is
+autonomous (time-independent). When \code{TRUE}, the acceleration
+computation excludes the explicit time term, resulting in
+\eqn{\ddot{m}(t) = f(m(t), \dot{m}(t), X)} instead of
+\eqn{\ddot{m}(t) = f(m(t), \dot{m}(t), X, t)}. Autonomous systems often
+have better numerical stability and theoretical properties
+(default: \code{TRUE}).}
+
 \item{spline_baseline}{A list controlling the B-spline representation of the
 baseline hazard function with the following components:
 \describe{
 \item{\code{degree}}{Polynomial degree of the B-spline basis functions
 (default: 3, cubic splines)}
 \item{\code{n_knots}}{Number of interior knots for flexibility
-(default: 5, providing moderate flexibility)}
+(default: 3, providing moderate flexibility)}
 \item{\code{knot_placement}}{Strategy for positioning knots:
 \code{"quantile"} places knots at quantiles of observed event times,
 \code{"equal"} uses equally-spaced knots (default: \code{"quantile"})}
 \item{\code{boundary_knots}}{A numeric vector of length 2 specifying
 the boundary knot locations. If \code{NULL}, automatically set to the
 range of observed event times (default: \code{NULL})}
+}}
+
+\item{control}{A list of optimization and algorithmic settings:
+\describe{
+\item{\code{method}}{Optimization algorithm for parameter estimation.
+Options include \code{"L-BFGS-B"}, \code{"BFGS"}, \code{"Nelder-Mead"}
+(default: \code{"L-BFGS-B"})}
+\item{\code{maxit}}{Maximum number of iterations for each M-step
+optimization (default: 1000)}
+\item{\code{em_maxit}}{Maximum number of EM algorithm iterations
+(default: 10)}
+\item{\code{em_tol}}{Convergence criterion for EM algorithm based on
+relative change
+in log-likelihood (default: 1e-4)}
+\item{\code{tol}}{Numerical tolerance for optimization convergence
+(default: 1e-2)}
+\item{\code{verbose}}{Controls diagnostic output: \code{0}/\code{FALSE}
+for silent operation, \code{1}/\code{TRUE} for iteration progress,
+\code{2} for detailed parameter traces (default: \code{FALSE})}
 }}
 
 \item{init}{Optional list providing initial values for model parameters.
@@ -86,25 +114,6 @@ including intercept and covariates
 spline configuration from \code{spline_baseline}}
 }
 If \code{NULL}, default initial values are used (default: \code{NULL}).}
-
-\item{control}{A list of optimization and algorithmic settings:
-\describe{
-\item{\code{method}}{Optimization algorithm for parameter estimation.
-Options include \code{"L-BFGS-B"}, \code{"BFGS"}, \code{"Nelder-Mead"}
-(default: \code{"L-BFGS-B"})}
-\item{\code{maxit}}{Maximum number of iterations for each M-step
-optimization (default: 1000)}
-\item{\code{em_maxit}}{Maximum number of EM algorithm iterations
-(default: 10)}
-\item{\code{em_tol}}{Convergence criterion for EM algorithm based on
-relative change
-in log-likelihood (default: 1e-4)}
-\item{\code{tol}}{Numerical tolerance for optimization convergence
-(default: 1e-2)}
-\item{\code{verbose}}{Controls diagnostic output: \code{0}/\code{FALSE}
-for silent operation, \code{1}/\code{TRUE} for iteration progress,
-\code{2} for detailed parameter traces (default: \code{FALSE})}
-}}
 
 \item{parallel}{Logical flag enabling parallel computation for
 computationally intensive operations including posterior calculations,
@@ -206,8 +215,8 @@ provided
 \dontrun{
 fit <- JointODE(
   longitudinal_formula = sim$formulas$longitudinal,
-  longitudinal_data = sim$data$longitudinal_data,
   survival_formula = sim$formulas$survival,
+  longitudinal_data = sim$data$longitudinal_data,
   survival_data = sim$data$survival_data
 )
 summary(fit)

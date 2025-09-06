@@ -14,14 +14,14 @@
 #    - Reproducibility with seeds
 #    - Verbose option functionality
 #
-# 2. .estimate_bspline_coef() Function Tests
+# 2. JointODE:::.estimate_bspline_coef() Function Tests
 #    - Linear function approximation accuracy
 #    - Nonlinear function approximation (sine, polynomial)
 #    - Constant function handling
 #    - Small sample size robustness
 #    - Coefficient properties validation
 #
-# 3. .create_example_data() Function Tests
+# 3. JointODE:::.create_example_data() Function Tests
 #    - Complete data structure generation
 #    - Formula inclusion
 #    - Parameter structure validation
@@ -82,7 +82,7 @@ test_that("simulate() respects input parameters", {
 
   # Test with custom parameters
   custom_alpha <- c(0.3, 0.2)
-  custom_beta <- c(-0.2, -0.3, 0.1, 0.15, 0.08)
+  custom_beta <- c(-0.2, -0.3, 0.0, 0.1, 0.15, 0.08)
   custom_phi <- c(0.3, -0.2)
 
   sim_data <- simulate(
@@ -167,7 +167,7 @@ test_that("simulate() input validation works", {
   # Invalid beta
   expect_error(
     simulate(n = 10, beta = c(-0.3, -0.5)),
-    "beta must be a numeric vector of length 5"
+    "beta must be a numeric vector of length 6"
   )
 
   # Invalid phi
@@ -238,21 +238,21 @@ test_that(".estimate_bspline_coef approximates functions correctly", {
     boundary_knots = NULL
   )
 
-  coef <- .estimate_bspline_coef(x, f_linear, config)
+  coef <- JointODE:::.estimate_bspline_coef(x, f_linear, config)
 
   # Coefficients should be numeric
   expect_type(coef, "double")
   expect_true(length(coef) > 0)
 
   # Reconstruct and check approximation quality
-  spline_config <- .get_spline_config(
+  spline_config <- JointODE:::.get_spline_config(
     x = x,
     degree = config$degree,
     n_knots = config$n_knots,
     knot_placement = config$knot_placement,
     boundary_knots = config$boundary_knots
   )
-  basis <- .compute_spline_basis(x, spline_config)
+  basis <- JointODE:::.compute_spline_basis(x, spline_config)
   y_approx <- as.vector(basis %*% coef)
   y_true <- f_linear(x)
 
@@ -272,7 +272,7 @@ test_that(".estimate_bspline_coef handles nonlinear functions", {
     boundary_knots = NULL
   )
 
-  coef <- .estimate_bspline_coef(x, f_sine, config)
+  coef <- JointODE:::.estimate_bspline_coef(x, f_sine, config)
 
   # Check coefficient properties
   expect_type(coef, "double")
@@ -281,14 +281,14 @@ test_that(".estimate_bspline_coef handles nonlinear functions", {
   expect_false(any(is.infinite(coef)))
 
   # Verify approximation quality
-  spline_config <- .get_spline_config(
+  spline_config <- JointODE:::.get_spline_config(
     x = x,
     degree = config$degree,
     n_knots = config$n_knots,
     knot_placement = config$knot_placement,
     boundary_knots = config$boundary_knots
   )
-  basis <- .compute_spline_basis(x, spline_config)
+  basis <- JointODE:::.compute_spline_basis(x, spline_config)
   y_approx <- as.vector(basis %*% coef)
   y_true <- f_sine(x)
 
@@ -308,7 +308,7 @@ test_that(".estimate_bspline_coef handles edge cases", {
     boundary_knots = NULL
   )
 
-  coef <- .estimate_bspline_coef(x, f_const, config)
+  coef <- JointODE:::.estimate_bspline_coef(x, f_const, config)
 
   # Should handle constant function
   expect_type(coef, "double")
@@ -324,7 +324,11 @@ test_that(".estimate_bspline_coef handles edge cases", {
     boundary_knots = NULL
   )
 
-  coef_small <- .estimate_bspline_coef(x_small, f_simple, config_small)
+  coef_small <- JointODE:::.estimate_bspline_coef(
+    x_small,
+    f_simple,
+    config_small
+  )
   expect_type(coef_small, "double")
   expect_true(length(coef_small) > 0)
 })
@@ -332,7 +336,7 @@ test_that(".estimate_bspline_coef handles edge cases", {
 test_that(".create_example_data generates valid dataset structure", {
   # Test with default parameters
   set.seed(123)
-  example_data <- .create_example_data(n = 30)
+  example_data <- JointODE:::.create_example_data(n = 30)
 
   # Check overall structure
   expect_type(example_data, "list")
@@ -401,20 +405,20 @@ test_that(".create_example_data generates valid dataset structure", {
   # Check configurations
   config <- example_data$parameters$configurations
   expect_type(config, "list")
-  expect_named(config, "baseline")
+  expect_named(config, c("baseline", "autonomous"))
   expect_type(config$baseline, "list")
 })
 
 test_that(".create_example_data handles different sample sizes", {
   # Small sample
   set.seed(456)
-  small_data <- .create_example_data(n = 10)
+  small_data <- JointODE:::.create_example_data(n = 10)
   expect_equal(nrow(small_data$data$survival_data), 10)
   expect_equal(length(unique(small_data$data$longitudinal_data$id)), 10)
 
   # Larger sample
   set.seed(789)
-  large_data <- .create_example_data(n = 100)
+  large_data <- JointODE:::.create_example_data(n = 100)
   expect_equal(nrow(large_data$data$survival_data), 100)
   expect_equal(length(unique(large_data$data$longitudinal_data$id)), 100)
 
@@ -427,10 +431,10 @@ test_that(".create_example_data handles different sample sizes", {
 test_that(".create_example_data produces consistent results with seed", {
   # Generate data twice with same seed
   set.seed(999)
-  data1 <- .create_example_data(n = 20)
+  data1 <- JointODE:::.create_example_data(n = 20)
 
   set.seed(999)
-  data2 <- .create_example_data(n = 20)
+  data2 <- JointODE:::.create_example_data(n = 20)
 
   # Should be identical
   expect_equal(data1$data$survival_data$time, data2$data$survival_data$time)
@@ -442,7 +446,7 @@ test_that(".create_example_data produces consistent results with seed", {
 })
 
 test_that(".create_example_data validates parameter normalization", {
-  example_data <- .create_example_data(n = 25)
+  example_data <- JointODE:::.create_example_data(n = 25)
 
   # Check acceleration coefficients
   acceleration <- example_data$parameters$coefficients$acceleration

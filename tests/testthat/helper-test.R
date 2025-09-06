@@ -131,10 +131,10 @@ compare_gradient_component <- function(
 load_test_data <- function(n_subjects = NULL) {
   # Process data using sim dataset
   data_processed <- .process(
-    longitudinal_data = sim$data$longitudinal_data,
     longitudinal_formula = sim$formulas$longitudinal,
-    survival_data = sim$data$survival_data,
     survival_formula = sim$formulas$survival,
+    longitudinal_data = sim$data$longitudinal_data,
+    survival_data = sim$data$survival_data,
     id = "id",
     time = "time"
   )

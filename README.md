@@ -94,51 +94,46 @@ data(sim)
 # Fit joint ODE model
 fit <- JointODE(
   longitudinal_formula = sim$formulas$longitudinal,
-  longitudinal_data = sim$data$longitudinal_data,
   survival_formula = sim$formulas$survival,
-  survival_data = sim$data$survival_data,
-  parallel = TRUE
+  longitudinal_data = sim$data$longitudinal_data,
+  survival_data = sim$data$survival_data
 )
 
 # Model summary
 summary(fit)
 #>
 #> Call:
-#> JointODE(longitudinal_formula = sim$formulas$longitudinal, longitudinal_data = sim$data$longitudinal_data,
-#>     survival_formula = sim$formulas$survival, survival_data = sim$data$survival_data,
-#>     parallel = TRUE)
+#> JointODE(longitudinal_formula = sim$formulas$longitudinal, survival_formula = sim$formulas$survival,
+#>     longitudinal_data = sim$data$longitudinal_data, survival_data = sim$data$survival_data)
 #>
 #> Variance components:
 #> sigma_e sigma_b
-#> 0.09686 0.09890
+#> 0.09855 0.10147
 #>
 #> Fixed effects:
-#>                     Estimate Std. Error z value Pr(>|z|)
-#> baseline:1         -3.183809   0.850407  -3.744 0.000181 ***
-#> baseline:2         -3.056206   0.960422  -3.182 0.001462 **
-#> baseline:3         -2.076161   0.698387  -2.973 0.002951 **
-#> baseline:4         -1.482894   0.597729  -2.481 0.013106 *
-#> baseline:5         -1.971558   0.619057  -3.185 0.001449 **
-#> baseline:6         -1.770042   0.701663  -2.523 0.011648 *
-#> baseline:7         -2.332177   1.456576  -1.601 0.109347
-#> baseline:8         -0.387564   1.518789  -0.255 0.798584
-#> baseline:9         -0.075105   1.393381  -0.054 0.957014
-#> hazard:alpha1       0.593704   0.224000   2.650 0.008038 **
-#> hazard:alpha2       0.919493   0.424881   2.164 0.030455 *
-#> hazard:phi1         0.881763   0.149444   5.900 3.63e-09 ***
-#> hazard:phi2        -1.471150   0.164842  -8.925  < 2e-16 ***
-#> longitudinal:beta1 -1.013110   0.013813 -73.346  < 2e-16 ***
-#> longitudinal:beta2 -0.604980   0.018811 -32.162  < 2e-16 ***
-#> longitudinal:beta3 -0.001932   0.006591  -0.293 0.769465
-#> longitudinal:beta4 -0.812085   0.012918 -62.866  < 2e-16 ***
-#> longitudinal:beta5  0.500869   0.008569  58.449  < 2e-16 ***
-#> longitudinal:beta6  0.405590   0.006437  63.014  < 2e-16 ***
+#>                     Estimate Std. Error  z value Pr(>|z|)
+#> baseline:1         -3.625125   0.868680   -4.173 3.00e-05 ***
+#> baseline:2         -3.645648   0.882032   -4.133 3.58e-05 ***
+#> baseline:3         -1.932562   0.658045   -2.937 0.003316 **
+#> baseline:4         -1.947300   0.538580   -3.616 0.000300 ***
+#> baseline:5         -1.445019   1.217132   -1.187 0.235136
+#> baseline:6         -1.056317   1.929574   -0.547 0.584080
+#> baseline:7         -0.640463   1.966537   -0.326 0.744666
+#> hazard:alpha1       0.446158   0.123336    3.617 0.000298 ***
+#> hazard:alpha2       0.976861   0.341618    2.860 0.004243 **
+#> hazard:phi1         0.500620   0.136359    3.671 0.000241 ***
+#> hazard:phi2        -0.785176   0.124053   -6.329 2.46e-10 ***
+#> longitudinal:beta1 -0.600890   0.003737 -160.797  < 2e-16 ***
+#> longitudinal:beta2 -0.400776   0.006375  -62.871  < 2e-16 ***
+#> longitudinal:beta3  0.294265   0.002673  110.070  < 2e-16 ***
+#> longitudinal:beta4 -0.800519   0.005831 -137.283  < 2e-16 ***
+#> longitudinal:beta5  0.497675   0.003858  129.002  < 2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #>
 #> ---
-#> Log-likelihood: 918.1049   AIC: -1794.21   BIC: -1739.501
-#> N = 100  Convergence: EM algorithm converged after 21 iterations
+#> Log-likelihood: 1314.09   AIC: -2592.179   BIC: -2545.286
+#> N = 100  Convergence: EM algorithm converged after 32 iterations
 
 # Generate predictions
 predictions <- predict(fit, times = seq(0, 10, by = 0.25))

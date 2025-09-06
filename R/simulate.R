@@ -14,13 +14,13 @@
 #' @param alpha Numeric vector of length 2. Association parameters quantifying
 #'   how trajectory features influence survival hazard:
 #'   \code{[biomarker, velocity]}.
-#'   Positive values indicate increased risk (default: c(0.6, 1.0)).
-#' @param beta Numeric vector governing ODE dynamics (length 5). Controls
+#'   Positive values indicate increased risk (default: c(0.3, 0.7)).
+#' @param beta Numeric vector governing ODE dynamics (length 6). Controls
 #'   biomarker trajectory evolution: \code{[biomarker, velocity,
-#'   x1, x2, time]} (default: c(-1.0, -0.6, -0.8, 0.5, 0.4)).
+#'   intercept, x1, x2, time]} (default: c(-0.6, -0.4, 0.3, -0.8, 0.5, 0.0)).
 #' @param phi Numeric vector of length 2. Baseline covariate effects modulating
 #'   survival hazard independently of biomarker dynamics: \code{[w1, w2]}
-#'   (default: c(0.8, -1.2)).
+#'   (default: c(0.4, -0.6)).
 #' @param weibull_shape Numeric. Weibull shape parameter (\eqn{\kappa})
 #'   characterizing baseline hazard evolution. Values > 1 yield increasing
 #'   hazard (aging effect), < 1 decreasing hazard (selection effect), =
@@ -79,7 +79,7 @@
 #' where:
 #' \itemize{
 #'   \item \eqn{m_i(t)}: Latent biomarker trajectory for subject \eqn{i}
-#'   \item \eqn{\mathbf{Z}_i(t) = [m_i(t), \dot{m}_i(t), X_1, X_2, t]^{\top}}:
+#'   \item \eqn{\mathbf{Z}_i(t) = [m_i(t), \dot{m}_i(t), 1, X_1, X_2]^{\top}}:
 #'     State vector (5-dimensional)
 #'   \item \eqn{\boldsymbol{\beta}}: Parameter vector governing homeostatic
 #'     feedback, damping forces, and external influences
@@ -139,8 +139,8 @@
 #'         promote stability)
 #'       \item \code{beta[2]}: Damping coefficient controlling oscillation
 #'         suppression
-#'       \item \code{beta[3-4]}: Sensitivity to longitudinal covariates
-#'       \item \code{beta[5]}: Time trend capturing systematic changes
+#'       \item \code{beta[3]}: Intercept term for baseline acceleration
+#'       \item \code{beta[4-5]}: Sensitivity to covariates X1 and X2
 #'     }
 #'   \item \strong{Hazard Association (\code{alpha})}:
 #'     \itemize{
@@ -211,10 +211,10 @@
 #' @export
 simulate <- function(
   n = 100,
-  alpha = c(0.6, 1.0),
-  beta = c(-1.0, -0.6, -0.8, 0.5, 0.4),
-  phi = c(0.8, -1.2),
-  weibull_shape = 1,
+  alpha = c(0.3, 0.7),
+  beta = c(-0.6, -0.4, 0.3, -0.8, 0.5, 0.0),
+  phi = c(0.4, -0.6),
+  weibull_shape = 1.5,
   weibull_scale = 8,
   sigma_b = 0.1,
   sigma_e = 0.1,
@@ -228,8 +228,8 @@ simulate <- function(
   if (!is.numeric(alpha) || length(alpha) != 2) {
     stop("alpha must be a numeric vector of length 2")
   }
-  if (!is.numeric(beta) || length(beta) != 5) {
-    stop("beta must be a numeric vector of length 5")
+  if (!is.numeric(beta) || length(beta) != 6) {
+    stop("beta must be a numeric vector of length 6")
   }
   if (!is.numeric(phi) || length(phi) != 2) {
     stop("phi must be a numeric vector of length 2")
@@ -298,7 +298,7 @@ simulate <- function(
 #' The acceleration is computed from the linear dynamics:
 #' \deqn{\ddot{m}(t) = \boldsymbol{\beta}^{\top} \mathbf{z}(t)}
 #' where the feature vector
-#' \eqn{\mathbf{z}(t) = [m(t), \dot{m}(t), X_1, X_2, t]^{\top}}
+#' \eqn{\mathbf{z}(t) = [m(t), \dot{m}(t), 1, X_1, X_2, t]^{\top}}
 #' encapsulates both endogenous state and exogenous influences.
 #'
 #' @noRd
@@ -309,7 +309,7 @@ simulate <- function(
   covariates,
   beta
 ) {
-  z <- c(biomarker, velocity, covariates, time)
+  z <- c(biomarker, velocity, 1, covariates, time)
   sum(beta * z)
 }
 
@@ -453,7 +453,7 @@ simulate <- function(
   surv_times <- simsurv::simsurv(
     hazard = hazard_function,
     x = covariates,
-    interval = c(0, 100)
+    interval = c(0, 1e3)
   )
 
   # Apply censoring
@@ -817,13 +817,13 @@ simulate <- function(
   # Define default configurations (match JointODE defaults)
   spline_baseline <- list(
     degree = 3,
-    n_knots = 5,
+    n_knots = 3,
     knot_placement = "quantile",
     boundary_knots = NULL
   )
 
-  # Define functions once (exponential baseline, Weibull shape=1)
-  lambda_0 <- function(t) rep(log(1 / 8), length(t))
+  # Define functions once (exponential baseline, Weibull shape=1.5)
+  lambda_0 <- function(t) 1.5 / 8 * (t / 8)^0.5
 
   # Generate and process data
   data <- simulate(n = n)
@@ -840,10 +840,8 @@ simulate <- function(
 
   # Define coefficients (use simulate function defaults)
   # hazard: [alpha1, alpha2, phi1, phi2]
-  hazard_coefficients <- c(0.6, 1.0, 0.8, -1.2)
-  # acceleration: [biomarker, velocity, intercept, x1, x2, time]
-  # The intercept (3rd position) is added for estimation
-  acceleration_coefficients <- c(-1.0, -0.6, 0, -0.8, 0.5, 0.4)
+  hazard_coefficients <- c(0.3, 0.7, 0.4, -0.6)
+  acceleration_coefficients <- c(-0.6, -0.4, 0.3, -0.8, 0.5)
 
   # Create spline configurations
   spline_baseline_config <- .get_spline_config(
@@ -870,7 +868,8 @@ simulate <- function(
         random_effect_sd = 0.1
       ),
       configurations = list(
-        baseline = spline_baseline_config
+        baseline = spline_baseline_config,
+        autonomous = TRUE
       )
     )
   )

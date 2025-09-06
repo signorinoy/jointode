@@ -45,6 +45,7 @@
 #'         \itemize{
 #'           \item \code{baseline}: Complete B-spline configuration
 #'             for baseline hazard including knots and degree
+#'           \item \code{autonomous}: Whether ODE is autonomous (TRUE)
 #'         }
 #'     }
 #'   }

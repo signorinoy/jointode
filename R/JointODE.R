@@ -13,14 +13,14 @@
 #'   side specifies fixed effects including time-varying and baseline
 #'   covariates
 #'   (e.g., \code{biomarker ~ time + treatment + age}).
-#' @param longitudinal_data A data frame containing repeated measurements with
-#'   one row per observation. Required columns include subject identifier,
-#'   measurement times, response values, and any covariates specified in the
-#'   formula.
 #' @param survival_formula A formula for the survival submodel using
 #'   \code{Surv(time, status)} notation on the left-hand side. The right-hand
 #'   side specifies baseline hazard covariates
 #'   (e.g., \code{Surv(event_time, event) ~ treatment + age}).
+#' @param longitudinal_data A data frame containing repeated measurements with
+#'   one row per observation. Required columns include subject identifier,
+#'   measurement times, response values, and any covariates specified in the
+#'   formula.
 #' @param survival_data A data frame with time-to-event information containing
 #'   one row per subject. Must include event/censoring times, event indicators,
 #'   and baseline covariates.
@@ -31,13 +31,20 @@
 #' @param time Character string specifying the column name for measurement
 #'   times
 #'   in the longitudinal dataset (default: \code{"time"}).
+#' @param autonomous Logical flag indicating whether the ODE system is
+#'   autonomous (time-independent). When \code{TRUE}, the acceleration
+#'   computation excludes the explicit time term, resulting in
+#'   \eqn{\ddot{m}(t) = f(m(t), \dot{m}(t), X)} instead of
+#'   \eqn{\ddot{m}(t) = f(m(t), \dot{m}(t), X, t)}. Autonomous systems often
+#'   have better numerical stability and theoretical properties
+#'   (default: \code{TRUE}).
 #' @param spline_baseline A list controlling the B-spline representation of the
 #'   baseline hazard function with the following components:
 #'   \describe{
 #'     \item{\code{degree}}{Polynomial degree of the B-spline basis functions
 #'       (default: 3, cubic splines)}
 #'     \item{\code{n_knots}}{Number of interior knots for flexibility
-#'       (default: 5, providing moderate flexibility)}
+#'       (default: 3, providing moderate flexibility)}
 #'     \item{\code{knot_placement}}{Strategy for positioning knots:
 #'       \code{"quantile"} places knots at quantiles of observed event times,
 #'       \code{"equal"} uses equally-spaced knots (default: \code{"quantile"})}
@@ -181,8 +188,8 @@
 #' \dontrun{
 #' fit <- JointODE(
 #'   longitudinal_formula = sim$formulas$longitudinal,
-#'   longitudinal_data = sim$data$longitudinal_data,
 #'   survival_formula = sim$formulas$survival,
+#'   longitudinal_data = sim$data$longitudinal_data,
 #'   survival_data = sim$data$survival_data
 #' )
 #' summary(fit)
@@ -192,19 +199,20 @@
 #' @export
 JointODE <- function(
   longitudinal_formula,
-  longitudinal_data,
   survival_formula,
+  longitudinal_data,
   survival_data,
   id = "id",
   time = "time",
+  autonomous = TRUE,
   spline_baseline = list(
     degree = 3,
-    n_knots = 5,
+    n_knots = 3,
     knot_placement = "quantile",
     boundary_knots = NULL
   ),
-  init = NULL,
   control = list(),
+  init = NULL,
   parallel = FALSE,
   n_cores = NULL,
   ...
@@ -214,19 +222,20 @@ JointODE <- function(
   # Validate and process data
   .validate(
     longitudinal_formula = longitudinal_formula,
-    longitudinal_data = longitudinal_data,
     survival_formula = survival_formula,
+    longitudinal_data = longitudinal_data,
     survival_data = survival_data,
     id = id,
     time = time,
+    autonomous = autonomous,
     spline_baseline = spline_baseline,
     init = init
   )
 
   data_process <- .process(
     longitudinal_formula = longitudinal_formula,
-    longitudinal_data = longitudinal_data,
     survival_formula = survival_formula,
+    longitudinal_data = longitudinal_data,
     survival_data = survival_data,
     id = id,
     time = time
@@ -257,15 +266,20 @@ JointODE <- function(
   spline_baseline_config$boundary_knots[1] <- 0
 
   # Initialize parameters
+  n_acceleration_params <- n_longitudinal_covariates +
+    (if (autonomous) 2 else 3)
   parameters <- list(
     coefficients = list(
       baseline = rep(0, spline_baseline_config$df),
       hazard = rep(0, n_survival_covariates + 2),
-      acceleration = rep(0, n_longitudinal_covariates + 3),
+      acceleration = rep(0, n_acceleration_params),
       measurement_error_sd = 1,
       random_effect_sd = 1
     ),
-    configurations = list(baseline = spline_baseline_config)
+    configurations = list(
+      baseline = spline_baseline_config,
+      autonomous = autonomous
+    )
   )
 
   # Override with user-provided initial values if available
@@ -373,7 +387,10 @@ JointODE <- function(
       ),
       data_list = data_process,
       posteriors = posteriors,
-      configurations = list(baseline = spline_baseline_config),
+      configurations = list(
+        baseline = spline_baseline_config,
+        autonomous = autonomous
+      ),
       fixed_parameters = fixed_parameters,
       parallel = parallel,
       n_cores = n_cores
@@ -494,7 +511,10 @@ JointODE <- function(
               p,
               data_list = data_process,
               posteriors = final_posteriors,
-              configurations = list(baseline = spline_baseline_config),
+              configurations = list(
+                baseline = spline_baseline_config,
+                autonomous = autonomous
+              ),
               fixed_parameters = fixed_parameters,
               parallel = parallel,
               n_cores = n_cores
