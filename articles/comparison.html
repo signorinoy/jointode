@@ -85,8 +85,7 @@ framework with the following structure:</p>
 \epsilon_{ij}</span></p>
 <p>where the true biomarker trajectory <span class="math inline">m_i(t)</span> evolves according to:</p>
 <p><span class="math display">\ddot{m}_i(t) = \beta_1 m_i(t) + \beta_2
-\dot{m}_i(t) + \beta_3 + \beta_4 x_{i1} + \beta_5 x_{i2} + \beta_6
-t</span></p>
+\dot{m}_i(t) + \beta_3 + \beta_4 x_{i1} + \beta_5 x_{i2}</span></p>
 <p>with <span class="math inline">b_i \sim \mathcal{N}(0,
 \sigma_b^2)</span> (random intercept) and <span class="math inline">\epsilon_{ij} \sim \mathcal{N}(0, \sigma_e^2)</span>
 (measurement error).</p>
@@ -98,11 +97,11 @@ hazard and <span class="math inline">\alpha = (\alpha_1,
 \alpha_2)</span> captures the association with biomarker value and
 velocity.</p>
 <pre><code><span><span class="co">#&gt; True Parameters:</span></span>
-<span><span class="co">#&gt;   Hazard: α = [0.6, 1.0, 0.8], φ = [-1.2, NA]</span></span>
-<span><span class="co">#&gt;   ODE: β = [-1.0, -0.6, 0.0, -0.8, 0.5, 0.4]</span></span>
+<span><span class="co">#&gt;   Hazard: α = [0.3, 0.7], φ = [0.4, -0.6]</span></span>
+<span><span class="co">#&gt;   ODE: β = [-0.6, -0.4, 0.3, -0.8, 0.5]</span></span>
 <span><span class="co">#&gt;   Variance: σ_e = 0.1, σ_b = 0.1</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Dataset: 100 subjects, 1013 observations, 79% events</span></span></code></pre>
+<span><span class="co">#&gt; Dataset: 100 subjects, 1529 observations, 73% events</span></span></code></pre>
 <div class="section level3">
 <h3 id="ode-dynamics">ODE Dynamics<a class="anchor" aria-label="anchor" href="#ode-dynamics"></a>
 </h3>
@@ -114,14 +113,14 @@ of random intercept and measurement error by comparing the true
 biomarker trajectories (lines) with the observed measurements
 (points).</p>
 <pre><code><span><span class="co">#&gt; Variance Components:</span></span>
-<span><span class="co">#&gt;   Biomarker: 1.063</span></span>
-<span><span class="co">#&gt;   Velocity: 0.145</span></span>
-<span><span class="co">#&gt;   Acceleration: 0.159</span></span>
+<span><span class="co">#&gt;   Biomarker: 0.980</span></span>
+<span><span class="co">#&gt;   Velocity: 0.176</span></span>
+<span><span class="co">#&gt;   Acceleration: 0.138</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Pairwise Correlations:</span></span>
-<span><span class="co">#&gt;   ρ(Biomarker, Velocity): 0.478</span></span>
-<span><span class="co">#&gt;   ρ(Biomarker, Acceleration): -0.233</span></span>
-<span><span class="co">#&gt;   ρ(Velocity, Acceleration): 0.138</span></span></code></pre>
+<span><span class="co">#&gt;   ρ(Biomarker, Velocity): 0.372</span></span>
+<span><span class="co">#&gt;   ρ(Biomarker, Acceleration): -0.152</span></span>
+<span><span class="co">#&gt;   ρ(Velocity, Acceleration): 0.255</span></span></code></pre>
 <p>The variance hierarchy and correlation structure reflect the
 fundamental properties of the ODE system. Unlike independent variables
 in traditional models, these components are mechanistically linked
@@ -223,8 +222,8 @@ quantification.</p>
 <span><span class="co">#--------------------------------------------</span></span>
 <span><span class="va">fit_jointode</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/JointODE.html">JointODE</a></span><span class="op">(</span></span>
 <span>  longitudinal_formula <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">formulas</span><span class="op">$</span><span class="va">longitudinal</span>,</span>
-<span>  longitudinal_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span>,</span>
 <span>  survival_formula <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">formulas</span><span class="op">$</span><span class="va">survival</span>,</span>
+<span>  longitudinal_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span>,</span>
 <span>  survival_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -255,7 +254,7 @@ quantification.</p>
 <span><span class="co"># Model 3: Time-varying Cox (Oracle - Theoretical Benchmark)</span></span>
 <span><span class="co">#--------------------------------------------</span></span>
 <span><span class="va">fit_oracle</span> <span class="op">&lt;-</span> <span class="fu">coxph</span><span class="op">(</span></span>
-<span>  <span class="fu">Surv</span><span class="op">(</span><span class="va">start</span>, <span class="va">stop</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span> <span class="op">+</span> <span class="va">biomarker</span> <span class="op">+</span> <span class="va">velocity</span> <span class="op">+</span> <span class="va">acceleration</span> <span class="op">+</span></span>
+<span>  <span class="fu">Surv</span><span class="op">(</span><span class="va">start</span>, <span class="va">stop</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span> <span class="op">+</span> <span class="va">biomarker</span> <span class="op">+</span> <span class="va">velocity</span>  <span class="op">+</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span> <span class="op">+</span> <span class="fu">cluster</span><span class="op">(</span><span class="va">ID</span><span class="op">)</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">jsm_data</span></span>
 <span><span class="op">)</span></span></code></pre></div>
