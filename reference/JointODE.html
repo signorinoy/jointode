@@ -75,8 +75,9 @@ shared random effects and flexible hazard specifications.</p>
 <span>  autonomous <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  spline_baseline <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>degree <span class="op">=</span> <span class="fl">3</span>, n_knots <span class="op">=</span> <span class="fl">3</span>, knot_placement <span class="op">=</span> <span class="st">"quantile"</span>,</span>
 <span>    boundary_knots <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
-<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  robust <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  init <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  parallel <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  n_cores <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
@@ -162,6 +163,35 @@ range of observed event times (default: <code>NULL</code>)</p></dd>
 </dl></dd>
 
 
+<dt id="arg-robust">robust<a class="anchor" aria-label="anchor" href="#arg-robust"></a></dt>
+<dd><p>Logical flag indicating whether to use robust variance
+estimation (default: <code>FALSE</code>).</p></dd>
+
+
+<dt id="arg-init">init<a class="anchor" aria-label="anchor" href="#arg-init"></a></dt>
+<dd><p>Optional list providing initial values for model parameters.
+Should have the same structure as the fitted model's <code>parameters</code>
+component with elements:</p><dl><dt><code>coefficients</code></dt>
+<dd><p>A list containing:</p><ul><li><p><code>baseline</code>: Vector of B-spline coefficients for baseline
+hazard (length = number of spline basis functions)</p></li>
+<li><p><code>hazard</code>: Vector of hazard parameters including
+association parameters (2) and survival covariates</p></li>
+<li><p><code>acceleration</code>: Vector of longitudinal fixed effects
+including intercept and covariates</p></li>
+<li><p><code>measurement_error_sd</code>: Residual standard deviation
+(positive scalar)</p></li>
+<li><p><code>random_effect_sd</code>: Random effect standard deviation
+(positive scalar)</p></li>
+</ul></dd>
+
+<dt><code>configurations</code></dt>
+<dd><p>Optional; if not provided, will use
+spline configuration from <code>spline_baseline</code></p></dd>
+
+
+</dl><p>If <code>NULL</code>, default initial values are used (default: <code>NULL</code>).</p></dd>
+
+
 <dt id="arg-control">control<a class="anchor" aria-label="anchor" href="#arg-control"></a></dt>
 <dd><p>A list of optimization and algorithmic settings:</p><dl><dt><code>method</code></dt>
 <dd><p>Optimization algorithm for parameter estimation.
@@ -192,30 +222,6 @@ for silent operation, <code>1</code>/<code>TRUE</code> for iteration progress,
 
 
 </dl></dd>
-
-
-<dt id="arg-init">init<a class="anchor" aria-label="anchor" href="#arg-init"></a></dt>
-<dd><p>Optional list providing initial values for model parameters.
-Should have the same structure as the fitted model's <code>parameters</code>
-component with elements:</p><dl><dt><code>coefficients</code></dt>
-<dd><p>A list containing:</p><ul><li><p><code>baseline</code>: Vector of B-spline coefficients for baseline
-hazard (length = number of spline basis functions)</p></li>
-<li><p><code>hazard</code>: Vector of hazard parameters including
-association parameters (2) and survival covariates</p></li>
-<li><p><code>acceleration</code>: Vector of longitudinal fixed effects
-including intercept and covariates</p></li>
-<li><p><code>measurement_error_sd</code>: Residual standard deviation
-(positive scalar)</p></li>
-<li><p><code>random_effect_sd</code>: Random effect standard deviation
-(positive scalar)</p></li>
-</ul></dd>
-
-<dt><code>configurations</code></dt>
-<dd><p>Optional; if not provided, will use
-spline configuration from <code>spline_baseline</code></p></dd>
-
-
-</dl><p>If <code>NULL</code>, default initial values are used (default: <code>NULL</code>).</p></dd>
 
 
 <dt id="arg-parallel">parallel<a class="anchor" aria-label="anchor" href="#arg-parallel"></a></dt>
@@ -262,6 +268,10 @@ convergence</p></dd>
 <dd><p>Bayesian Information Criterion adjusted for sample
 size</p></dd>
 
+<dt><code>cindex</code></dt>
+<dd><p>Concordance index (C-index) measuring the model's
+discrimination ability for survival prediction</p></dd>
+
 <dt><code>convergence</code></dt>
 <dd><p>List containing convergence diagnostics:</p><ul><li><p><code>converged</code>: Logical indicating convergence status</p></li>
 <li><p><code>em_iterations</code>: Number of EM iterations performed</p></li>
@@ -295,11 +305,9 @@ non-linear dynamics, feedback mechanisms, and complex temporal patterns.
 The survival component employs a proportional hazards model where the
 instantaneous risk depends on
 features derived from the longitudinal trajectory.</p>
-<p>Three association structures are supported:</p><ul><li><p>Current value: hazard depends on the biomarker level at time t</p></li>
+<p>Two association structures are supported:</p><ul><li><p>Current value: hazard depends on the biomarker level at time t</p></li>
 <li><p>Rate of change: hazard depends on the biomarker's instantaneous
 slope</p></li>
-<li><p>Cumulative burden: hazard depends on the area under the trajectory
-curve</p></li>
 </ul><p>Parameter estimation employs an Expectation-Maximization (EM) algorithm
 with:</p><ul><li><p>E-step: Adaptive Gauss-Hermite quadrature for numerical integration</p></li>
 <li><p>M-step: Quasi-Newton optimization for parameter updates</p></li>
