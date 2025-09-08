@@ -52,24 +52,8 @@
 #'       the boundary knot locations. If \code{NULL}, automatically set to the
 #'       range of observed event times (default: \code{NULL})}
 #'   }
-#' @param control A list of optimization and algorithmic settings:
-#'   \describe{
-#'     \item{\code{method}}{Optimization algorithm for parameter estimation.
-#'       Options include \code{"L-BFGS-B"}, \code{"BFGS"}, \code{"Nelder-Mead"}
-#'       (default: \code{"L-BFGS-B"})}
-#'     \item{\code{maxit}}{Maximum number of iterations for each M-step
-#'       optimization (default: 1000)}
-#'     \item{\code{em_maxit}}{Maximum number of EM algorithm iterations
-#'       (default: 10)}
-#'     \item{\code{em_tol}}{Convergence criterion for EM algorithm based on
-#'       relative change
-#'       in log-likelihood (default: 1e-4)}
-#'     \item{\code{tol}}{Numerical tolerance for optimization convergence
-#'       (default: 1e-2)}
-#'     \item{\code{verbose}}{Controls diagnostic output: \code{0}/\code{FALSE}
-#'       for silent operation, \code{1}/\code{TRUE} for iteration progress,
-#'       \code{2} for detailed parameter traces (default: \code{FALSE})}
-#'   }
+#' @param robust Logical flag indicating whether to use robust variance
+#'   estimation (default: \code{FALSE}).
 #' @param init Optional list providing initial values for model parameters.
 #'   Should have the same structure as the fitted model's \code{parameters}
 #'   component with elements:
@@ -91,6 +75,24 @@
 #'       spline configuration from \code{spline_baseline}}
 #'   }
 #'   If \code{NULL}, default initial values are used (default: \code{NULL}).
+#' @param control A list of optimization and algorithmic settings:
+#'   \describe{
+#'     \item{\code{method}}{Optimization algorithm for parameter estimation.
+#'       Options include \code{"L-BFGS-B"}, \code{"BFGS"}, \code{"Nelder-Mead"}
+#'       (default: \code{"L-BFGS-B"})}
+#'     \item{\code{maxit}}{Maximum number of iterations for each M-step
+#'       optimization (default: 1000)}
+#'     \item{\code{em_maxit}}{Maximum number of EM algorithm iterations
+#'       (default: 10)}
+#'     \item{\code{em_tol}}{Convergence criterion for EM algorithm based on
+#'       relative change
+#'       in log-likelihood (default: 1e-4)}
+#'     \item{\code{tol}}{Numerical tolerance for optimization convergence
+#'       (default: 1e-2)}
+#'     \item{\code{verbose}}{Controls diagnostic output: \code{0}/\code{FALSE}
+#'       for silent operation, \code{1}/\code{TRUE} for iteration progress,
+#'       \code{2} for detailed parameter traces (default: \code{FALSE})}
+#'   }
 #' @param parallel Logical flag enabling parallel computation for
 #'   computationally intensive operations including posterior calculations,
 #'   gradient evaluations, and likelihood computations. Requires \pkg{future}
@@ -121,6 +123,8 @@
 #'     \item{\code{AIC}}{Akaike Information Criterion for model comparison}
 #'     \item{\code{BIC}}{Bayesian Information Criterion adjusted for sample
 #'       size}
+#'     \item{\code{cindex}}{Concordance index (C-index) measuring the model's
+#'       discrimination ability for survival prediction}
 #'     \item{\code{convergence}}{List containing convergence diagnostics:
 #'       \itemize{
 #'         \item \code{converged}: Logical indicating convergence status
@@ -148,13 +152,11 @@
 #' instantaneous risk depends on
 #' features derived from the longitudinal trajectory.
 #'
-#' Three association structures are supported:
+#' Two association structures are supported:
 #' \itemize{
 #'   \item Current value: hazard depends on the biomarker level at time t
 #'   \item Rate of change: hazard depends on the biomarker's instantaneous
 #'     slope
-#'   \item Cumulative burden: hazard depends on the area under the trajectory
-#'     curve
 #' }
 #'
 #' Parameter estimation employs an Expectation-Maximization (EM) algorithm
@@ -211,8 +213,9 @@ JointODE <- function(
     knot_placement = "quantile",
     boundary_knots = NULL
   ),
-  control = list(),
+  robust = FALSE,
   init = NULL,
+  control = list(),
   parallel = FALSE,
   n_cores = NULL,
   ...
@@ -253,7 +256,7 @@ JointODE <- function(
   } else {
     0
   }
-  n_survival_covariates <- ncol(data_process[[1]]$covariates)
+  n_survival_covariates <- ncol(subjects_with_long[[1]]$covariates)
 
   # Configure splines
   spline_baseline_config <- .get_spline_config(
@@ -264,6 +267,34 @@ JointODE <- function(
     boundary_knots = spline_baseline$boundary_knots
   )
   spline_baseline_config$boundary_knots[1] <- 0
+
+  # Extract variable names from formulas
+  long_vars_names <- if (n_longitudinal_covariates > 0) {
+    colnames(subjects_with_long[[1]]$longitudinal$covariates)
+  } else {
+    character(0)
+  }
+  surv_vars_names <- if (n_survival_covariates > 0) {
+    colnames(subjects_with_long[[1]]$covariates)
+  } else {
+    character(0)
+  }
+  long_response_name <- as.character(longitudinal_formula[[2]])
+  biomarker_names <- paste0(long_response_name, c("_value", "_slope"))
+  coef_names <- list(
+    baseline = paste0("bs", seq_len(spline_baseline_config$df)),
+    hazard = c(biomarker_names, surv_vars_names),
+    acceleration = if (autonomous) {
+      c(biomarker_names, long_vars_names)
+    } else {
+      c(biomarker_names, long_vars_names, "time")
+    }
+  )
+  coef_names_expanded <- c(
+    paste0("baseline:", coef_names$baseline),
+    paste0("hazard:", coef_names$hazard),
+    paste0("acceleration:", coef_names$acceleration)
+  )
 
   # Initialize parameters
   n_acceleration_params <- n_longitudinal_covariates +
@@ -283,12 +314,8 @@ JointODE <- function(
   )
 
   # Override with user-provided initial values if available
-  # (validation already done in .validate)
   if (!is.null(init)) {
     if (!is.null(init$coefficients)) {
-      # Note: modifyList performs shallow merge, which is sufficient for
-      # current parameter structure. If deeper nesting is added in future,
-      # consider implementing deep merge
       parameters$coefficients <- modifyList(
         parameters$coefficients,
         init$coefficients
@@ -424,23 +451,23 @@ JointODE <- function(
       # Detailed parameter output for verbose=2
       if (verbose_level >= 2) {
         cli::cli_text(
-          "  \u03b7: [{paste(sprintf('%.3f',
+          "  Baseline hazard: [{paste(sprintf('%.3f',
             head(parameters$coefficients$baseline, 5)), collapse=', ')}",
           if (length(parameters$coefficients$baseline) > 5) "..." else "",
           "]"
         )
         cli::cli_text(
-          "  \u03b1: [{paste(sprintf('%.3f',
+          "  Association params: [{paste(sprintf('%.3f',
             parameters$coefficients$hazard[1:2]), collapse=', ')}]"
         )
         if (n_hazard > 2) {
           cli::cli_text(
-            "  \u03c6: [{paste(sprintf('%.3f',
+            "  Survival covariates: [{paste(sprintf('%.3f',
               parameters$coefficients$hazard[3:n_hazard]), collapse=', ')}]"
           )
         }
         cli::cli_text(
-          "  \u03b2: [{paste(sprintf('%.3f',
+          "  ODE coefficients: [{paste(sprintf('%.3f',
             parameters$coefficients$acceleration), collapse=', ')}]"
         )
         cli::cli_text("")
@@ -483,10 +510,9 @@ JointODE <- function(
     return_ode_solutions = TRUE
   )
 
-  log_lik <- -res$value
-  n_params <- length(res$par) + 2
-  aic <- -2 * log_lik + 2 * n_params
-  bic <- -2 * log_lik + n_params * log(n_subjects)
+  names(parameters$coefficients$baseline) <- coef_names$baseline
+  names(parameters$coefficients$hazard) <- coef_names$hazard
+  names(parameters$coefficients$acceleration) <- coef_names$acceleration
 
   # Compute variance-covariance matrix
   vcov_matrix <- if (!converged) {
@@ -533,18 +559,32 @@ JointODE <- function(
           stop("Hessian is not positive definite")
         }
 
-        # Invert to get covariance matrix
-        V <- solve(H)
+        if (robust) {
+          # Robust sandwich estimator
+          score_list <- lapply(seq_len(n_subjects), function(i) {
+            .compute_gradient_joint(
+              res$par,
+              data_list = data_process[i],
+              posteriors = final_posteriors[i],
+              configurations = list(
+                baseline = spline_baseline_config,
+                autonomous = autonomous
+              ),
+              fixed_parameters = fixed_parameters,
+              parallel = parallel,
+              n_cores = n_cores,
+              return_individual = TRUE
+            )
+          })
+          S <- Reduce("+", lapply(score_list, function(s) tcrossprod(s)))
+          s_inv <- solve(S)
+          V <- s_inv %*% H %*% s_inv
+        } else {
+          V <- solve(H)
+        }
 
         # Set parameter names
-        n_accel <- length(res$par) - n_baseline - n_hazard
-        param_names <- c(
-          paste0("baseline:", seq_len(n_baseline)),
-          paste0("hazard:", c("alpha1", "alpha2")),
-          if (n_hazard > 2) paste0("hazard:phi", seq_len(n_hazard - 2)),
-          paste0("longitudinal:beta", seq_len(n_accel))
-        )
-        dimnames(V) <- list(param_names, param_names)
+        dimnames(V) <- list(coef_names_expanded, coef_names_expanded)
 
         if (verbose_level > 0) {
           cli::cli_alert_success("Variance-covariance matrix computed")
@@ -565,6 +605,39 @@ JointODE <- function(
     )
   }
 
+  # Compute model fit statistics
+  log_lik <- -res$value
+  n_params <- length(res$par) + 2
+  aic <- -2 * log_lik + 2 * n_params
+  bic <- -2 * log_lik + n_params * log(n_subjects)
+
+  # Compute C-index for model discrimination using log hazard
+  risk_scores <- sapply(seq_len(n_subjects), function(i) {
+    ode_sol <- final_posteriors$ode_solutions[[i]]
+    ode_sol$log_hazard_at_event + final_posteriors$b[i]
+  })
+  event_times <- vapply(data_process, `[[`, numeric(1), "time")
+  event_status <- vapply(data_process, `[[`, numeric(1), "status")
+
+  # Create a data frame for concordance calculation
+  conc_data <- data.frame(
+    time = event_times,
+    status = event_status,
+    risk = risk_scores
+  )
+
+  cindex <- survival::concordance(
+    Surv(time, status) ~ risk,
+    data = conc_data,
+    reverse = TRUE # Higher risk should correspond to earlier events
+  )$concordance
+
+  if (verbose_level > 0) {
+    cli::cli_alert_info(
+      "C-index (concordance): {sprintf('%.3f', cindex)}"
+    )
+  }
+
   # Return fitted model
   structure(
     list(
@@ -572,6 +645,7 @@ JointODE <- function(
       logLik = log_lik,
       AIC = aic,
       BIC = bic,
+      cindex = cindex,
       convergence = list(
         converged = converged,
         em_iterations = if (converged) em_iter else em_maxit,
@@ -588,6 +662,7 @@ JointODE <- function(
       vcov = vcov_matrix,
       data = data_process,
       control = control_settings,
+      robust = robust,
       call = cl
     ),
     class = "JointODE"
@@ -611,15 +686,57 @@ summary.JointODE <- function(object, ...) {
     rep(NA_real_, length(coefs))
   }
 
+  # Split coefficients by component
+  n_baseline <- length(object$parameters$coefficients$baseline)
+  n_hazard <- length(object$parameters$coefficients$hazard)
+  n_longitudinal <- length(object$parameters$coefficients$acceleration)
+
+  # Baseline hazard coefficients
+  idx_baseline <- seq_len(n_baseline)
+  coef_baseline <- cbind(
+    Estimate = coefs[idx_baseline],
+    `Std. Error` = se[idx_baseline],
+    `z value` = coefs[idx_baseline] / se[idx_baseline],
+    `Pr(>|z|)` = 2 * pnorm(-abs(coefs[idx_baseline] / se[idx_baseline]))
+  )
+  rownames(coef_baseline) <- gsub("baseline:", "", rownames(coef_baseline))
+
+  # Survival process coefficients (hazard parameters)
+  idx_survival <- n_baseline + seq_len(n_hazard)
+  coef_survival <- cbind(
+    Estimate = coefs[idx_survival],
+    `Std. Error` = se[idx_survival],
+    `z value` = coefs[idx_survival] / se[idx_survival],
+    `Pr(>|z|)` = 2 * pnorm(-abs(coefs[idx_survival] / se[idx_survival]))
+  )
+  rownames(coef_survival) <- gsub("hazard:", "", rownames(coef_survival))
+
+  # Longitudinal process coefficients (ODE parameters)
+  idx_longitudinal <- (n_baseline + n_hazard) + seq_len(n_longitudinal)
+  coef_longitudinal <- cbind(
+    Estimate = coefs[idx_longitudinal],
+    `Std. Error` = se[idx_longitudinal],
+    `z value` = coefs[idx_longitudinal] / se[idx_longitudinal],
+    `Pr(>|z|)` = 2 * pnorm(-abs(coefs[idx_longitudinal] / se[idx_longitudinal]))
+  )
+  rownames(coef_longitudinal) <- gsub(
+    "acceleration:",
+    "",
+    rownames(coef_longitudinal)
+  )
+
+  # Count longitudinal observations and events
+  n_observations <- attr(object$data, "n_observations")
+  n_subjects <- attr(object$data, "n_subjects")
+  event_rate <- attr(object$data, "event_rate")
+  n_events <- n_subjects * event_rate
+
   structure(
     list(
       call = object$call,
-      coefficients = cbind(
-        Estimate = coefs,
-        `Std. Error` = se,
-        `z value` = coefs / se,
-        `Pr(>|z|)` = 2 * pnorm(-abs(coefs / se))
-      ),
+      coef_baseline = coef_baseline,
+      coef_survival = coef_survival,
+      coef_longitudinal = coef_longitudinal,
       sigma = with(
         object$parameters$coefficients,
         c(sigma_e = measurement_error_sd, sigma_b = random_effect_sd)
@@ -627,7 +744,11 @@ summary.JointODE <- function(object, ...) {
       logLik = object$logLik,
       AIC = object$AIC,
       BIC = object$BIC,
-      nobs = attr(object$data, "n_subjects"),
+      cindex = object$cindex,
+      nobs = n_subjects,
+      n_observations = n_observations,
+      n_events = n_events,
+      event_rate = event_rate,
       convergence = object$convergence
     ),
     class = "summary.JointODE"
@@ -645,18 +766,77 @@ print.summary.JointODE <- function(
 ) {
   cat("\nCall:\n")
   print(x$call)
-  cat("\nVariance components:\n")
-  print(x$sigma, digits = digits)
-  cat("\nFixed effects:\n")
-  printCoefmat(
-    x$coefficients,
-    digits = digits,
-    signif.stars = signif.stars,
-    ...
-  )
-  cat("\n---")
-  cat("\nLog-likelihood:", x$logLik, "  AIC:", x$AIC, "  BIC:", x$BIC)
-  cat("\nN =", x$nobs, " Convergence:", x$convergence$message, "\n")
+
+  # Data Descriptives
+  cat("\nData Descriptives:\n")
+  cat("Longitudinal Process            Survival Process\n")
+  cat(sprintf(
+    "Number of Observations: %-7d Number of Events: %d (%.0f%%)\n",
+    x$n_observations,
+    x$n_events,
+    x$event_rate * 100
+  ))
+  cat(sprintf("Number of Subjects: %d\n", x$nobs))
+
+  # Model fit statistics
+  cat(sprintf("\n%10s %10s %10s\n", "AIC", "BIC", "logLik"))
+  cat(sprintf("%10.3f %10.3f %10.3f\n", x$AIC, x$BIC, x$logLik))
+
+  cat("\nCoefficients:\n")
+
+  # Longitudinal Process (ODE model)
+  cat("Longitudinal Process: Second-Order ODE Model\n")
+  if (!is.null(x$coef_longitudinal)) {
+    printCoefmat(
+      x$coef_longitudinal,
+      digits = digits,
+      signif.stars = signif.stars,
+      ...
+    )
+  }
+
+  # Survival Process
+  cat("\nSurvival Process: Proportional Hazards Model\n")
+  if (!is.null(x$coef_survival)) {
+    printCoefmat(
+      x$coef_survival,
+      digits = digits,
+      signif.stars = signif.stars,
+      ...
+    )
+  }
+
+  # Baseline hazard (spline coefficients - optional, summarized)
+  if (!is.null(x$coef_baseline)) {
+    cat(
+      "\nBaseline Hazard: B-spline with",
+      nrow(x$coef_baseline),
+      "basis functions\n"
+    )
+    cat(
+      "(Coefficients range:",
+      sprintf(
+        "[%.3f, %.3f]",
+        min(x$coef_baseline[, "Estimate"]),
+        max(x$coef_baseline[, "Estimate"])
+      ),
+      ")\n"
+    )
+  }
+
+  # Variance Components
+  cat("\nVariance Components:\n")
+  cat(sprintf("%20s\n", "StdDev"))
+  cat(sprintf("Random Effect %14.6f\n", x$sigma["sigma_b"]))
+  cat(sprintf("Residual %19.6f\n", x$sigma["sigma_e"]))
+
+  # Model diagnostics
+  cat("\nModel Diagnostics:\n")
+  if (!is.na(x$cindex)) {
+    cat(sprintf("C-index (Concordance): %.3f\n", x$cindex))
+  }
+  cat(sprintf("Convergence: %s\n", x$convergence$message))
+
   invisible(x)
 }
 
@@ -671,16 +851,9 @@ coef.JointODE <- function(object, ...) {
   cf <- object$parameters$coefficients
   coefs <- c(cf$baseline, cf$hazard, cf$acceleration)
   names(coefs) <- c(
-    paste0("baseline:", seq_along(cf$baseline)),
-    paste0(
-      "hazard:",
-      c(
-        "alpha1",
-        "alpha2",
-        if (length(cf$hazard) > 2) paste0("phi", seq_len(length(cf$hazard) - 2))
-      )
-    ),
-    paste0("longitudinal:beta", seq_along(cf$acceleration))
+    paste0("baseline:", names(cf$baseline)),
+    paste0("hazard:", names(cf$hazard)),
+    paste0("acceleration:", names(cf$acceleration))
   )
   coefs
 }

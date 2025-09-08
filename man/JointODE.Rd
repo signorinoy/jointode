@@ -14,8 +14,9 @@ JointODE(
   autonomous = TRUE,
   spline_baseline = list(degree = 3, n_knots = 3, knot_placement = "quantile",
     boundary_knots = NULL),
-  control = list(),
+  robust = FALSE,
   init = NULL,
+  control = list(),
   parallel = FALSE,
   n_cores = NULL,
   ...
@@ -74,24 +75,8 @@ the boundary knot locations. If \code{NULL}, automatically set to the
 range of observed event times (default: \code{NULL})}
 }}
 
-\item{control}{A list of optimization and algorithmic settings:
-\describe{
-\item{\code{method}}{Optimization algorithm for parameter estimation.
-Options include \code{"L-BFGS-B"}, \code{"BFGS"}, \code{"Nelder-Mead"}
-(default: \code{"L-BFGS-B"})}
-\item{\code{maxit}}{Maximum number of iterations for each M-step
-optimization (default: 1000)}
-\item{\code{em_maxit}}{Maximum number of EM algorithm iterations
-(default: 10)}
-\item{\code{em_tol}}{Convergence criterion for EM algorithm based on
-relative change
-in log-likelihood (default: 1e-4)}
-\item{\code{tol}}{Numerical tolerance for optimization convergence
-(default: 1e-2)}
-\item{\code{verbose}}{Controls diagnostic output: \code{0}/\code{FALSE}
-for silent operation, \code{1}/\code{TRUE} for iteration progress,
-\code{2} for detailed parameter traces (default: \code{FALSE})}
-}}
+\item{robust}{Logical flag indicating whether to use robust variance
+estimation (default: \code{FALSE}).}
 
 \item{init}{Optional list providing initial values for model parameters.
 Should have the same structure as the fitted model's \code{parameters}
@@ -114,6 +99,25 @@ including intercept and covariates
 spline configuration from \code{spline_baseline}}
 }
 If \code{NULL}, default initial values are used (default: \code{NULL}).}
+
+\item{control}{A list of optimization and algorithmic settings:
+\describe{
+\item{\code{method}}{Optimization algorithm for parameter estimation.
+Options include \code{"L-BFGS-B"}, \code{"BFGS"}, \code{"Nelder-Mead"}
+(default: \code{"L-BFGS-B"})}
+\item{\code{maxit}}{Maximum number of iterations for each M-step
+optimization (default: 1000)}
+\item{\code{em_maxit}}{Maximum number of EM algorithm iterations
+(default: 10)}
+\item{\code{em_tol}}{Convergence criterion for EM algorithm based on
+relative change
+in log-likelihood (default: 1e-4)}
+\item{\code{tol}}{Numerical tolerance for optimization convergence
+(default: 1e-2)}
+\item{\code{verbose}}{Controls diagnostic output: \code{0}/\code{FALSE}
+for silent operation, \code{1}/\code{TRUE} for iteration progress,
+\code{2} for detailed parameter traces (default: \code{FALSE})}
+}}
 
 \item{parallel}{Logical flag enabling parallel computation for
 computationally intensive operations including posterior calculations,
@@ -148,6 +152,8 @@ convergence}
 \item{\code{AIC}}{Akaike Information Criterion for model comparison}
 \item{\code{BIC}}{Bayesian Information Criterion adjusted for sample
 size}
+\item{\code{cindex}}{Concordance index (C-index) measuring the model's
+discrimination ability for survival prediction}
 \item{\code{convergence}}{List containing convergence diagnostics:
 \itemize{
 \item \code{converged}: Logical indicating convergence status
@@ -183,13 +189,11 @@ The survival component employs a proportional hazards model where the
 instantaneous risk depends on
 features derived from the longitudinal trajectory.
 
-Three association structures are supported:
+Two association structures are supported:
 \itemize{
 \item Current value: hazard depends on the biomarker level at time t
 \item Rate of change: hazard depends on the biomarker's instantaneous
 slope
-\item Cumulative burden: hazard depends on the area under the trajectory
-curve
 }
 
 Parameter estimation employs an Expectation-Maximization (EM) algorithm

@@ -106,34 +106,45 @@ summary(fit)
 #> JointODE(longitudinal_formula = sim$formulas$longitudinal, survival_formula = sim$formulas$survival,
 #>     longitudinal_data = sim$data$longitudinal_data, survival_data = sim$data$survival_data)
 #>
-#> Variance components:
-#> sigma_e sigma_b
-#> 0.09855 0.10147
+#> Data Descriptives:
+#> Longitudinal Process            Survival Process
+#> Number of Observations: 1529    Number of Events: 73 (73%)
+#> Number of Subjects: 100
 #>
-#> Fixed effects:
-#>                     Estimate Std. Error  z value Pr(>|z|)
-#> baseline:1         -3.625125   0.868680   -4.173 3.00e-05 ***
-#> baseline:2         -3.645648   0.882032   -4.133 3.58e-05 ***
-#> baseline:3         -1.932562   0.658045   -2.937 0.003316 **
-#> baseline:4         -1.947300   0.538580   -3.616 0.000300 ***
-#> baseline:5         -1.445019   1.217132   -1.187 0.235136
-#> baseline:6         -1.056317   1.929574   -0.547 0.584080
-#> baseline:7         -0.640463   1.966537   -0.326 0.744666
-#> hazard:alpha1       0.446158   0.123336    3.617 0.000298 ***
-#> hazard:alpha2       0.976861   0.341618    2.860 0.004243 **
-#> hazard:phi1         0.500620   0.136359    3.671 0.000241 ***
-#> hazard:phi2        -0.785176   0.124053   -6.329 2.46e-10 ***
-#> longitudinal:beta1 -0.600890   0.003737 -160.797  < 2e-16 ***
-#> longitudinal:beta2 -0.400776   0.006375  -62.871  < 2e-16 ***
-#> longitudinal:beta3  0.294265   0.002673  110.070  < 2e-16 ***
-#> longitudinal:beta4 -0.800519   0.005831 -137.283  < 2e-16 ***
-#> longitudinal:beta5  0.497675   0.003858  129.002  < 2e-16 ***
+#>        AIC        BIC     logLik
+#>  -2592.179  -2545.286   1314.090
+#>
+#> Coefficients:
+#> Longitudinal Process: Second-Order ODE Model
+#>              Estimate Std. Error z value Pr(>|z|)
+#> v_value     -0.600890   0.003737 -160.80   <2e-16 ***
+#> v_slope     -0.400776   0.006375  -62.87   <2e-16 ***
+#> (Intercept)  0.294265   0.002673  110.07   <2e-16 ***
+#> x1          -0.800519   0.005831 -137.28   <2e-16 ***
+#> x2           0.497675   0.003858  129.00   <2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #>
+#> Survival Process: Proportional Hazards Model
+#>         Estimate Std. Error z value Pr(>|z|)
+#> v_value   0.4462     0.1233   3.617 0.000298 ***
+#> v_slope   0.9769     0.3416   2.860 0.004243 **
+#> w1        0.5006     0.1364   3.671 0.000241 ***
+#> w2       -0.7852     0.1241  -6.329 2.46e-10 ***
 #> ---
-#> Log-likelihood: 1314.09   AIC: -2592.179   BIC: -2545.286
-#> N = 100  Convergence: EM algorithm converged after 32 iterations
+#> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#>
+#> Baseline Hazard: B-spline with 7 basis functions
+#> (Coefficients range: [-3.646, -0.640] )
+#>
+#> Variance Components:
+#>               StdDev
+#> Random Effect       0.101471
+#> Residual            0.098552
+#>
+#> Model Diagnostics:
+#> C-index (Concordance): 0.584
+#> Convergence: EM algorithm converged after 32 iterations
 
 # Generate predictions
 predictions <- predict(fit, times = seq(0, 10, by = 0.25))

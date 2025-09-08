@@ -519,13 +519,13 @@ NULL
       long_frame <- model.frame(longitudinal_formula, data = long_subset)
       long_times <- long_subset[[time]]
       long_measurements <- model.response(long_frame)
-      long_covariates <- as.data.frame(
+      long_covariates <- as.matrix(
         model.matrix(longitudinal_formula, long_frame)
       )
     } else {
       long_times <- numeric(0)
       long_measurements <- numeric(0)
-      long_covariates <- data.frame()
+      long_covariates <- matrix()
     }
 
     survival_row <- survival_index_map[i]
@@ -671,7 +671,7 @@ NULL
   beta <- parameters$coefficients$acceleration
 
   # For linear model: acceleration = beta' * Z
-  # d(acceleration)/dbeta_j = Z_j + beta' * dZ/dbeta_j
+  # d(acceleration)/d(beta_j) = Z_j + beta' * dZ/d(beta_j)
 
   n_beta <- length(beta)
   dacceleration_dbeta <- numeric(n_beta)
@@ -1406,7 +1406,8 @@ NULL
   configurations,
   fixed_parameters,
   parallel = TRUE,
-  n_cores = NULL
+  n_cores = NULL,
+  return_individual = FALSE
 ) {
   # Compute gradient of negative expected complete-data log-likelihood
   # Input: params = c(eta, alpha, phi, beta) - parameter vector for optim
@@ -1541,7 +1542,19 @@ NULL
     grad_results <- lapply(seq_len(n_subjects), compute_subject_gradient)
   }
 
-  # Aggregate results
+  # Check if individual gradients should be returned
+  if (return_individual) {
+    # Return matrix where each row is a subject's gradient
+    grad_matrix <- do.call(
+      rbind,
+      lapply(grad_results, function(res) {
+        -c(res$grad_eta, res$grad_alpha, res$grad_phi, res$grad_beta)
+      })
+    )
+    return(grad_matrix)
+  }
+
+  # Aggregate results (default behavior)
   grad_eta <- Reduce(`+`, lapply(grad_results, `[[`, "grad_eta"))
   grad_alpha <- Reduce(`+`, lapply(grad_results, `[[`, "grad_alpha"))
   grad_phi <- if (n_phi > 0) {
