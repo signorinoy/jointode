@@ -532,6 +532,185 @@ the <span class="math inline">k</span>-th position and 0 elsewhere).</p>
 </div>
 </div>
 </div>
+<div class="section level2">
+<h2 id="inference">Inference<a class="anchor" aria-label="anchor" href="#inference"></a>
+</h2>
+<p>Linear differential equations are fundamental tools for modeling
+biomedical systems:</p>
+<ul>
+<li>
+<strong>First-order ODE</strong>: <span class="math inline">\frac{dy}{dt} = ay + b</span> (drug metabolism, cell
+growth)</li>
+<li>
+<strong>Second-order ODE</strong>: <span class="math inline">\frac{d^2y}{dt^2} = ay + b\frac{dy}{dt} + c</span>
+(glucose regulation, heart rate variability)</li>
+</ul>
+<div class="section level3">
+<h3 id="parameter-transformation">Parameter Transformation<a class="anchor" aria-label="anchor" href="#parameter-transformation"></a>
+</h3>
+<p>For stable first-order systems (<span class="math inline">a&lt;0</span>): <span class="math display">\tau =
+-\frac{1}{a}, \quad K = -\frac{b}{a}</span></p>
+<p>For stable second-order systems (<span class="math inline">a&lt;0,
+b&lt;0</span>): <span class="math display">\omega_0 = \sqrt{-a}, \quad
+\zeta = -\frac{b}{2\sqrt{-a}}, \quad K = -\frac{c}{a}</span></p>
+</div>
+<div class="section level3">
+<h3 id="physical-interpretation">Physical Interpretation<a class="anchor" aria-label="anchor" href="#physical-interpretation"></a>
+</h3>
+<table class="table">
+<thead><tr class="header">
+<th>Parameter</th>
+<th>Symbol</th>
+<th>Physical Meaning</th>
+<th>Clinical Relevance</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Time constant</td>
+<td>τ</td>
+<td>Response speed</td>
+<td>Drug half-life</td>
+</tr>
+<tr class="even">
+<td>Natural frequency</td>
+<td>ω₀</td>
+<td>Oscillation rate</td>
+<td>Metabolic rhythm</td>
+</tr>
+<tr class="odd">
+<td>Damping ratio</td>
+<td>ζ</td>
+<td>Oscillation decay</td>
+<td>Regulatory stability</td>
+</tr>
+<tr class="even">
+<td>Steady-state gain</td>
+<td>K</td>
+<td>Final equilibrium</td>
+<td>Baseline levels</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level3">
+<h3 id="first-order-dynamics">First-Order Dynamics<a class="anchor" aria-label="anchor" href="#first-order-dynamics"></a>
+</h3>
+<p><span class="math display">y(t) = K + (y_0 - K)e^{-t/\tau}</span></p>
+</div>
+<div class="section level3">
+<h3 id="second-order-dynamics">Second-Order Dynamics<a class="anchor" aria-label="anchor" href="#second-order-dynamics"></a>
+</h3>
+<p><span class="math display">y(t) - K = \begin{cases}
+Ae^{-\zeta\omega_0 t}\cos(\omega_d t + \phi) &amp; \text{if } \zeta &lt;
+1 \text{ (under-damped)} \\
+(A + Bt)e^{-\omega_0 t} &amp; \text{if } \zeta = 1 \text{ (critically
+damped)} \\
+A_1 e^{\lambda_1 t} + A_2 e^{\lambda_2 t} &amp; \text{if } \zeta &gt; 1
+\text{ (over-damped)}
+\end{cases}</span></p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="case-study-glucose-insulin-regulation">Case Study: Glucose-Insulin Regulation<a class="anchor" aria-label="anchor" href="#case-study-glucose-insulin-regulation"></a>
+</h2>
+<div class="section level3">
+<h3 id="mathematical-model">Mathematical Model<a class="anchor" aria-label="anchor" href="#mathematical-model"></a>
+</h3>
+<p>The simplified glucose dynamics following meal intake: <span class="math display">\frac{d^2G}{dt^2} = -k_1 G - k_2 \frac{dG}{dt} +
+I_{meal}</span></p>
+<p>where: - <span class="math inline">G</span>: glucose deviation from
+baseline - <span class="math inline">k_1</span>: insulin sensitivity
+(feedback strength) - <span class="math inline">k_2</span>: regulatory
+delay (damping effect) - <span class="math inline">I_{meal}</span>: meal
+input</p>
+</div>
+<div class="section level3">
+<h3 id="parametric-response">Parametric Response<a class="anchor" aria-label="anchor" href="#parametric-response"></a>
+</h3>
+<p>Post-meal glucose response: <span class="math display">G(t) =
+G_{basal} + Ae^{-\zeta\omega_0 t}\cos(\omega_d t + \phi)</span></p>
+<p>with damped oscillation frequency: <span class="math inline">\omega_d
+= \omega_0\sqrt{1-\zeta^2}</span></p>
+</div>
+<div class="section level3">
+<h3 id="physiological-classification">Physiological Classification<a class="anchor" aria-label="anchor" href="#physiological-classification"></a>
+</h3>
+<table class="table">
+<colgroup>
+<col width="26%">
+<col width="33%">
+<col width="39%">
+</colgroup>
+<thead><tr class="header">
+<th>Damping Ratio</th>
+<th>Physiological State</th>
+<th>Clinical Presentation</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>ζ &lt; 0.5</td>
+<td>Under-regulated</td>
+<td>Glucose oscillations (pre-diabetes)</td>
+</tr>
+<tr class="even">
+<td>0.5 &lt; ζ &lt; 1</td>
+<td>Normal regulation</td>
+<td>Mild fluctuation with stabilization</td>
+</tr>
+<tr class="odd">
+<td>ζ = 1</td>
+<td>Critical damping</td>
+<td>Optimal response</td>
+</tr>
+<tr class="even">
+<td>ζ &gt; 1</td>
+<td>Over-damped</td>
+<td>Slow recovery (insulin resistance)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level3">
+<h3 id="over-damping-mechanism-ζ-1">Over-damping Mechanism (ζ &gt; 1)<a class="anchor" aria-label="anchor" href="#over-damping-mechanism-%CE%B6-1"></a>
+</h3>
+<p>For over-damped systems, the characteristic roots are: <span class="math display">\lambda_1 = -\zeta\omega_0 +
+\omega_0\sqrt{\zeta^2-1}, \quad \lambda_2 = -\zeta\omega_0 -
+\omega_0\sqrt{\zeta^2-1}</span></p>
+<p>The dominant mode (<span class="math inline">\lambda_1</span>)
+determines long-term behavior:</p>
+<table class="table">
+<thead><tr class="header">
+<th>ζ Value</th>
+<th><span class="math inline">\|\lambda_1\|/\omega_0</span></th>
+<th>Recovery Speed</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>1.0</td>
+<td>1.00</td>
+<td>Fastest non-oscillatory</td>
+</tr>
+<tr class="even">
+<td>1.5</td>
+<td>0.55</td>
+<td>1.8× slower</td>
+</tr>
+<tr class="odd">
+<td>2.0</td>
+<td>0.27</td>
+<td>3.7× slower</td>
+</tr>
+<tr class="even">
+<td>∞</td>
+<td>→ 0</td>
+<td>Extremely slow</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Clinical Implication</strong>: Severe insulin resistance
+(high ζ) leads to prolonged hyperglycemia post-meal.</p>
+</div>
+</div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
 </div>

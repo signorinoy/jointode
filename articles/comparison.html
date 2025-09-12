@@ -98,10 +98,9 @@ hazard and <span class="math inline">\alpha = (\alpha_1,
 velocity.</p>
 <pre><code><span><span class="co">#&gt; True Parameters:</span></span>
 <span><span class="co">#&gt;   Hazard: α = [0.3, 0.7], φ = [0.4, -0.6]</span></span>
-<span><span class="co">#&gt;   ODE: β = [-0.6, -0.4, 0.3, -0.8, 0.5]</span></span>
-<span><span class="co">#&gt;   Variance: σ_e = 0.1, σ_b = 0.1</span></span>
+<span><span class="co">#&gt;   ODE: β = [-0.6, -0.4, 0.0, 0.8, -0.5]</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Dataset: 100 subjects, 1529 observations, 73% events</span></span></code></pre>
+<span><span class="co">#&gt; Dataset: 200 subjects, 1458 observations, 58% events</span></span></code></pre>
 <div class="section level3">
 <h3 id="ode-dynamics">ODE Dynamics<a class="anchor" aria-label="anchor" href="#ode-dynamics"></a>
 </h3>
@@ -113,14 +112,14 @@ of random intercept and measurement error by comparing the true
 biomarker trajectories (lines) with the observed measurements
 (points).</p>
 <pre><code><span><span class="co">#&gt; Variance Components:</span></span>
-<span><span class="co">#&gt;   Biomarker: 0.980</span></span>
-<span><span class="co">#&gt;   Velocity: 0.176</span></span>
-<span><span class="co">#&gt;   Acceleration: 0.138</span></span>
+<span><span class="co">#&gt;   Biomarker: 2.820</span></span>
+<span><span class="co">#&gt;   Velocity: 0.403</span></span>
+<span><span class="co">#&gt;   Acceleration: 0.401</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Pairwise Correlations:</span></span>
-<span><span class="co">#&gt;   ρ(Biomarker, Velocity): 0.372</span></span>
-<span><span class="co">#&gt;   ρ(Biomarker, Acceleration): -0.152</span></span>
-<span><span class="co">#&gt;   ρ(Velocity, Acceleration): 0.255</span></span></code></pre>
+<span><span class="co">#&gt;   ρ(Biomarker, Velocity): -0.042</span></span>
+<span><span class="co">#&gt;   ρ(Biomarker, Acceleration): -0.495</span></span>
+<span><span class="co">#&gt;   ρ(Velocity, Acceleration): -0.070</span></span></code></pre>
 <p>The variance hierarchy and correlation structure reflect the
 fundamental properties of the ODE system. Unlike independent variables
 in traditional models, these components are mechanistically linked
@@ -203,28 +202,36 @@ quantification.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Data preparation for comparison models</span></span>
 <span><span class="va">jsm_data</span> <span class="op">&lt;-</span> <span class="fu">dataPreprocess</span><span class="op">(</span></span>
-<span>  long <span class="op">=</span> <span class="va">long_data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>ID <span class="op">=</span> <span class="va">id</span><span class="op">)</span>,</span>
-<span>  surv <span class="op">=</span> <span class="va">surv_data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span>ID <span class="op">=</span> <span class="va">id</span>, survtime <span class="op">=</span> <span class="va">time</span><span class="op">)</span>,</span>
+<span>  long <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span> <span class="op">%&gt;%</span> <span class="fu">rename</span><span class="op">(</span>ID <span class="op">=</span> <span class="va">id</span><span class="op">)</span>,</span>
+<span>  surv <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span> <span class="op">%&gt;%</span> <span class="fu">rename</span><span class="op">(</span>ID <span class="op">=</span> <span class="va">id</span>, survtime <span class="op">=</span> <span class="va">time</span><span class="op">)</span>,</span>
 <span>  id.col <span class="op">=</span> <span class="st">"ID"</span>,</span>
 <span>  long.time.col <span class="op">=</span> <span class="st">"time"</span>,</span>
 <span>  surv.time.col <span class="op">=</span> <span class="st">"survtime"</span>,</span>
 <span>  surv.event.col <span class="op">=</span> <span class="st">"status"</span></span>
-<span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/rename.html" class="external-link">rename</a></span><span class="op">(</span></span>
+<span><span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>  <span class="fu">rename</span><span class="op">(</span></span>
 <span>    obstime <span class="op">=</span> <span class="va">time</span>,</span>
 <span>    start <span class="op">=</span> <span class="va">start.join</span>,</span>
 <span>    stop <span class="op">=</span> <span class="va">stop.join</span>,</span>
-<span>    event <span class="op">=</span> <span class="va">event.join</span></span>
+<span>    event <span class="op">=</span> <span class="va">event.join</span>,</span>
+<span>    x1 <span class="op">=</span> <span class="va">x1.long</span>,</span>
+<span>    x2 <span class="op">=</span> <span class="va">x2.long</span>,</span>
+<span>    x3 <span class="op">=</span> <span class="va">x3.long</span></span>
+<span>  <span class="op">)</span> <span class="op">%&gt;%</span></span>
+<span>  <span class="fu">select</span><span class="op">(</span></span>
+<span>    <span class="va">ID</span>, <span class="va">obstime</span>, <span class="va">observed</span>, <span class="va">biomarker</span>, <span class="va">velocity</span>, <span class="va">acceleration</span>,</span>
+<span>    <span class="va">x1</span>, <span class="va">x2</span>, <span class="va">x3</span>, <span class="va">b</span>, <span class="va">start</span>, <span class="va">stop</span>, <span class="va">event</span></span>
 <span>  <span class="op">)</span></span>
 <span></span>
 <span><span class="co">#--------------------------------------------</span></span>
 <span><span class="co"># Model 1: JointODE (Proposed Method)</span></span>
 <span><span class="co">#--------------------------------------------</span></span>
 <span><span class="va">fit_jointode</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/JointODE.html">JointODE</a></span><span class="op">(</span></span>
-<span>  longitudinal_formula <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">formulas</span><span class="op">$</span><span class="va">longitudinal</span>,</span>
-<span>  survival_formula <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">formulas</span><span class="op">$</span><span class="va">survival</span>,</span>
+<span>  longitudinal_formula <span class="op">=</span> <span class="va">observed</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
+<span>  survival_formula <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
 <span>  longitudinal_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span>,</span>
-<span>  survival_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span></span>
+<span>  survival_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span>,</span>
+<span>  state <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">state</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co">#--------------------------------------------</span></span>
@@ -232,14 +239,14 @@ quantification.</p>
 <span><span class="co">#--------------------------------------------</span></span>
 <span><span class="co"># Step 1: Longitudinal sub-model</span></span>
 <span><span class="va">fit_lme</span> <span class="op">&lt;-</span> <span class="fu">lme</span><span class="op">(</span></span>
-<span>  <span class="va">v</span> <span class="op">~</span> <span class="va">obstime</span> <span class="op">+</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>,</span>
+<span>  <span class="va">observed</span> <span class="op">~</span> <span class="va">obstime</span> <span class="op">+</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
 <span>  random <span class="op">=</span> <span class="op">~</span> <span class="fl">1</span> <span class="op">|</span> <span class="va">ID</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">jsm_data</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Step 2: Survival sub-model</span></span>
-<span><span class="va">fit_cox</span> <span class="op">&lt;-</span> <span class="fu">coxph</span><span class="op">(</span></span>
-<span>  <span class="fu">Surv</span><span class="op">(</span><span class="va">start</span>, <span class="va">stop</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span>,</span>
+<span><span class="va">fit_cox</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">start</span>, <span class="va">stop</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">jsm_data</span>, x <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -253,9 +260,9 @@ quantification.</p>
 <span><span class="co">#--------------------------------------------</span></span>
 <span><span class="co"># Model 3: Time-varying Cox (Oracle - Theoretical Benchmark)</span></span>
 <span><span class="co">#--------------------------------------------</span></span>
-<span><span class="va">fit_oracle</span> <span class="op">&lt;-</span> <span class="fu">coxph</span><span class="op">(</span></span>
-<span>  <span class="fu">Surv</span><span class="op">(</span><span class="va">start</span>, <span class="va">stop</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span> <span class="op">+</span> <span class="va">biomarker</span> <span class="op">+</span> <span class="va">velocity</span>  <span class="op">+</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span> <span class="op">+</span> <span class="fu">cluster</span><span class="op">(</span><span class="va">ID</span><span class="op">)</span>,</span>
+<span><span class="va">fit_oracle</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">start</span>, <span class="va">stop</span>, <span class="va">event</span><span class="op">)</span> <span class="op">~</span> <span class="va">biomarker</span> <span class="op">+</span> <span class="va">velocity</span>  <span class="op">+</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span> <span class="op">+</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/stats/offset.html" class="external-link">offset</a></span><span class="op">(</span><span class="va">b</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/cluster.html" class="external-link">cluster</a></span><span class="op">(</span><span class="va">ID</span><span class="op">)</span>,</span>
 <span>  data <span class="op">=</span> <span class="va">jsm_data</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>

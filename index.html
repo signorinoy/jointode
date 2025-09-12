@@ -133,64 +133,71 @@
 <span><span class="co">#&gt; The following object is masked from 'package:stats':</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt;     simulate</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/therneau/survival" class="external-link">survival</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load example dataset</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">sim</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Fit joint ODE model</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/JointODE.html">JointODE</a></span><span class="op">(</span></span>
-<span>  longitudinal_formula <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">formulas</span><span class="op">$</span><span class="va">longitudinal</span>,</span>
-<span>  survival_formula <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">formulas</span><span class="op">$</span><span class="va">survival</span>,</span>
+<span>  longitudinal_formula <span class="op">=</span> <span class="va">observed</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
+<span>  survival_formula <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
 <span>  longitudinal_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span>,</span>
-<span>  survival_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span></span>
+<span>  survival_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span>,</span>
+<span>  state <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">state</span><span class="op">)</span>,</span>
+<span>  parallel <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Model summary</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Call:</span></span>
-<span><span class="co">#&gt; JointODE(longitudinal_formula = sim$formulas$longitudinal, survival_formula = sim$formulas$survival,</span></span>
-<span><span class="co">#&gt;     longitudinal_data = sim$data$longitudinal_data, survival_data = sim$data$survival_data)</span></span>
+<span><span class="co">#&gt; JointODE(longitudinal_formula = observed ~ x1 + x2 + x3, survival_formula = Surv(time,</span></span>
+<span><span class="co">#&gt;     status) ~ x1 + x2 + x3, longitudinal_data = sim$data$longitudinal_data,</span></span>
+<span><span class="co">#&gt;     survival_data = sim$data$survival_data, state = as.matrix(sim$data$state),</span></span>
+<span><span class="co">#&gt;     parallel = TRUE)</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Data Descriptives:</span></span>
 <span><span class="co">#&gt; Longitudinal Process            Survival Process</span></span>
-<span><span class="co">#&gt; Number of Observations: 1529    Number of Events: 73 (73%)</span></span>
-<span><span class="co">#&gt; Number of Subjects: 100</span></span>
+<span><span class="co">#&gt; Number of Observations: 1458    Number of Events: 117 (58%)</span></span>
+<span><span class="co">#&gt; Number of Subjects: 200</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt;        AIC        BIC     logLik</span></span>
-<span><span class="co">#&gt;  -2592.179  -2545.286   1314.090</span></span>
+<span><span class="co">#&gt;  -2365.178  -2299.212   1202.589</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt; Longitudinal Process: Second-Order ODE Model</span></span>
-<span><span class="co">#&gt;              Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; v_value     -0.600890   0.003737 -160.80   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; v_slope     -0.400776   0.006375  -62.87   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; (Intercept)  0.294265   0.002673  110.07   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; x1          -0.800519   0.005831 -137.28   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; x2           0.497675   0.003858  129.00   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt;                 Estimate Std. Error  z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; observed_value -0.601674   0.001776 -338.820  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; observed_slope -0.399887   0.002427 -164.793  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; (Intercept)    -0.011712   0.003629   -3.228  0.00125 **</span></span>
+<span><span class="co">#&gt; x1              0.804521   0.003196  251.727  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; x2             -0.497826   0.002527 -196.981  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt; x3             -0.489528   0.004278 -114.426  &lt; 2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Survival Process: Proportional Hazards Model</span></span>
-<span><span class="co">#&gt;         Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; v_value   0.4462     0.1233   3.617 0.000298 ***</span></span>
-<span><span class="co">#&gt; v_slope   0.9769     0.3416   2.860 0.004243 **</span></span>
-<span><span class="co">#&gt; w1        0.5006     0.1364   3.671 0.000241 ***</span></span>
-<span><span class="co">#&gt; w2       -0.7852     0.1241  -6.329 2.46e-10 ***</span></span>
+<span><span class="co">#&gt;                Estimate Std. Error z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; observed_value   0.1115     0.1950   0.572 0.567249</span></span>
+<span><span class="co">#&gt; observed_slope   0.4359     0.3304   1.319 0.187080</span></span>
+<span><span class="co">#&gt; x1               0.5545     0.2667   2.079 0.037611 *</span></span>
+<span><span class="co">#&gt; x2              -0.6983     0.1764  -3.959 7.53e-05 ***</span></span>
+<span><span class="co">#&gt; x3              -0.8837     0.2300  -3.842 0.000122 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Baseline Hazard: B-spline with 7 basis functions</span></span>
-<span><span class="co">#&gt; (Coefficients range: [-3.646, -0.640] )</span></span>
+<span><span class="co">#&gt; (Coefficients range: [-3.118, -0.404] )</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Variance Components:</span></span>
 <span><span class="co">#&gt;               StdDev</span></span>
-<span><span class="co">#&gt; Random Effect       0.101471</span></span>
-<span><span class="co">#&gt; Residual            0.098552</span></span>
+<span><span class="co">#&gt; Random Effect       0.093266</span></span>
+<span><span class="co">#&gt; Residual            0.101037</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Model Diagnostics:</span></span>
-<span><span class="co">#&gt; C-index (Concordance): 0.584</span></span>
-<span><span class="co">#&gt; Convergence: EM algorithm converged after 32 iterations</span></span>
+<span><span class="co">#&gt; C-index (Concordance): 0.587</span></span>
+<span><span class="co">#&gt; Convergence: EM algorithm converged after 52 iterations</span></span>
 <span></span>
 <span><span class="co"># Generate predictions</span></span>
 <span><span class="va">predictions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, times <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">10</span>, by <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
