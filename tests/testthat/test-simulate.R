@@ -198,6 +198,7 @@ test_that("simulate handles edge cases", {
 })
 
 test_that("simulate creates consistent longitudinal observations", {
+  skip_on_cran() # Skip on CRAN due to loop checks
   sim <- JointODE::simulate(n_subjects = 10, seed = 777)
 
   # Each subject should have observations up to their event/censoring time
@@ -214,6 +215,7 @@ test_that("simulate creates consistent longitudinal observations", {
 })
 
 test_that("simulate respects covariate distributions", {
+  skip_on_cran() # Skip on CRAN due to large sample size
   n <- 100 # Further reduced for faster tests
   sim <- JointODE::simulate(
     n_subjects = n,
@@ -246,4 +248,61 @@ test_that("simulate respects covariate distributions", {
   # Normal variable
   expect_true(abs(mean(sim$survival_data$normal_var) - 0) < 0.4)
   expect_true(abs(sd(sim$survival_data$normal_var) - 1) < 0.4)
+})
+
+# Tests for .create_example_data
+test_that(".create_example_data works correctly", {
+  skip_on_cran() # Skip on CRAN - internal function test
+  # Single call to create example data
+  example <- JointODE:::.create_example_data(n_subjects = 20, seed = 123)
+
+  # Test structure
+  expect_type(example, "list")
+  expect_named(example, c("data", "init"))
+  expect_type(example$data, "list")
+  expect_type(example$init, "list")
+  expect_named(example$init, c("coefficients", "configurations"))
+
+  # Test data generation
+  expect_true(all(
+    c("longitudinal_data", "survival_data", "state") %in%
+      names(example$data)
+  ))
+  expect_equal(nrow(example$data$survival_data), 20)
+  expect_equal(nrow(example$data$state), 20)
+
+  # Test coefficients
+  coef <- example$init$coefficients
+  expect_true(all(
+    c(
+      "baseline",
+      "acceleration",
+      "hazard",
+      "measurement_error_sd",
+      "random_effect_sd"
+    ) %in%
+      names(coef)
+  ))
+  expect_type(coef$baseline, "double")
+  expect_type(coef$acceleration, "double")
+  expect_type(coef$hazard, "double")
+  expect_equal(coef$measurement_error_sd, 0.1)
+  expect_equal(coef$random_effect_sd, 0.1)
+
+  # Test configurations
+  config <- example$init$configurations
+  expect_named(config, c("baseline", "autonomous"))
+  expect_type(config$baseline, "list")
+  expect_true(config$autonomous)
+  expect_true(all(
+    c("degree", "knots", "boundary_knots", "df") %in% names(config$baseline)
+  ))
+
+  # Test reproducibility
+  example2 <- JointODE:::.create_example_data(n_subjects = 20, seed = 123)
+  expect_identical(
+    example$data$survival_data$time,
+    example2$data$survival_data$time
+  )
+  expect_identical(example$init$coefficients, example2$init$coefficients)
 })

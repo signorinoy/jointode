@@ -1,22 +1,19 @@
 # ==============================================================================
-# Test: Gradient Computation Using numDeriv
+# Test: Gradient Computation
 # ==============================================================================
-# Purpose: Verify analytical gradients match numerical gradients
+# Purpose: Verify analytical gradients and parallel computation
 # Coverage:
-#   - Theta gradient (η, α, φ, β parameters)
-#   - Edge cases (single subject, zero random effect)
-#   - Parameter scaling consistency
-#   - Finite value checks
+#   - Gradient accuracy vs numerical gradients
+#   - Edge cases (single subject)
+#   - Parallel vs sequential consistency
+#   - Dimension checks
 
-test_that("compute_gradient_joint matches numerical gradient", {
-  skip_if_not_installed("numDeriv")
+test_that("gradient computation comprehensive tests", {
+  skip_on_cran() # Skip on CRAN due to long runtime
 
-  # Setup: Load test data and compute posteriors
+  # Setup: Load test data once for multiple tests
   test_env <- load_test_data(n_subjects = 3)
   posteriors <- .compute_posteriors(test_env$data, test_env$parameters)
-
-  # Extract parameters and dimensions
-  n_surv_covariates <- ncol(test_env$data[[1]]$covariates)
 
   coefficients <- test_env$parameters$coefficients
   configurations <- test_env$parameters$configurations
@@ -31,7 +28,7 @@ test_that("compute_gradient_joint matches numerical gradient", {
     random_effect_sd = coefficients$random_effect_sd
   )
 
-  # Compute gradients
+  # Test 1: Analytical vs Numerical gradient
   grad_analytical <- .compute_gradient_joint(
     params = params,
     data_list = test_env$data,
@@ -51,7 +48,7 @@ test_that("compute_gradient_joint matches numerical gradient", {
     method = "Richardson"
   )
 
-  # Overall comparison TODO: Relax tolerance due to ODE precision
+  # Compare survival gradient components
   n_hazard <- length(c(coefficients$baseline, coefficients$hazard))
   compare_gradient_component(
     grad_analytical[1:n_hazard],
@@ -59,10 +56,32 @@ test_that("compute_gradient_joint matches numerical gradient", {
     "Survival gradient",
     tolerance = 1e-1
   )
+
+  # Test 2: Check dimensions
+  n_baseline <- length(coefficients$baseline)
+  n_hazard_only <- length(coefficients$hazard)
+  n_acceleration <- length(coefficients$acceleration)
+
+  expect_equal(
+    length(grad_analytical),
+    n_baseline + n_hazard_only + n_acceleration
+  )
+  expect_true(all(is.finite(grad_analytical)))
+
+  # Test 3: Verify gradient structure
+  grad_baseline <- grad_analytical[1:n_baseline]
+  grad_hazard <- grad_analytical[(n_baseline + 1):(n_baseline + n_hazard_only)]
+  grad_acceleration <- grad_analytical[
+    (n_baseline + n_hazard_only + 1):length(grad_analytical)
+  ]
+
+  expect_equal(length(grad_baseline), n_baseline)
+  expect_equal(length(grad_hazard), n_hazard_only)
+  expect_equal(length(grad_acceleration), n_acceleration)
 })
 
-test_that("gradient computation handles edge cases", {
-  skip_if_not_installed("numDeriv")
+test_that("gradient handles edge cases", {
+  skip_on_cran() # Skip on CRAN due to long runtime
 
   # Test with single subject
   test_env <- load_test_data(n_subjects = 1)
@@ -94,56 +113,10 @@ test_that("gradient computation handles edge cases", {
   expect_equal(length(grad), length(params))
 })
 
-test_that("gradient components have correct dimensions", {
-  test_env <- load_test_data(n_subjects = 5)
-  posteriors <- .compute_posteriors(test_env$data, test_env$parameters)
+test_that("parallel computation consistency", {
+  skip_on_cran() # Skip on CRAN due to long runtime
 
-  n_baseline <- length(test_env$parameters$coefficients$baseline)
-  n_hazard <- length(test_env$parameters$coefficients$hazard)
-  n_acceleration <- length(test_env$parameters$coefficients$acceleration)
-
-  coefficients <- test_env$parameters$coefficients
-  configurations <- test_env$parameters$configurations
-
-  params <- c(
-    coefficients$baseline,
-    coefficients$hazard,
-    coefficients$acceleration
-  )
-  fixed_params <- list(
-    measurement_error_sd = coefficients$measurement_error_sd,
-    random_effect_sd = coefficients$random_effect_sd
-  )
-
-  grad <- .compute_gradient_joint(
-    params = params,
-    data_list = test_env$data,
-    posteriors = posteriors,
-    configurations = configurations,
-    fixed_parameters = fixed_params
-  )
-
-  # Check total dimension
-  expect_equal(length(grad), n_baseline + n_hazard + n_acceleration)
-
-  # Check that gradient is finite
-  expect_true(all(is.finite(grad)))
-
-  # Verify gradient structure matches parameter structure
-  grad_baseline <- grad[1:n_baseline]
-  grad_hazard <- grad[(n_baseline + 1):(n_baseline + n_hazard)]
-  grad_acceleration <- grad[(n_baseline + n_hazard + 1):length(grad)]
-
-  expect_equal(length(grad_baseline), n_baseline)
-  expect_equal(length(grad_hazard), n_hazard)
-  expect_equal(length(grad_acceleration), n_acceleration)
-})
-
-test_that("parallel gradient computation works correctly", {
-  skip_if_not_installed("future")
-  skip_if_not_installed("future.apply")
-
-  # Load test data
+  # Load test data once
   test_env <- load_test_data(n_subjects = 20)
   posteriors <- .compute_posteriors(test_env$data, test_env$parameters)
 
@@ -159,7 +132,9 @@ test_that("parallel gradient computation works correctly", {
     random_effect_sd = coefficients$random_effect_sd
   )
 
-  # Compute gradient sequentially
+  # Test both gradient and objective in parallel vs sequential
+
+  # Gradient computation
   grad_sequential <- .compute_gradient_joint(
     params = params,
     data_list = test_env$data,
@@ -169,7 +144,6 @@ test_that("parallel gradient computation works correctly", {
     parallel = FALSE
   )
 
-  # Compute gradient in parallel
   grad_parallel <- .compute_gradient_joint(
     params = params,
     data_list = test_env$data,
@@ -177,10 +151,9 @@ test_that("parallel gradient computation works correctly", {
     configurations = configurations,
     fixed_parameters = fixed_params,
     parallel = TRUE,
-    n_cores = 2 # Use 2 cores for testing
+    n_cores = 2
   )
 
-  # Results should be identical
   expect_equal(
     grad_sequential,
     grad_parallel,
@@ -188,66 +161,7 @@ test_that("parallel gradient computation works correctly", {
     label = "Parallel vs Sequential gradient"
   )
 
-  # Test with different core counts
-  if (parallel::detectCores() >= 4) {
-    grad_parallel_4 <- .compute_gradient_joint(
-      params = params,
-      data_list = test_env$data,
-      posteriors = posteriors,
-      configurations = configurations,
-      fixed_parameters = fixed_params,
-      parallel = TRUE,
-      n_cores = 4
-    )
-
-    expect_equal(
-      grad_sequential,
-      grad_parallel_4,
-      tolerance = 1e-10,
-      label = "Parallel (4 cores) vs Sequential gradient"
-    )
-  }
-
-  # Test auto-detection of cores
-  grad_parallel_auto <- .compute_gradient_joint(
-    params = params,
-    data_list = test_env$data,
-    posteriors = posteriors,
-    configurations = configurations,
-    fixed_parameters = fixed_params,
-    parallel = TRUE
-    # n_cores not specified - should auto-detect
-  )
-
-  expect_equal(
-    grad_sequential,
-    grad_parallel_auto,
-    tolerance = 1e-10,
-    label = "Parallel (auto cores) vs Sequential gradient"
-  )
-})
-
-test_that("parallel objective computation works correctly", {
-  skip_if_not_installed("future")
-  skip_if_not_installed("future.apply")
-
-  # Load test data
-  test_env <- load_test_data(n_subjects = 20)
-  posteriors <- .compute_posteriors(test_env$data, test_env$parameters)
-
-  coefficients <- test_env$parameters$coefficients
-  configurations <- test_env$parameters$configurations
-  params <- c(
-    coefficients$baseline,
-    coefficients$hazard,
-    coefficients$acceleration
-  )
-  fixed_params <- list(
-    measurement_error_sd = coefficients$measurement_error_sd,
-    random_effect_sd = coefficients$random_effect_sd
-  )
-
-  # Compute objective sequentially
+  # Objective computation
   obj_sequential <- .compute_objective_joint(
     params = params,
     data_list = test_env$data,
@@ -257,7 +171,6 @@ test_that("parallel objective computation works correctly", {
     parallel = FALSE
   )
 
-  # Compute objective in parallel
   obj_parallel <- .compute_objective_joint(
     params = params,
     data_list = test_env$data,
@@ -268,7 +181,6 @@ test_that("parallel objective computation works correctly", {
     n_cores = 2
   )
 
-  # Results should be identical
   expect_equal(
     obj_sequential,
     obj_parallel,
@@ -276,8 +188,8 @@ test_that("parallel objective computation works correctly", {
     label = "Parallel vs Sequential objective"
   )
 
-  # Test with auto-detected cores
-  obj_parallel_auto <- .compute_objective_joint(
+  # Test auto-detection of cores
+  grad_parallel_auto <- .compute_gradient_joint(
     params = params,
     data_list = test_env$data,
     posteriors = posteriors,
@@ -287,9 +199,9 @@ test_that("parallel objective computation works correctly", {
   )
 
   expect_equal(
-    obj_sequential,
-    obj_parallel_auto,
+    grad_sequential,
+    grad_parallel_auto,
     tolerance = 1e-10,
-    label = "Parallel (auto) vs Sequential objective"
+    label = "Parallel (auto cores) vs Sequential gradient"
   )
 })

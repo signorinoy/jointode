@@ -1,6 +1,4 @@
 test_that("adjoint requires jacobian_func", {
-  skip_if_not_installed("deSolve")
-
   ode_func <- function(t, x, params, data) {
     list(dx = -params[1] * x)
   }
@@ -17,8 +15,6 @@ test_that("adjoint requires jacobian_func", {
 })
 
 test_that("adjoint requires objective_grad when objective_func provided", {
-  skip_if_not_installed("deSolve")
-
   ode_func <- function(t, x, params, data) {
     list(dx = -params[1] * x)
   }
@@ -48,8 +44,6 @@ test_that("adjoint requires objective_grad when objective_func provided", {
 })
 
 test_that("adjoint computes correct gradients", {
-  skip_if_not_installed("deSolve")
-
   # Exponential decay system
   ode_func <- function(t, x, params, data) {
     list(dx = -params[1] * x)
@@ -93,8 +87,6 @@ test_that("adjoint computes correct gradients", {
 })
 
 test_that("adjoint works with data parameter", {
-  skip_if_not_installed("deSolve")
-
   # ODE with external data
   ode_func <- function(t, x, params, data) {
     list(dx = -params[1] * data$A %*% x)
@@ -134,8 +126,6 @@ test_that("adjoint works with data parameter", {
 })
 
 test_that("adjoint handles multi-parameter systems", {
-  skip_if_not_installed("deSolve")
-
   # 2D linear system with 2 parameters
   ode_func <- function(t, x, params, data) {
     dx1 <- -params[1] * x[1]
@@ -185,8 +175,6 @@ test_that("adjoint handles multi-parameter systems", {
 })
 
 test_that("adjoint with running cost", {
-  skip_if_not_installed("deSolve")
-
   # Simple system with running cost
   ode_func <- function(t, x, params, data) {
     list(dx = -params[1] * x)
@@ -224,8 +212,6 @@ test_that("adjoint with running cost", {
 })
 
 test_that("adjoint validates Jacobian dimensions", {
-  skip_if_not_installed("deSolve")
-
   ode_func <- function(t, x, params, data) {
     list(dx = c(-params[1] * x[1], -params[2] * x[2]))
   }
@@ -251,8 +237,6 @@ test_that("adjoint validates Jacobian dimensions", {
 })
 
 test_that("adjoint returns correct structure", {
-  skip_if_not_installed("deSolve")
-
   ode_func <- function(t, x, params, data) {
     list(dx = -params[1] * x)
   }
