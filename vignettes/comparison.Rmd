@@ -60,8 +60,8 @@ long_data <- sim$data$longitudinal_data
 surv_data <- sim$data$survival_data
 
 # Display parameters
-hazard_params <- sim$parameters$coefficients$hazard
-accel_params <- sim$parameters$coefficients$acceleration
+hazard_params <- sim$init$coefficients$hazard
+accel_params <- sim$init$coefficients$acceleration
 
 cat("True Parameters:\n")
 cat(sprintf(
@@ -129,7 +129,7 @@ error_examples <- long_data %>%
 
 p2 <- ggplot(error_examples, aes(x = time)) +
   geom_line(aes(y = biomarker, color = "True"), size = 1) +
-  geom_point(aes(y = v, color = "Observed"), alpha = 0.6, size = 1.2) +
+  geom_point(aes(y = observed, color = "Observed"), alpha = 0.6, size = 1.2) +
   facet_wrap(~ paste("Subject", id), scales = "free_y", ncol = 2) +
   scale_color_manual(values = c("True" = "#27AE60", "Observed" = "#E74C3C")) +
   theme_minimal(base_size = 10) +
@@ -233,8 +233,8 @@ The simulation results demonstrate good estimation accuracy for the joint ODE-Co
 ```{r model-implementation, eval=FALSE}
 # Data preparation for comparison models
 jsm_data <- dataPreprocess(
-  long = long_data %>% rename(ID = id),
-  surv = surv_data %>% rename(ID = id, survtime = time),
+  long = sim$data$longitudinal_data %>% rename(ID = id),
+  surv = sim$data$survival_data %>% rename(ID = id, survtime = time),
   id.col = "ID",
   long.time.col = "time",
   surv.time.col = "survtime",
@@ -244,17 +244,25 @@ jsm_data <- dataPreprocess(
     obstime = time,
     start = start.join,
     stop = stop.join,
-    event = event.join
+    event = event.join,
+    x1 = x1.long,
+    x2 = x2.long,
+    x3 = x3.long
+  ) %>%
+  select(
+    ID, obstime, observed, biomarker, velocity, acceleration,
+    x1, x2, x3, b, start, stop, event
   )
 
 #--------------------------------------------
 # Model 1: JointODE (Proposed Method)
 #--------------------------------------------
 fit_jointode <- JointODE(
-  longitudinal_formula = sim$formulas$longitudinal,
-  survival_formula = sim$formulas$survival,
+  longitudinal_formula = observed ~ x1 + x2 + x3,
+  survival_formula = Surv(time, status) ~ x1 + x2 + x3,
   longitudinal_data = sim$data$longitudinal_data,
-  survival_data = sim$data$survival_data
+  survival_data = sim$data$survival_data,
+  state = as.matrix(sim$data$state)
 )
 
 #--------------------------------------------
@@ -262,14 +270,14 @@ fit_jointode <- JointODE(
 #--------------------------------------------
 # Step 1: Longitudinal sub-model
 fit_lme <- lme(
-  v ~ obstime + x1 + x2,
+  observed ~ obstime + x1 + x2 + x3,
   random = ~ 1 | ID,
   data = jsm_data
 )
 
 # Step 2: Survival sub-model
 fit_cox <- coxph(
-  Surv(start, stop, event) ~ w1 + w2,
+  Surv(start, stop, event) ~ x1 + x2 + x3,
   data = jsm_data, x = TRUE
 )
 
@@ -284,7 +292,7 @@ fit_jsm <- jmodelTM(
 # Model 3: Time-varying Cox (Oracle - Theoretical Benchmark)
 #--------------------------------------------
 fit_oracle <- coxph(
-  Surv(start, stop, event) ~ w1 + w2 + biomarker + velocity  +
+  Surv(start, stop, event) ~ biomarker + velocity  + x1 + x2 + x3 +
     offset(b) + cluster(ID),
   data = jsm_data
 )

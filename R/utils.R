@@ -1,6 +1,6 @@
 # Utility Functions for JointODE Package
 
-#' @importFrom stats setNames model.frame model.response model.matrix
+#' @importFrom stats setNames model.frame model.response model.matrix quantile
 #' @importFrom utils head
 #' @importFrom parallel detectCores
 #' @importFrom future plan multicore multisession sequential
@@ -34,6 +34,7 @@ NULL
   survival_formula,
   longitudinal_data,
   survival_data,
+  state,
   id,
   time,
   autonomous = TRUE,
@@ -271,6 +272,41 @@ NULL
     }
   }
 
+  # Validate state parameter if provided
+  if (!is.null(state)) {
+    if (!is.matrix(state)) {
+      stop("'state' must be a matrix")
+    }
+
+    # Check dimensions
+    n_subjects_survival <- nrow(survival_data)
+    if (nrow(state) != n_subjects_survival) {
+      stop(sprintf(
+        paste(
+          "Invalid 'state': number of rows (%d)",
+          "must match number of subjects (%d)"
+        ),
+        nrow(state),
+        n_subjects_survival
+      ))
+    }
+
+    if (ncol(state) != 2) {
+      stop(sprintf(
+        paste(
+          "Invalid 'state': must have exactly 2 columns",
+          "(biomarker and velocity), got %d"
+        ),
+        ncol(state)
+      ))
+    }
+
+    # Check for non-finite values
+    if (any(!is.finite(state))) {
+      stop("Invalid 'state': all values must be finite")
+    }
+  }
+
   # Validate init parameter if provided
   if (!is.null(init)) {
     # Calculate dimensions needed for init validation
@@ -482,6 +518,7 @@ NULL
   survival_formula,
   longitudinal_data,
   survival_data,
+  state,
   id,
   time
 ) {
@@ -537,11 +574,19 @@ NULL
       data.frame()
     }
 
+    # Get initial state for this subject if provided
+    initial_state <- if (!is.null(state)) {
+      state[i, , drop = TRUE] # Extract row i as vector
+    } else {
+      c(0, 0) # Default initial state
+    }
+
     data_process[[i]] <- list(
       id = unique_ids[i],
       time = event_time,
       status = event_status,
       covariates = covariates,
+      initial_state = initial_state,
       longitudinal = list(
         times = long_times,
         measurements = long_measurements,
@@ -617,20 +662,12 @@ NULL
 }
 
 
-.get_longitudinal_covariates <- function(data, time = NULL, row_index = NULL) {
+.get_longitudinal_covariates <- function(data, time) {
   long_cov <- data$longitudinal$covariates
   if (is.null(long_cov) || nrow(long_cov) == 0) {
     return(numeric(0))
   }
-
-  if (is.null(row_index)) {
-    if (!is.null(time) && !is.null(data$longitudinal$times)) {
-      row_index <- which.min(abs(data$longitudinal$times - time))
-    } else {
-      row_index <- nrow(long_cov)
-    }
-  }
-
+  row_index <- which.min(abs(data$longitudinal$times - time))
   as.numeric(long_cov[row_index, , drop = TRUE])
 }
 
@@ -733,10 +770,6 @@ NULL
   coefficients,
   sensitivity_type
 ) {
-  if (length(biomarker_initial) != 2) {
-    stop("biomarker_initial must be a numeric vector of length 2")
-  }
-
   # Basic state: [Λ(t), m(t), ṁ(t)]
   basic_state <- c(0, biomarker_initial)
 
@@ -757,10 +790,6 @@ NULL
         rep(0, n_beta), # ∂ṁ/∂β
         rep(0, n_beta) # ∂Λ/∂β
       )
-    },
-    adjoint = {
-      # For adjoint sensitivity (not yet implemented)
-      basic_state
     },
     {
       stop("Invalid sensitivity_type: ", sensitivity_type)
@@ -902,44 +931,6 @@ NULL
       dacceleration_dbeta_at_event = dacceleration_dbeta,
       dcumhazard_dbeta_at_event = dcumhazard_dbeta
     )
-  } else if (sensitivity_type == "adjoint") {
-    # β sensitivities
-    n_beta <- length(parameters$coefficients$acceleration)
-
-    # Extract β sensitivities at observation times
-    dbiomarker_dbeta_values <- if (length(data$longitudinal$times) > 0) {
-      obs_indices <- match(data$longitudinal$times, solution[, 1])
-      solution[obs_indices, 5:(4 + n_beta), drop = FALSE]
-    } else {
-      NULL
-    }
-
-    # Extract final sensitivities
-    dbiomarker_dbeta_final <- final_state[4:(3 + n_beta)]
-    dvelocity_dbeta_final <- final_state[(4 + n_beta):(3 + 2 * n_beta)]
-    dcumhazard_dbeta_final <- final_state[(4 + 2 * n_beta):(3 + 3 * n_beta)]
-
-    # Compute acceleration sensitivity at event time
-    dacceleration_dbeta_final <- .compute_acceleration_deriv(
-      biomarker_final,
-      velocity_final,
-      event_time,
-      data,
-      parameters,
-      dbiomarker = dbiomarker_dbeta_final,
-      dvelocity = dvelocity_dbeta_final
-    )
-
-    result <- list(
-      log_hazard_at_event = log_hazard_final,
-      cum_hazard_at_event = final_state[1],
-      biomarker = biomarker_values,
-      dbiomarker_dbeta = dbiomarker_dbeta_values,
-      dbiomarker_dbeta_at_event = dbiomarker_dbeta_final,
-      dvelocity_dbeta_at_event = dvelocity_dbeta_final,
-      dacceleration_dbeta_at_event = dacceleration_dbeta_final,
-      dcumhazard_dbeta_at_event = dcumhazard_dbeta_final
-    )
   }
 
   result
@@ -951,15 +942,6 @@ NULL
   sensitivity_type = "basic",
   times = NULL
 ) {
-  # Validate sensitivity_type
-  valid_types <- c("basic", "forward", "adjoint")
-  if (!sensitivity_type %in% valid_types) {
-    stop(
-      "Invalid sensitivity_type. Must be one of: ",
-      paste(valid_types, collapse = ", ")
-    )
-  }
-
   # Define ODE derivatives function based on sensitivity type
   ode_derivatives <- function(time, state, parameters) {
     biomarker <- state[2]
@@ -1044,11 +1026,6 @@ NULL
         dacceleration_dbeta, # d(∂ṁ/∂β)/dt = ∂m̈/∂β
         dhazard_dbeta # d(∂Λ/∂β)/dt = ∂λ/∂β
       ))
-    } else if (parameters$sensitivity_type == "adjoint") {
-      # Adjoint sensitivity analysis (backward in time)
-      # This would require implementing the adjoint equations
-      # For now, we'll use forward sensitivity
-      stop("Adjoint sensitivity not yet implemented. Use 'forward' instead.")
     } else {
       stop("Unknown sensitivity type: ", sensitivity_type)
     }
@@ -1056,7 +1033,7 @@ NULL
 
   # Prepare initial conditions based on sensitivity type
   initial_extended <- .prepare_initial_conditions(
-    c(0, 0),
+    data$initial_state,
     parameters,
     sensitivity_type
   )
@@ -1084,8 +1061,8 @@ NULL
       func = ode_derivatives,
       parms = ode_parameters,
       method = "ode45",
-      atol = 1e-6,
-      rtol = 1e-8
+      atol = 1e-8,
+      rtol = 1e-10
     )
   }
 

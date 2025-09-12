@@ -79,16 +79,19 @@ Here's a basic example demonstrating typical usage:
 
 ```{r example}
 library(JointODE)
+library(survival)
 
 # Load example dataset
 data(sim)
 
 # Fit joint ODE model
 fit <- JointODE(
-  longitudinal_formula = sim$formulas$longitudinal,
-  survival_formula = sim$formulas$survival,
+  longitudinal_formula = observed ~ x1 + x2 + x3,
+  survival_formula = Surv(time, status) ~ x1 + x2 + x3,
   longitudinal_data = sim$data$longitudinal_data,
-  survival_data = sim$data$survival_data
+  survival_data = sim$data$survival_data,
+  state = as.matrix(sim$data$state),
+  parallel = TRUE
 )
 
 # Model summary
@@ -107,7 +110,7 @@ library(tidyr)
 library(patchwork)
 
 # Prepare data
-ids <- c(1, 5, 10, 15)
+ids <- seq_len(4)
 df <- lapply(ids, \(i) {
   pred <- predictions[[i]]
   obs <- filter(sim$data$longitudinal_data, id == i)
@@ -116,7 +119,7 @@ df <- lapply(ids, \(i) {
     biomarker_est = pred$biomarker, velocity_est = pred$velocity,
     acceleration_est = pred$acceleration, survival = pred$survival
   ) %>%
-    left_join(select(obs, time, v,
+    left_join(select(obs, time, observed,
       biomarker_true = biomarker,
       velocity_true = velocity, acceleration_true = acceleration
     ), by = "time")
@@ -129,7 +132,7 @@ p1 <- ggplot(df, aes(x = time)) +
     aes(y = biomarker_true, color = "True"),
     linetype = 2, na.rm = TRUE
   ) +
-  geom_point(aes(y = v, color = "Observed"), alpha = 0.3, na.rm = TRUE) +
+  geom_point(aes(y = observed, color = "Observed"), alpha = 0.3, na.rm = TRUE) +
   facet_wrap(~id, ncol = 2) +
   theme_minimal(base_size = 9) +
   theme(legend.position = "top") +

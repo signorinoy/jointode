@@ -9,10 +9,11 @@ JointODE(
   survival_formula,
   longitudinal_data,
   survival_data,
+  state = NULL,
   id = "id",
   time = "time",
   autonomous = TRUE,
-  spline_baseline = list(degree = 3, n_knots = 3, knot_placement = "quantile",
+  spline_baseline = list(degree = 3, n_knots = 3, knot_placement = "equal",
     boundary_knots = NULL),
   robust = FALSE,
   init = NULL,
@@ -42,6 +43,11 @@ formula.}
 \item{survival_data}{A data frame with time-to-event information containing
 one row per subject. Must include event/censoring times, event indicators,
 and baseline covariates.}
+
+\item{state}{A matrix specifying initial conditions for the ODE system with
+two columns: initial biomarker values and their first derivatives. Each row
+corresponds to one subject. If \code{NULL}, defaults to a zero matrix with
+appropriate dimensions (default: \code{NULL}).}
 
 \item{id}{Character string specifying the column name for subject
 identifiers. This variable must be present in both longitudinal and

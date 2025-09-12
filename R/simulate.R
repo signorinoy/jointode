@@ -1,736 +1,477 @@
-#' Simulate Joint ODE Model Data
+#' Simulate Data from a Joint Ordinary Differential Equation Model
 #'
 #' @description
-#' Generates synthetic data from a sophisticated joint modeling framework that
-#' seamlessly integrates longitudinal biomarker trajectories with survival
-#' outcomes through ordinary differential equations (ODEs). This simulation
-#' engine produces realistic clinical trial datasets where complex biomarker
-#' dynamics govern event hazards via shared random effects and trajectory
-#' features, capturing the intricate interplay between disease progression
-#' and time-to-event processes.
+#' Generates synthetic longitudinal and time-to-event data under a joint
+#' modeling
+#' framework wherein the longitudinal biomarker trajectory is governed by a
+#' second-order ordinary differential equation (ODE), and the survival process
+#' is associated with the biomarker dynamics through shared random effects and
+#' trajectory-dependent hazard functions. By default, biomarkers are generated
+#' on a standardized scale (mean ~ 0, SD ~ 1) for better numerical stability.
 #'
-#' @param n Integer. Number of subjects to simulate. Larger cohorts provide
-#'   more stable parameter estimates (default: 100).
-#' @param alpha Numeric vector of length 2. Association parameters quantifying
-#'   how trajectory features influence survival hazard:
-#'   \code{[biomarker, velocity]}.
-#'   Positive values indicate increased risk (default: c(0.3, 0.7)).
-#' @param beta Numeric vector governing ODE dynamics (length 6). Controls
-#'   biomarker trajectory evolution: \code{[biomarker, velocity,
-#'   intercept, x1, x2, time]} (default: c(-0.6, -0.4, 0.3, -0.8, 0.5, 0.0)).
-#' @param phi Numeric vector of length 2. Baseline covariate effects modulating
-#'   survival hazard independently of biomarker dynamics: \code{[w1, w2]}
-#'   (default: c(0.4, -0.6)).
-#' @param weibull_shape Numeric. Weibull shape parameter (\eqn{\kappa})
-#'   characterizing baseline hazard evolution. Values > 1 yield increasing
-#'   hazard (aging effect), < 1 decreasing hazard (selection effect), =
-#'   1 constant hazard (exponential) (default: 1).
-#' @param weibull_scale Numeric. Weibull scale parameter (\eqn{\theta})
-#'   determining the characteristic event time. Larger values shift the
-#'   hazard curve rightward (default: 8).
-#' @param sigma_b Numeric. Standard deviation of subject-specific random effects
-#'   capturing unobserved heterogeneity. Larger values increase between-subject
-#'   variability in both trajectories and hazards (default: 0.1).
-#' @param sigma_e Numeric. Measurement error standard deviation reflecting
-#'   assay precision and biological fluctuations. Smaller values indicate
-#'   more reliable biomarker measurements (default: 0.1).
-#' @param seed Integer. Random seed ensuring reproducible simulations.
-#'   Essential for method validation and comparison studies (default: 42).
-#' @param verbose Logical. Display informative progress messages during
-#'   simulation workflow (default: FALSE).
-#'
-#' @return A list containing two complementary datasets:
+#' @param n_subjects Integer specifying the number of subjects to simulate
+#'   (default: 500)
+#' @param shared_sd Positive scalar defining the standard deviation of the
+#'   shared
+#'   random effects, \eqn{\sigma_b} (default: 0.1)
+#' @param longitudinal List specifying the longitudinal sub-model parameters:
 #'   \describe{
-#'     \item{longitudinal_data}{Data frame with longitudinal measurements:
-#'       \itemize{
-#'         \item \code{id}: Subject identifier
-#'         \item \code{time}: Measurement time
-#'         \item \code{v}: Observed biomarker value incorporating latent
-#'           trajectory, random effect, and measurement error
-#'         \item \code{x1}: First longitudinal covariate (standardized)
-#'         \item \code{x2}: Second longitudinal covariate (standardized)
-#'         \item \code{biomarker}: True latent biomarker trajectory value
-#'         \item \code{velocity}: True latent biomarker velocity value
-#'         \item \code{acceleration}: True latent biomarker acceleration value
-#'       }}
-#'     \item{survival_data}{Data frame with survival outcomes:
-#'       \itemize{
-#'         \item \code{id}: Subject identifier
-#'         \item \code{time}: Observed event/censoring time
-#'         \item \code{status}: Event indicator (1 = event, 0 = censored)
-#'         \item \code{w1}: First survival covariate (standardized)
-#'         \item \code{w2}: Second survival covariate (standardized)
-#'         \item \code{b}: Shared random effect
-#'       }}
+#'     \item{value}{Restoring force coefficient \eqn{\kappa} in the ODE
+#'       system (default: -0.6)}
+#'     \item{slope}{Damping coefficient \eqn{\gamma} controlling velocity
+#'       feedback (default: -0.4)}
+#'     \item{ref}{Reference (equilibrium) biomarker value \eqn{m_{ref}}
+#'       (default: 0, for standardized biomarkers)}
+#'     \item{time}{Time-varying coefficient for non-autonomous systems
+#'       (default: 0, indicating autonomous dynamics)}
+#'     \item{covariates}{Vector of fixed effects \eqn{\boldsymbol{\beta}}
+#'       for covariates in the acceleration equation
+#'       (default: c(0.8, -0.5, -0.5))}
+#'     \item{initial}{List specifying initial condition parameters:
+#'       \describe{
+#'         \item{ref}{Baseline mean biomarker value \eqn{\mu_{ref}}
+#'           (default: 1.0, for standardized biomarkers)}
+#'         \item{covariates}{Vector of covariate effects
+#'           \eqn{\boldsymbol{\beta}_{init}} on initial biomarker level
+#'           (default: c(0.1, -0.1, 0.0))}
+#'         \item{random_coef}{Scaling coefficient \eqn{\xi} for random effect
+#'           influence on initial conditions (default: 0.0)}
+#'       }
+#'     }
+#'     \item{error_sd}{Standard deviation \eqn{\sigma_{\epsilon}} of the
+#'       measurement error process (default: 0.1, for standardized scale)}
+#'     \item{n_measurements}{Number of longitudinal measurements per subject
+#'       (default: 10)}
 #'   }
+#' @param survival List specifying the survival sub-model parameters:
+#'   \describe{
+#'     \item{baseline}{List defining the Weibull baseline hazard function:
+#'       \describe{
+#'         \item{type}{Character string specifying the baseline hazard type
+#'           (currently only "weibull" is supported)}
+#'         \item{shape}{Weibull shape parameter \eqn{k > 0}
+#'           (default: 1.5)}
+#'         \item{scale}{Weibull scale parameter \eqn{\lambda > 0}
+#'           (default: 8.0)}
+#'       }
+#'     }
+#'     \item{value}{Association parameter \eqn{\alpha_1} linking current
+#'       biomarker value to hazard (default: 0.3)}
+#'     \item{slope}{Association parameter \eqn{\alpha_2} linking biomarker
+#'       velocity to hazard (default: 0.7)}
+#'     \item{covariates}{Vector of regression coefficients
+#'       \eqn{\boldsymbol{\phi}} for baseline covariates
+#'       (default: c(0.4, -0.6))}
+#'   }
+#' @param covariates List defining the distributions of baseline covariates:
+#'   \describe{
+#'     \item{x1}{List with \code{type = "normal"}, \code{mean = 0},
+#'       \code{sd = 1} for standardized continuous covariate}
+#'     \item{x2}{List with \code{type = "normal"}, \code{mean = 0},
+#'       \code{sd = 1} for standardized continuous covariate}
+#'     \item{x3}{List with \code{type = "binary"} and \code{prob = 0.7}
+#'       for binary covariate}
+#'   }
+#' @param maxt Positive scalar specifying the maximum follow-up time in the
+#'   study (default: 10 days)
+#' @param seed Integer seed for random number generation to ensure
+#'   reproducibility (default: 42)
+#'
+#' @return A list containing three components:
+#' \describe{
+#'   \item{\code{longitudinal_data}}{Data frame comprising longitudinal
+#'     observations with columns:
+#'     \itemize{
+#'       \item \code{id}: Subject identifier (integer)
+#'       \item \code{time}: Observation time point (numeric)
+#'       \item \code{observed}: Measured biomarker value including
+#'         measurement error, \eqn{y_{ij}}
+#'       \item \code{biomarker}: True underlying biomarker value,
+#'         \eqn{m_i(t_{ij})}
+#'       \item \code{velocity}: First derivative of the biomarker trajectory,
+#'         \eqn{\dot{m}_i(t_{ij})}
+#'       \item \code{acceleration}: Second derivative of the biomarker
+#'         trajectory, \eqn{\ddot{m}_i(t_{ij})}
+#'       \item \code{x1}, \code{x2}, \code{x3}:
+#'         Time-invariant covariates
+#'     }
+#'   }
+#'   \item{\code{survival_data}}{Data frame containing time-to-event data
+#'     with columns:
+#'     \itemize{
+#'       \item \code{id}: Subject identifier
+#'       \item \code{time}: Observed event or censoring time, \eqn{T_i}
+#'       \item \code{status}: Event indicator, \eqn{\delta_i}
+#'         (1 = event observed, 0 = censored)
+#'       \item \code{b}: Realized subject-specific random effect, \eqn{b_i}
+#'       \item \code{x1}, \code{x2}, \code{x3}:
+#'         Baseline covariate values
+#'     }
+#'   }
+#'   \item{\code{state}}{An \eqn{n \times 2} matrix containing initial states
+#'     \eqn{[m_i(0), \dot{m}_i(0)]} for each subject}
+#' }
 #'
 #' @details
-#' \strong{Mathematical Framework}
+#' The simulation framework implements a joint model comprising longitudinal
+#' and survival
+#' sub-models linked through shared random effects and trajectory-dependent
+#' associations.
 #'
-#' The simulation orchestrates a sophisticated joint model architecture
-#' comprising two intricately coupled components:
-#'
-#' \strong{1. Longitudinal Dynamics}
-#'
-#' Biomarker evolution is governed by a second-order linear ODE system
-#' that captures temporal dynamics:
-#' \deqn{\ddot{m}_i(t) = \boldsymbol{\beta}^{\top} \mathbf{Z}_i(t)}
-#'
+#' \subsection{Longitudinal Sub-model}{
+#' The biomarker trajectory \eqn{m_i(t)} for subject \eqn{i} evolves according
+#' to the
+#' second-order ordinary differential equation:
+#' \deqn{\ddot{m}_i(t) = \kappa[m_i(t) - m_{ref}] + \gamma\dot{m}_i(t) +
+#'   \mathbf{X}_i^T\boldsymbol{\beta} + \theta t}
 #' where:
 #' \itemize{
-#'   \item \eqn{m_i(t)}: Latent biomarker trajectory for subject \eqn{i}
-#'   \item \eqn{\mathbf{Z}_i(t) = [m_i(t), \dot{m}_i(t), 1, X_1, X_2]^{\top}}:
-#'     State vector (5-dimensional)
-#'   \item \eqn{\boldsymbol{\beta}}: Parameter vector governing homeostatic
-#'     feedback, damping forces, and external influences
+#'   \item \eqn{\kappa} represents the restoring force coefficient
+#'   \item \eqn{\gamma} denotes the damping coefficient
+#'   \item \eqn{m_{ref}} is the reference (equilibrium) value
+#'   \item \eqn{\mathbf{X}_i} contains time-invariant covariates
+#'   \item \eqn{\boldsymbol{\beta}} represents fixed effects
+#'   \item \eqn{\theta} is the time-varying coefficient
+#'     (0 for autonomous systems)
 #' }
 #'
-#' Observed measurements arise from a hierarchical structure incorporating
-#' both systematic and stochastic components:
-#' \deqn{V_{ij} = m_i(T_{ij}) + b_i + \varepsilon_{ij}}
+#' Initial conditions are specified as:
+#' \itemize{
+#'   \item \eqn{m_i(0) = \mu_{ref} +
+#'     \mathbf{X}_i^T\boldsymbol{\beta}_{init} + \xi b_i}
+#'   \item \eqn{\dot{m}_i(0) = 0} (zero initial velocity)
+#' }
 #'
-#' where \eqn{b_i \sim N(0, \sigma_b^2)} captures subject-specific deviations
-#' and \eqn{\varepsilon_{ij} \sim N(0, \sigma_e^2)} represents measurement
-#' variability.
+#' The observed longitudinal measurements incorporate additive Gaussian noise:
+#' \deqn{y_{ij} = m_i(t_{ij}) + b_i + \epsilon_{ij}}
+#' where \eqn{\epsilon_{ij} \sim \mathcal{N}(0, \sigma_\epsilon^2)}
+#' represents independent measurement error.
+#' }
 #'
-#' \strong{2. Survival Process}
-#'
-#' The instantaneous hazard function elegantly links biomarker dynamics
-#' to event risk through a multiplicative model:
-#' \deqn{\lambda_i(t|b_i) = \lambda_0(t) \exp[\boldsymbol{\alpha}^{\top}
-#'   \mathbf{m}_i(t) + \mathbf{W}_i^{\top} \boldsymbol{\phi} + b_i]}
-#'
+#' \subsection{Survival Sub-model}{
+#' The instantaneous hazard function incorporates both current biomarker value
+#' and velocity:
+#' \deqn{\lambda_i(t) = \lambda_0(t)\exp(\alpha_1 m_i(t) + \alpha_2\dot{m}_i(t)
+#'  + \mathbf{W}_i^T\boldsymbol{\phi} + b_i)}
 #' where:
 #' \itemize{
-#'   \item \eqn{\lambda_0(t) = (\kappa/\theta)(t/\theta)^{\kappa-1}}:
-#'     Weibull baseline hazard capturing population-level risk evolution
-#'   \item \eqn{\mathbf{m}_i(t) = [m_i(t), \dot{m}_i(t)]^{\top}}:
-#'     Comprehensive trajectory feature vector
-#'   \item \eqn{\mathbf{W}_i}: Time-invariant baseline characteristics
-#'   \item \eqn{b_i}: Shared random effect inducing correlation between
-#'     longitudinal and survival processes
+#'   \item \eqn{\lambda_0(t)} denotes the Weibull baseline hazard:
+#'     \eqn{\lambda_0(t) = (k/\lambda)(t/\lambda)^{k-1}}
+#'   \item \eqn{\alpha_1} quantifies the association with current biomarker
+#'     value
+#'   \item \eqn{\alpha_2} quantifies the association with biomarker velocity
+#'   \item \eqn{\mathbf{W}_i} contains baseline covariates
+#'   \item \eqn{\boldsymbol{\phi}} represents covariate effects on survival
+#' }
 #' }
 #'
-#' \strong{Simulation Workflow}
-#'
-#' The data generation proceeds through a carefully orchestrated pipeline:
-#'
-#' \enumerate{
-#'   \item \strong{ODE Integration}: Numerical solution of the coupled ODE
-#'     system using adaptive Runge-Kutta methods with automatic step size
-#'     control for optimal accuracy-efficiency tradeoff
-#'   \item \strong{Event Time Generation}: Sophisticated sampling from the
-#'     conditional hazard distribution via the \code{simsurv} engine,
-#'     accounting for complex time-varying covariates
-#'   \item \strong{Censoring Mechanism}: Realistic administrative censoring
-#'     uniformly distributed between the 50th and 95th percentiles of
-#'     event times, mimicking clinical trial follow-up patterns
-#'   \item \strong{Visit Scheduling}: Adaptive measurement protocols with
-#'     higher frequency during critical periods (quarterly initially,
-#'     semi-annual subsequently) and stochastic 10% missingness
-#' }
-#'
-#' \strong{Parameter Interpretation Guide}
-#'
+#' \subsection{Random Effects Structure}{
+#' Subject-specific random effects \eqn{b_i \sim \mathcal{N}(0, \sigma_b^2)}
+#' induce correlation
+#' between the longitudinal and survival processes through:
 #' \itemize{
-#'   \item \strong{Trajectory Dynamics (\code{beta})}:
-#'     \itemize{
-#'       \item \code{beta[1]}: Homeostatic feedback strength (negative values
-#'         promote stability)
-#'       \item \code{beta[2]}: Damping coefficient controlling oscillation
-#'         suppression
-#'       \item \code{beta[3]}: Intercept term for baseline acceleration
-#'       \item \code{beta[4-5]}: Sensitivity to covariates X1 and X2
-#'     }
-#'   \item \strong{Hazard Association (\code{alpha})}:
-#'     \itemize{
-#'       \item \code{alpha[1]}: Current biomarker value effect (positive
-#'         indicates deleterious biomarker)
-#'       \item \code{alpha[2]}: Velocity effect capturing prognostic value
-#'         of trajectory direction
-#'     }
+#'   \item Initial biomarker level via \eqn{m_i(0)}
+#'   \item Hazard function via the frailty term
+#'   \item Longitudinal observations via additive shift
 #' }
-#'
-#' @note
-#' \itemize{
-#'   \item Visit schedules intelligently adapt to individual follow-up
-#'     durations, balancing information gain with practical constraints
-#'   \item Progress reporting can be silenced via \code{verbose = FALSE}
-#'     for batch simulations
 #' }
 #'
 #' @examples
-#' # Basic usage with default parameters
-#' sim <- simulate()
-#' str(sim)
+#' # Generate a small dataset with default parameters
+#' sim_data <- simulate(n_subjects = 50, seed = 123)
 #'
-#' # Check data characteristics
-#' cat("Event rate:", mean(sim$survival_data$status), "\n")
-#' cat(
-#'   "Observations per subject:",
-#'   nrow(sim$longitudinal_data) / nrow(sim$survival_data), "\n"
-#' )
+#' # Examine the structure of generated data
+#' str(sim_data)
 #'
-#' # Visualize trajectories with survival information
-#' library(ggplot2)
-#' library(dplyr)
-#'
-#' # Select subjects with different outcomes
-#' plot_data <- sim$longitudinal_data %>%
-#'   left_join(sim$survival_data[, c("id", "time", "status")],
-#'     by = "id", suffix = c("", "_event")
-#'   ) %>%
-#'   filter(id %in% sample(unique(id), 9))
-#'
-#' ggplot(plot_data, aes(x = time, y = v)) +
-#'   geom_line(aes(color = factor(status)), alpha = 0.7) +
-#'   geom_point(aes(color = factor(status)), size = 1) +
-#'   geom_vline(aes(xintercept = time_event),
-#'     linetype = "dashed", alpha = 0.5
-#'   ) +
-#'   facet_wrap(~id, scales = "free_y", ncol = 3) +
-#'   scale_color_manual(
-#'     values = c("0" = "blue", "1" = "red"), labels = c("Censored", "Event")
-#'   ) +
-#'   theme_minimal() +
-#'   labs(
-#'     x = "Time (years)", y = "Biomarker Value", color = "Outcome",
-#'     title = "Simulated Longitudinal Trajectories"
+#' \dontrun{
+#' # Customized simulation with modified longitudinal dynamics
+#' sim_data <- simulate(
+#'   n_subjects = 200,
+#'   longitudinal = list(
+#'     value = -2.5,      # Stronger restoring force
+#'     slope = -4.0,      # Modified damping
+#'     ref = -1,          # Lower equilibrium value (standardized)
+#'     time = 0.1,        # Non-autonomous system
+#'     covariates = c(-0.4, 0.2, 0.1),
+#'     initial = list(
+#'       ref = 2.5,       # Initial value (standardized)
+#'       covariates = c(-1.0, 0.8, 0.4),
+#'       random_coef = 1.0
+#'     ),
+#'     error_sd = 0.5     # Increased measurement error (standardized)
 #'   )
-#'
-#' @seealso
-#' \code{\link[simsurv]{simsurv}} for the underlying survival simulation
-#' \code{\link[deSolve]{ode}} for ODE integration details
-#'
+#' )
+#' }
 #' @concept data-simulation
 #'
-#' @importFrom deSolve ode
-#' @importFrom simsurv simsurv
-#' @importFrom stats rnorm runif quantile
+#' @importFrom stats rnorm rbinom
+#' @importFrom utils tail
 #'
 #' @export
 simulate <- function(
-  n = 100,
-  alpha = c(0.3, 0.7),
-  beta = c(-0.6, -0.4, 0.3, -0.8, 0.5, 0.0),
-  phi = c(0.4, -0.6),
-  weibull_shape = 1.5,
-  weibull_scale = 8,
-  sigma_b = 0.1,
-  sigma_e = 0.1,
-  seed = 42,
-  verbose = FALSE
+  n_subjects = 200,
+  shared_sd = 0.1,
+  longitudinal = list(
+    value = -0.6,
+    slope = -0.4,
+    ref = 0.0,
+    time = 0.0,
+    covariates = c(0.8, -0.5, -0.5),
+    initial = list(
+      ref = 1.0,
+      covariates = c(0.1, -0.1, 0.0),
+      random_coef = 0.0
+    ),
+    error_sd = 0.1,
+    n_measurements = 10
+  ),
+  survival = list(
+    baseline = list(
+      type = "weibull",
+      shape = 1.5,
+      scale = 8.0
+    ),
+    value = 0.3,
+    slope = 0.7,
+    covariates = c(0.4, -0.6, -0.3)
+  ),
+  covariates = list(
+    x1 = list(type = "normal", mean = 0, sd = 1),
+    x2 = list(type = "normal", mean = 0, sd = 1),
+    x3 = list(type = "binary", prob = 0.7)
+  ),
+  maxt = 10,
+  seed = 42
 ) {
-  # Validate inputs
-  if (!is.numeric(n) || n <= 0 || n != as.integer(n)) {
-    stop("n must be a positive integer")
+  # Validate basic parameters
+  stopifnot(
+    "n_subjects must be a positive integer" = is.numeric(n_subjects) &&
+      length(n_subjects) == 1 &&
+      n_subjects > 0 &&
+      n_subjects == round(n_subjects),
+    "shared_sd must be positive" = is.numeric(shared_sd) &&
+      length(shared_sd) == 1 &&
+      shared_sd > 0,
+    "maxt must be positive" = is.numeric(maxt) && length(maxt) == 1 && maxt > 0
+  )
+
+  # Validate longitudinal structure first
+  stopifnot(
+    "longitudinal must be a list" = is.list(longitudinal)
+  )
+
+  # Set default for n_measurements if not provided
+  if (is.null(longitudinal$n_measurements)) {
+    longitudinal$n_measurements <- 10
   }
-  if (!is.numeric(alpha) || length(alpha) != 2) {
-    stop("alpha must be a numeric vector of length 2")
+
+  # Validate remaining longitudinal parameters
+  stopifnot(
+    "longitudinal parameters must be numeric" = is.numeric(
+      longitudinal$value
+    ) &&
+      is.numeric(longitudinal$slope) &&
+      is.numeric(longitudinal$time),
+    "longitudinal$ref must be numeric" = is.numeric(longitudinal$ref),
+    "longitudinal$error_sd must be positive" = is.numeric(
+      longitudinal$error_sd
+    ) &&
+      longitudinal$error_sd > 0,
+    "longitudinal$n_measurements must be a positive integer" = is.numeric(
+      longitudinal$n_measurements
+    ) &&
+      longitudinal$n_measurements > 0 &&
+      longitudinal$n_measurements == round(longitudinal$n_measurements),
+    "longitudinal$covariates must be numeric vector" = is.numeric(
+      longitudinal$covariates
+    ) &&
+      is.vector(longitudinal$covariates),
+    "longitudinal$initial must be a list" = is.list(longitudinal$initial),
+    "initial parameters must be numeric" = is.numeric(
+      longitudinal$initial$ref
+    ) &&
+      is.numeric(longitudinal$initial$random_coef),
+    "initial$covariates must be numeric vector" = is.numeric(
+      longitudinal$initial$covariates
+    ) &&
+      is.vector(longitudinal$initial$covariates)
+  )
+
+  # Validate survival structure
+  stopifnot(
+    "survival must be a list" = is.list(survival),
+    "survival$baseline must be a list" = is.list(survival$baseline),
+    "Only weibull baseline hazard is supported" = survival$baseline$type ==
+      "weibull",
+    "Weibull parameters must be positive" = is.numeric(
+      survival$baseline$shape
+    ) &&
+      survival$baseline$shape > 0 &&
+      is.numeric(survival$baseline$scale) &&
+      survival$baseline$scale > 0,
+    "survival coefficients must be numeric" = is.numeric(survival$value) &&
+      is.numeric(survival$slope),
+    "survival$covariates must be numeric vector" = is.numeric(
+      survival$covariates
+    ) &&
+      is.vector(survival$covariates)
+  )
+
+  # Validate covariates
+  stopifnot("covariates must be a list" = is.list(covariates))
+  for (cov_name in names(covariates)) {
+    cov <- covariates[[cov_name]]
+    if (!is.list(cov)) {
+      stop(paste("Covariate", cov_name, "must be a list"))
+    }
+    if (!cov$type %in% c("binary", "normal")) {
+      stop(paste("Covariate", cov_name, "type must be binary or normal"))
+    }
+    if (cov$type == "binary") {
+      if (!is.numeric(cov$prob) || cov$prob < 0 || cov$prob > 1) {
+        stop(paste("Covariate", cov_name, "prob must be in [0,1]"))
+      }
+    } else {
+      if (!is.numeric(cov$mean)) {
+        stop(paste("Covariate", cov_name, "mean must be numeric"))
+      }
+      if (!is.numeric(cov$sd) || cov$sd <= 0) {
+        stop(paste("Covariate", cov_name, "sd must be positive"))
+      }
+    }
   }
-  if (!is.numeric(beta) || length(beta) != 6) {
-    stop("beta must be a numeric vector of length 6")
-  }
-  if (!is.numeric(phi) || length(phi) != 2) {
-    stop("phi must be a numeric vector of length 2")
-  }
-  if (!is.numeric(weibull_shape) || weibull_shape <= 0) {
-    stop("weibull_shape must be positive")
-  }
-  if (!is.numeric(weibull_scale) || weibull_scale <= 0) {
-    stop("weibull_scale must be positive")
-  }
-  if (!is.numeric(sigma_b) || sigma_b <= 0) {
-    stop("sigma_b must be positive")
-  }
-  if (!is.numeric(sigma_e) || sigma_e <= 0) {
-    stop("sigma_e must be positive")
+
+  # Validate dimension consistency
+  n_cov <- length(covariates)
+  if (n_cov > 0) {
+    stopifnot(
+      "All covariate vectors must have same length as covariates list" = length(
+        longitudinal$covariates
+      ) ==
+        n_cov &&
+        length(longitudinal$initial$covariates) == n_cov &&
+        length(survival$covariates) == n_cov
+    )
   }
 
   set.seed(seed)
-
-  # Prepare parameters
-  parameters <- list(
-    beta = beta,
-    alpha = alpha,
-    phi = phi,
-    sigma_b = sigma_b,
-    sigma_e = sigma_e,
-    weibull = c(shape = weibull_shape, scale = weibull_scale)
+  b <- .generate_shared_effects(n_subjects, shared_sd)
+  x <- .generate_covariates(n_subjects, covariates)
+  init <- .compute_initial_biomarker(
+    x,
+    b,
+    longitudinal$initial
+  )
+  surv <- .generate_survival_data(
+    x,
+    b,
+    init,
+    longitudinal,
+    survival,
+    maxt
+  )
+  long <- .generate_longitudinal_data(
+    x,
+    b,
+    init,
+    surv,
+    longitudinal
   )
 
-  # Generate survival times
-  if (verbose) {
-    message("Step 1/2: Generating survival times...")
-  }
-  survival_data <- .generate_survival_data(n, parameters)
+  surv_data <- merge(surv, x, by = "id")
+  surv_data <- merge(surv_data, b, by = "id")
+  names(surv_data)[names(surv_data) == "eventtime"] <- "time"
 
-  # Generate longitudinal measurements
-  if (verbose) {
-    message("Step 2/2: Generating longitudinal data...")
-  }
-  longitudinal_data <- .generate_longitudinal_data(survival_data, parameters)
-
-  cols <- c("id", "time", "status", "w1", "w2", "b")
-  survival_data <- survival_data[, cols]
-
-  # Format and return
-  list(longitudinal_data = longitudinal_data, survival_data = survival_data)
-}
-
-#' Compute Biomarker Acceleration
-#'
-#' @description
-#' Computes the instantaneous acceleration (second derivative) of the
-#' biomarker trajectory through linear combination of the current
-#' state and covariate configuration.
-#'
-#' @param time Numeric. Current time point in the trajectory evolution.
-#' @param biomarker Numeric. Instantaneous biomarker level \eqn{m(t)}.
-#' @param velocity Numeric. Instantaneous rate of change \eqn{\dot{m}(t)}.
-#' @param covariates Numeric vector. Subject-specific covariate values.
-#' @param beta Numeric vector. Dynamics parameters.
-#'
-#' @return Numeric scalar. The computed acceleration \eqn{\ddot{m}(t)}
-#'   representing the instantaneous rate of velocity change.
-#'
-#' @details
-#' The acceleration is computed from the linear dynamics:
-#' \deqn{\ddot{m}(t) = \boldsymbol{\beta}^{\top} \mathbf{z}(t)}
-#' where the feature vector
-#' \eqn{\mathbf{z}(t) = [m(t), \dot{m}(t), 1, X_1, X_2, t]^{\top}}
-#' encapsulates both endogenous state and exogenous influences.
-#'
-#' @noRd
-.compute_acceleration_simulate <- function(
-  time,
-  biomarker,
-  velocity,
-  covariates,
-  beta
-) {
-  z <- c(biomarker, velocity, 1, covariates, time)
-  sum(beta * z)
-}
-
-#' Solve Biomarker ODE System
-#'
-#' @description
-#' Numerically integrates the coupled second-order ODE system to generate
-#' complete biomarker trajectories including position, velocity, and
-#' acceleration profiles over time.
-#'
-#' @param times Numeric vector. Evaluation time points for trajectory.
-#' @param covariates Numeric vector. Subject-specific covariate profile.
-#' @param parameters List containing model specifications:
-#'   \itemize{
-#'     \item \code{beta}: Dynamics parameters
-#'   }
-#'
-#' @return Data frame containing the complete trajectory characterization:
-#'   \itemize{
-#'     \item \code{time}: Evaluation time points
-#'     \item \code{biomarker}: Biomarker level \eqn{m(t)}
-#'     \item \code{velocity}: Rate of change \eqn{\dot{m}(t)}
-#'     \item \code{acceleration}: Rate of velocity change \eqn{\ddot{m}(t)}
-#'   }
-#'
-#' @details
-#' Employs the adaptive LSODA algorithm with automatic stiffness detection
-#' and method switching for robust numerical integration. The system is
-#' initialized at equilibrium: \eqn{m(0) = 0}, \eqn{\dot{m}(0) = 0}.
-#'
-#' @noRd
-.solve_biomarker_ode <- function(times, covariates, parameters) {
-  .biomarker_ode_deriv <- function(t, state, parms) {
-    biomarker <- state[1]
-    velocity <- state[2]
-    acceleration <- .compute_acceleration_simulate(
-      t,
-      biomarker,
-      velocity,
-      covariates,
-      parms$beta
-    )
-    list(c(velocity, acceleration))
-  }
-  ode_solution <- deSolve::ode(
-    y = c(0, 0),
-    times = sort(c(0, times)),
-    func = .biomarker_ode_deriv,
-    parms = parameters
-  )
-  idx <- match(times, ode_solution[, 1])
-  biomarker <- ode_solution[idx, 2]
-  velocity <- ode_solution[idx, 3]
-  acceleration <- numeric(length(times))
-  for (i in seq_along(times)) {
-    acceleration[i] <- .compute_acceleration_simulate(
-      times[i],
-      biomarker[i],
-      velocity[i],
-      covariates,
-      parameters$beta
-    )
-  }
-  data.frame(
-    time = times,
-    biomarker = biomarker,
-    velocity = velocity,
-    acceleration = acceleration
-  )
-}
-
-#' Generate Survival Data
-#'
-#' @description
-#' Constructs a comprehensive survival dataset by simulating event times
-#' from the joint model's complex hazard function, which seamlessly
-#' integrates ODE-derived biomarker trajectories with baseline risks.
-#'
-#' @param n Integer. Target cohort size for simulation.
-#' @param parameters List containing complete model specification:
-#'   \itemize{
-#'     \item \code{alpha}: Trajectory-hazard association parameters
-#'     \item \code{phi}: Time-invariant covariate effects
-#'     \item \code{weibull}: Baseline hazard shape and scale
-#'     \item \code{sigma_b}: Random effect dispersion parameter
-#'   }
-#'
-#' @return Data frame with columns:
-#'   \itemize{
-#'     \item \code{id}: Subject identifier
-#'     \item \code{time}: Observed event/censoring time
-#'     \item \code{status}: Event indicator (1 = event, 0 = censored)
-#'     \item \code{w1}: First survival covariate (standardized)
-#'     \item \code{w2}: Second survival covariate (standardized)
-#'     \item \code{x1}: First longitudinal covariate (standardized)
-#'     \item \code{x2}: Second longitudinal covariate (standardized)
-#'     \item \code{b}: Subject-specific random effect
-#'   }
-#'
-#' @details
-#' Event generation leverages the sophisticated \code{simsurv} engine to
-#' sample from hazard functions incorporating time-varying trajectory
-#' features. Administrative censoring mimics realistic follow-up
-#' limitations, uniformly distributed between empirical quantiles.
-#'
-#' @noRd
-.generate_survival_data <- function(n, parameters) {
-  # Extract baseline covariates
-  covariates <- data.frame(
-    id = seq_len(n),
-    b = rnorm(n, 0, parameters$sigma_b),
-    w1 = rnorm(n),
-    w2 = rnorm(n),
-    x1 = rnorm(n),
-    x2 = rnorm(n)
-  )
-
-  # Define hazard function
-  hazard_function <- function(t, x, betas, ...) {
-    # Baseline hazard (Weibull)
-    shape <- parameters$weibull["shape"]
-    scale <- parameters$weibull["scale"]
-    h0 <- (shape / scale) * (t / scale)^(shape - 1)
-    biomarker <- .solve_biomarker_ode(
-      t,
-      as.numeric(c(x["x1"], x["x2"])),
-      parameters
-    )
-
-    # Linear predictor
-    eta <- parameters$alpha[1] *
-      biomarker$biomarker +
-      parameters$alpha[2] * biomarker$velocity +
-      parameters$phi[1] * x["w1"] +
-      parameters$phi[2] * x["w2"] +
-      x["b"]
-    h0 * exp(eta)
-  }
-
-  # Generate event times
-  surv_times <- simsurv::simsurv(
-    hazard = hazard_function,
-    x = covariates,
-    interval = c(0, 1e3)
-  )
-
-  # Apply censoring
-  surv_times <- .apply_censoring(surv_times)
-
-  # Combine with covariates
-  merge(
-    surv_times[, c("id", "time", "status")],
-    covariates[, c("id", "w1", "w2", "x1", "x2", "b")],
-    by = "id"
-  )
-}
-
-#' Apply administrative censoring
-#'
-#' @description
-#' Implements uniform administrative censoring to create
-#' realistic censoring patterns in survival data.
-#'
-#' @param surv_times Data frame containing:
-#'   \itemize{
-#'     \item \code{eventtime}: True event times
-#'     \item Other columns preserved from input
-#'   }
-#'
-#' @return Data frame with censoring applied:
-#'   \itemize{
-#'     \item \code{time}: Minimum of event and censoring time
-#'     \item \code{status}: 1 if event observed, 0 if censored
-#'     \item All other input columns preserved
-#'   }
-#'
-#' @details
-#' Censoring times are uniformly distributed between the 50th
-#' and 95th percentiles of event times, ensuring moderate
-#' censoring rates typical of clinical trials.
-#'
-#' @noRd
-.apply_censoring <- function(surv_times) {
-  n <- nrow(surv_times)
-
-  # Generate censoring times
-  cens_times <- runif(
-    n,
-    min = quantile(surv_times$eventtime, 0.5),
-    max = quantile(surv_times$eventtime, 0.95)
-  )
-
-  # Apply censoring
-  surv_times$time <- pmin(surv_times$eventtime, cens_times)
-  surv_times$status <- as.integer(surv_times$eventtime <= cens_times)
-  surv_times
-}
-
-#' Generate longitudinal measurements
-#'
-#' @description
-#' Creates longitudinal dataset with repeated measurements for all
-#' subjects based on their follow-up times and ODE trajectories.
-#'
-#' @param survival_data Data frame with survival information including:
-#'   \itemize{
-#'     \item \code{id}: Subject identifiers
-#'     \item \code{time}: Follow-up times
-#'     \item \code{b}: Subject-specific random effects
-#'   }
-#' @param parameters List containing model parameters.
-#'
-#' @return Data frame with columns:
-#'   \itemize{
-#'     \item \code{id}: Subject identifier
-#'     \item \code{time}: Measurement time
-#'     \item \code{v}: Observed biomarker value
-#'     \item \code{x1}: First longitudinal covariate (standardized)
-#'     \item \code{x2}: Second longitudinal covariate (standardized)
-#'     \item \code{biomarker}: True latent biomarker trajectory value
-#'     \item \code{velocity}: True latent biomarker velocity value
-#'     \item \code{acceleration}: True latent biomarker acceleration value
-#'   }
-#'
-#' @details
-#' Generates subject-specific visit schedules with 10% random
-#' missingness to simulate realistic clinical trial patterns.
-#' Measurements include ODE trajectory values plus random effects
-#' and measurement error.
-#'
-#' @noRd
-.generate_longitudinal_data <- function(survival_data, parameters) {
-  n <- nrow(survival_data)
-  data_list <- vector("list", n)
-  for (i in seq_len(n)) {
-    long_data_subject <- .generate_subject_measurements(
-      obs_time = survival_data[i, "time"],
-      covariates = c(
-        survival_data[i, "x1"],
-        survival_data[i, "x2"]
-      ),
-      random_effect = survival_data[i, "b"],
-      parameters = parameters
-    )
-    long_data_subject$id <- survival_data[i, "id"]
-    data_list[[i]] <- long_data_subject
-  }
-  long_data <- do.call(rbind, data_list)
-  cols <- c(
+  long_data <- merge(long, x, by = "id")
+  col_order <- c(
     "id",
     "time",
-    "v",
-    "x1",
-    "x2",
+    "observed",
     "biomarker",
     "velocity",
-    "acceleration"
+    "acceleration",
+    names(covariates)
   )
-  long_data[, cols]
-}
+  long_data <- long_data[, col_order]
 
-#' Generate measurements for one subject
-#'
-#' @description
-#' Creates subject-specific longitudinal measurements following
-#' a realistic visit schedule with random missingness.
-#'
-#' @param obs_time Numeric. Maximum observation time for the subject.
-#' @param random_effect Numeric. Subject-specific random effect \eqn{b_i}.
-#' @param parameters List containing model parameters.
-#'
-#' @return Data frame with measurements for one subject:
-#'   \itemize{
-#'     \item \code{time}: Visit times
-#'     \item \code{v}: Observed biomarker values
-#'     \item \code{x1}: First longitudinal covariate (standardized)
-#'     \item \code{x2}: Second longitudinal covariate (standardized)
-#'     \item \code{biomarker}: True latent biomarker trajectory value
-#'     \item \code{velocity}: True latent biomarker velocity value
-#'     \item \code{acceleration}: True latent biomarker acceleration value
-#'   }
-#'
-#' @details
-#' Visit schedule adapts to follow-up duration:
-#' quarterly (0.25 years) for follow-up ≤ 2 years,
-#' then quarterly for first 2 years plus semi-annual thereafter.
-#' Applies 10% random missingness per visit.
-#' Biomarker values: \eqn{V_{ij} = m_i(t_{ij}) + b_i + \varepsilon_{ij}}.
-#'
-#' @noRd
-.generate_subject_measurements <- function(
-  obs_time,
-  covariates,
-  random_effect,
-  parameters
-) {
-  # Define visit schedule
-  visit_times <- .create_visit_schedule(obs_time)
+  init_final <- init[, c("biomarker", "velocity")]
 
-  # Apply random missingness (10% dropout)
-  n_visits <- length(visit_times)
-  keep <- runif(n_visits) > 0.1
-  visit_times <- visit_times[keep]
-  if (length(visit_times) == 0) {
-    visit_times <- 0
-    n_visits <- 1
-  } else {
-    n_visits <- length(visit_times)
-  }
-
-  # Vectorized computation
-  x_vals <- matrix(NA, n_visits, 2)
-  for (i in seq_len(n_visits)) {
-    x_vals[i, ] <- covariates
-  }
-
-  biomarker <- .solve_biomarker_ode(visit_times, covariates, parameters)
-
-  data.frame(
-    time = visit_times,
-    v = biomarker$biomarker +
-      random_effect +
-      rnorm(n_visits, 0, parameters$sigma_e),
-    x1 = x_vals[, 1],
-    x2 = x_vals[, 2],
-    biomarker = biomarker$biomarker,
-    velocity = biomarker$velocity,
-    acceleration = biomarker$acceleration
+  list(
+    longitudinal_data = long_data,
+    survival_data = surv_data,
+    state = init_final
   )
 }
 
-#' Create visit schedule based on observation time
-#'
-#' @description
-#' Generates a realistic clinical visit schedule with varying
-#' frequency based on follow-up duration.
-#'
-#' @param obs_time Numeric. Maximum observation time in years.
-#'
-#' @return Numeric vector of scheduled visit times.
-#'
-#' @details
-#' Schedule follows clinical trial conventions:
-#' \itemize{
-#'   \item Quarterly visits (0.25 years) for short follow-up (≤ 2 years)
-#'   \item Quarterly visits (every 0.25 years) for first 2 years when
-#'           follow-up > 2 years
-#'   \item Semi-annual visits (every 0.5 years) after 2 years
-#' }
-#' This pattern reflects intensive early monitoring followed by
-#' maintenance phase visits.
-#'
-#' @noRd
-.create_visit_schedule <- function(obs_time) {
-  if (obs_time <= 2) {
-    # Quarterly visits for short follow-up
-    seq(0, obs_time, by = 0.25)
-  } else {
-    # Quarterly for first 2 years, then semi-annual
-    quarterly <- seq(0, 2, by = 0.25)
-    if (obs_time > 2.5) {
-      semiannual <- seq(2.5, obs_time, by = 0.5)
-      c(quarterly, semiannual)
+.create_example_data <- function(n_subjects = 200, seed = 123) {
+  data <- simulate(n_subjects = n_subjects, seed = seed)
+  coef_args <- formals(simulate)
+  f0 <- function(t) {
+    baseline_type <- eval(coef_args$survival$baseline$type)
+    res <- switch(
+      baseline_type,
+      weibull = {
+        shape <- eval(coef_args$survival$baseline$shape)
+        scale <- eval(coef_args$survival$baseline$scale)
+        (shape / scale) * (t / scale)^(shape - 1)
+      },
+      stop(paste(
+        "Unsupported baseline hazard type:",
+        baseline_type
+      ))
+    )
+    log(res)
+  }
+  spline_config <- formals(JointODE)$spline_baseline
+  spline_config <- .get_spline_config(
+    x = data$survival_data$time,
+    degree = spline_config$degree,
+    n_knots = spline_config$n_knots,
+    knot_placement = spline_config$knot_placement,
+    boundary_knots = spline_config$boundary_knots
+  )
+  spline_config$boundary_knots[1] <- 0
+  baseline_coef <- .estimate_bspline_coef(
+    x = data$survival_data$time,
+    f0 = f0,
+    config = spline_config
+  )
+  acceleration_coef <- c(
+    eval(coef_args$longitudinal$value),
+    eval(coef_args$longitudinal$slope),
+    -eval(coef_args$longitudinal$ref) *
+      eval(coef_args$longitudinal$value),
+    eval(coef_args$longitudinal$covariates),
+    if (eval(coef_args$longitudinal$time) != 0) {
+      eval(coef_args$longitudinal$time)
     } else {
-      quarterly
+      NULL
     }
-  }
+  )
+  hazard_coef <- c(
+    eval(coef_args$survival$value),
+    eval(coef_args$survival$slope),
+    eval(coef_args$survival$covariates)
+  )
+  parameters <- list(
+    coefficients = list(
+      baseline = baseline_coef,
+      acceleration = acceleration_coef,
+      hazard = hazard_coef,
+      measurement_error_sd = eval(coef_args$longitudinal$error_sd),
+      random_effect_sd = eval(coef_args$shared_sd)
+    ),
+    configurations = list(
+      baseline = spline_config,
+      autonomous = eval(coef_args$longitudinal$time) == 0
+    )
+  )
+  list(data = data, init = parameters)
 }
 
-#' Estimate B-spline Coefficients
-#'
-#' @description
-#' Internal function that estimates B-spline coefficients to approximate
-#' a given function using least squares fitting.
-#'
-#' @param x Numeric vector. Data points where the function is evaluated.
-#' @param f0 Function. Target function to approximate with B-splines.
-#' @param config List. B-spline configuration with components:
-#'   \itemize{
-#'     \item \code{degree}: Polynomial degree (default: 3)
-#'     \item \code{n_knots}: Number of interior knots
-#'     \item \code{knot_placement}: "quantile" or "equal"
-#'     \item \code{boundary_knots}: Optional boundary knot locations
-#'   }
-#'
-#' @return Numeric vector of B-spline coefficients that best approximate
-#'   the target function at the given data points.
-#'
-#' @details
-#' This function performs the following steps:
-#' \enumerate{
-#'   \item Configures the B-spline basis using the provided settings
-#'   \item Evaluates the basis functions at data points
-#'   \item Evaluates the target function at data points
-#'   \item Solves the least squares problem to find optimal coefficients
-#' }
-#'
-#' The resulting coefficients minimize
-#' \eqn{||B\theta - f_0(x)||^2} where B is the basis matrix.
-#'
-#' @examples
-#' \dontrun{
-#' # Approximate a sine function
-#' x <- seq(0, 2 * pi, length.out = 100)
-#' f0 <- function(t) sin(t)
-#' config <- list(degree = 3, n_knots = 5, knot_placement = "quantile")
-#' coef <- .estimate_bspline_coef(x, f0, config)
-#' }
-#'
-#' @noRd
 .estimate_bspline_coef <- function(x, f0, config) {
-  splin_config <- .get_spline_config(
-    x = x,
-    degree = config$degree,
-    n_knots = config$n_knots,
-    knot_placement = config$knot_placement,
-    boundary_knots = config$boundary_knots
-  )
-
   # Compute B-spline basis at grid points
-  basis_matrix <- .compute_spline_basis(x, splin_config)
+  basis_matrix <- .compute_spline_basis(x, config)
 
   # Compute target values
   y_target <- f0(x)
@@ -748,129 +489,166 @@ simulate <- function(
   as.vector(spline_coefficients)
 }
 
-
-#' Create Example Dataset for JointODE
-#'
-#' @description
-#' Internal function that generates a complete example dataset for
-#' demonstrating and testing the JointODE package. Creates simulated
-#' data with known parameters for model validation.
-#'
-#' @param n Integer. Number of subjects to simulate (default: 100).
-#'
-#' @return A list containing:
-#'   \describe{
-#'     \item{data}{Simulated data from \code{simulate()} function:
-#'       \itemize{
-#'         \item \code{longitudinal_data}: Longitudinal measurements
-#'         \item \code{survival_data}: Survival outcomes
-#'       }
-#'     }
-#'     \item{formulas}{Model formulas:
-#'       \itemize{
-#'         \item \code{longitudinal}: v ~ x1 + x2
-#'         \item \code{survival}: Surv(time, status) ~ w1 + w2
-#'       }
-#'     }
-#'     \item{parameters}{True parameters and configurations:
-#'       \itemize{
-#'         \item \code{coefficients}: All model coefficients
-#'         \item \code{configuration}: B-spline configurations
-#'       }
-#'     }
-#'   }
-#'
-#' @details
-#' This function serves as the data generation engine for the package's
-#' example dataset. It:
-#' \enumerate{
-#'   \item Simulates data using predefined parameter values
-#'   \item Estimates B-spline coefficients for baseline hazard and
-#'     nonlinearity functions
-#'   \item Packages everything into a structured format for analysis
-#' }
-#'
-#' The generated dataset includes:
-#' \itemize{
-#'   \item Weibull baseline hazard (shape=1.5, scale=8)
-#'   \item ODE dynamics with normalized parameters
-#'   \item Measurement error SD = 0.1
-#'   \item Random effect SD = 0.1
-#'   \item B-spline approximations with degree 3
-#' }
-#'
-#' @examples
-#' \dontrun{
-#' # Generate example data for 100 subjects (used for package's sim dataset)
-#' example_data <- .create_example_data(n = 100)
-#'
-#' # Access components
-#' head(example_data$data$longitudinal_data)
-#' example_data$formulas$longitudinal
-#' example_data$parameters$coefficients$hazard
-#' }
-#'
-#' @seealso \code{\link{simulate}} for the underlying simulation engine
-#'
-#' @noRd
-.create_example_data <- function(n = 100) {
-  # Define default configurations (match JointODE defaults)
-  spline_baseline <- list(
-    degree = 3,
-    n_knots = 3,
-    knot_placement = "quantile",
-    boundary_knots = NULL
+.generate_shared_effects <- function(n_subjects, shared_sd) {
+  data.frame(
+    id = seq_len(n_subjects),
+    b = rnorm(n_subjects, mean = 0, sd = shared_sd)
   )
+}
 
-  # Define functions once (exponential baseline, Weibull shape=1.5)
-  lambda_0 <- function(t) 1.5 / 8 * (t / 8)^0.5
-
-  # Generate and process data
-  data <- simulate(n = n)
-
-  # Extract times once
-  times <- data$survival_data[, "time"]
-
-  # Compute baseline spline coefficients
-  baseline_spline_coefficients <- .estimate_bspline_coef(
-    times,
-    lambda_0,
-    spline_baseline
-  )
-
-  # Define coefficients (use simulate function defaults)
-  # hazard: [alpha1, alpha2, phi1, phi2]
-  hazard_coefficients <- c(0.3, 0.7, 0.4, -0.6)
-  acceleration_coefficients <- c(-0.6, -0.4, 0.3, -0.8, 0.5)
-
-  # Create spline configurations
-  spline_baseline_config <- .get_spline_config(
-    x = times,
-    degree = spline_baseline$degree,
-    n_knots = spline_baseline$n_knots,
-    knot_placement = spline_baseline$knot_placement,
-    boundary_knots = spline_baseline$boundary_knots
-  )
-
-  # Return organized structure
-  list(
-    data = data,
-    formulas = list(
-      longitudinal = v ~ x1 + x2,
-      survival = Surv(time, status) ~ w1 + w2
-    ),
-    parameters = list(
-      coefficients = list(
-        baseline = baseline_spline_coefficients,
-        hazard = hazard_coefficients,
-        acceleration = acceleration_coefficients,
-        measurement_error_sd = 0.1,
-        random_effect_sd = 0.1
-      ),
-      configurations = list(
-        baseline = spline_baseline_config,
-        autonomous = TRUE
+.generate_covariates <- function(n_subjects, covariates) {
+  covariate_data <- data.frame(id = seq_len(n_subjects))
+  for (cov_name in names(covariates)) {
+    cov_info <- covariates[[cov_name]]
+    if (cov_info$type == "binary") {
+      covariate_data[[cov_name]] <- rbinom(n_subjects, 1, cov_info$prob)
+    } else if (cov_info$type == "normal") {
+      covariate_data[[cov_name]] <- rnorm(
+        n_subjects,
+        cov_info$mean,
+        cov_info$sd
       )
-    )
+    } else {
+      stop(paste("Unsupported covariate type:", cov_info$type))
+    }
+  }
+  covariate_data
+}
+
+.compute_initial_biomarker <- function(x, b, initial) {
+  value <- initial$ref +
+    as.matrix(x[, names(x) != "id"]) %*% initial$covariates +
+    initial$random_coef * b[, names(b) != "id"]
+  slope <- rep(0, nrow(x))
+  data.frame(id = x$id, biomarker = value, velocity = slope)
+}
+
+.solve_biomarker_ode <- function(times, x, init, longitudinal) {
+  .biomarker_ode_deriv <- function(t, state, parms) {
+    biomarker <- state[1]
+    velocity <- state[2]
+    acceleration <- parms$offset +
+      parms$value * biomarker +
+      parms$slope * velocity +
+      parms$time * t
+    list(c(velocity, acceleration))
+  }
+
+  offset <- -longitudinal$ref *
+    longitudinal$value +
+    sum(x * longitudinal$covariates)
+
+  ode_parms <- list(
+    offset = offset,
+    value = longitudinal$value,
+    slope = longitudinal$slope,
+    time = longitudinal$time
   )
+
+  ode_solution <- deSolve::ode(
+    y = c(init$biomarker, init$velocity),
+    times = sort(c(0, times)),
+    func = .biomarker_ode_deriv,
+    parms = ode_parms
+  )
+  idx <- match(times, ode_solution[, 1])
+  biomarker <- ode_solution[idx, 2]
+  velocity <- ode_solution[idx, 3]
+  acceleration <- rep(offset, length(times)) +
+    longitudinal$value * biomarker +
+    longitudinal$slope * velocity +
+    longitudinal$time * times
+  data.frame(
+    time = times,
+    biomarker = biomarker,
+    velocity = velocity,
+    acceleration = acceleration
+  )
+}
+
+.generate_survival_data <- function(
+  x,
+  b,
+  init,
+  longitudinal,
+  survival,
+  maxt
+) {
+  # Define hazard function
+  hazard_function <- function(t, x, betas, ...) {
+    # baseline hazard
+    h0 <- switch(
+      survival$baseline$type,
+      weibull = {
+        shape <- survival$baseline$shape
+        scale <- survival$baseline$scale
+        (shape / scale) * (t / scale)^(shape - 1)
+      },
+      stop(paste("Unsupported baseline hazard type:", survival$baseline$type))
+    )
+    x_cov <- x[!names(x) %in% c("id", "b", "biomarker", "velocity")]
+    init <- x[c("biomarker", "velocity")]
+
+    biomarker <- .solve_biomarker_ode(
+      t,
+      x_cov,
+      init,
+      longitudinal
+    )
+    linpred <- survival$value *
+      biomarker$biomarker +
+      survival$slope * biomarker$velocity +
+      sum(x_cov * survival$covariates) +
+      x$b
+
+    h0 * exp(linpred)
+  }
+
+  covs <- merge(x, b, by = "id")
+  covs <- merge(covs, init, by = "id")
+
+  # Generate event times
+  simsurv::simsurv(
+    hazard = hazard_function,
+    x = covs,
+    maxt = maxt
+  )
+}
+
+.generate_longitudinal_data <- function(x, b, init, surv, longitudinal) {
+  n <- nrow(surv)
+  data_list <- vector("list", n)
+  maxt <- max(surv$eventtime)
+  for (i in seq_len(n)) {
+    times <- seq(
+      0,
+      surv[i, "eventtime"],
+      by = maxt / longitudinal$n_measurements
+    )
+    if (tail(times, 1) == surv[i, "eventtime"]) {
+      times <- times[-length(times)]
+    }
+
+    biomarkers <- .solve_biomarker_ode(
+      times,
+      x[x$id == surv[i, "id"], names(x) != "id"],
+      init[init$id == surv[i, "id"], names(init) != "id"],
+      longitudinal
+    )
+    biomarkers$id <- surv[i, "id"]
+    random_effect <- b[b$id == surv[i, "id"], "b"]
+    measurement_error <- rnorm(
+      nrow(biomarkers),
+      mean = 0,
+      sd = longitudinal$error_sd
+    )
+
+    biomarkers$observed <- biomarkers$biomarker +
+      random_effect +
+      measurement_error
+
+    data_list[[i]] <- biomarkers
+  }
+  long <- do.call(rbind, data_list)
+  long
 }

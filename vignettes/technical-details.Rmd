@@ -310,3 +310,86 @@ This choice eliminates the $\frac{\partial \mathbf{s}}{\partial \boldsymbol{\the
 $$\frac{\partial \mathbf{s}_k(T)}{\partial \boldsymbol{\theta}} = \int_0^T \tilde{\boldsymbol{\kappa}}^{\top} \frac{\partial F}{\partial \boldsymbol{\theta}}\bigg|_{\mathbf{s}} dt$$
 
 where $\mathbf{e}_k$ is the $k$-th unit vector (i.e., a vector with 1 in the $k$-th position and 0 elsewhere).
+
+
+## Inference
+
+
+Linear differential equations are fundamental tools for modeling biomedical systems:
+
+- **First-order ODE**: $\frac{dy}{dt} = ay + b$ (drug metabolism, cell growth)
+- **Second-order ODE**: $\frac{d^2y}{dt^2} = ay + b\frac{dy}{dt} + c$ (glucose regulation, heart rate variability)
+
+### Parameter Transformation
+
+For stable first-order systems ($a<0$):
+$$\tau = -\frac{1}{a}, \quad K = -\frac{b}{a}$$
+
+For stable second-order systems ($a<0, b<0$):
+$$\omega_0 = \sqrt{-a}, \quad \zeta = -\frac{b}{2\sqrt{-a}}, \quad K = -\frac{c}{a}$$
+
+### Physical Interpretation
+
+| Parameter | Symbol | Physical Meaning | Clinical Relevance |
+|-----------|--------|------------------|-------------------|
+| Time constant | τ | Response speed | Drug half-life |
+| Natural frequency | ω₀ | Oscillation rate | Metabolic rhythm |
+| Damping ratio | ζ | Oscillation decay | Regulatory stability |
+| Steady-state gain | K | Final equilibrium | Baseline levels |
+
+### First-Order Dynamics
+
+$$y(t) = K + (y_0 - K)e^{-t/\tau}$$
+
+### Second-Order Dynamics
+
+$$y(t) - K = \begin{cases}
+Ae^{-\zeta\omega_0 t}\cos(\omega_d t + \phi) & \text{if } \zeta < 1 \text{ (under-damped)} \\
+(A + Bt)e^{-\omega_0 t} & \text{if } \zeta = 1 \text{ (critically damped)} \\
+A_1 e^{\lambda_1 t} + A_2 e^{\lambda_2 t} & \text{if } \zeta > 1 \text{ (over-damped)}
+\end{cases}$$
+
+## Case Study: Glucose-Insulin Regulation
+
+### Mathematical Model
+
+The simplified glucose dynamics following meal intake:
+$$\frac{d^2G}{dt^2} = -k_1 G - k_2 \frac{dG}{dt} + I_{meal}$$
+
+where:
+- $G$: glucose deviation from baseline
+- $k_1$: insulin sensitivity (feedback strength)
+- $k_2$: regulatory delay (damping effect)
+- $I_{meal}$: meal input
+
+### Parametric Response
+
+Post-meal glucose response:
+$$G(t) = G_{basal} + Ae^{-\zeta\omega_0 t}\cos(\omega_d t + \phi)$$
+
+with damped oscillation frequency: $\omega_d = \omega_0\sqrt{1-\zeta^2}$
+
+### Physiological Classification
+
+| Damping Ratio | Physiological State | Clinical Presentation |
+|---------------|-------------------|----------------------|
+| ζ < 0.5 | Under-regulated | Glucose oscillations (pre-diabetes) |
+| 0.5 < ζ < 1 | Normal regulation | Mild fluctuation with stabilization |
+| ζ = 1 | Critical damping | Optimal response |
+| ζ > 1 | Over-damped | Slow recovery (insulin resistance) |
+
+### Over-damping Mechanism (ζ > 1)
+
+For over-damped systems, the characteristic roots are:
+$$\lambda_1 = -\zeta\omega_0 + \omega_0\sqrt{\zeta^2-1}, \quad \lambda_2 = -\zeta\omega_0 - \omega_0\sqrt{\zeta^2-1}$$
+
+The dominant mode ($\lambda_1$) determines long-term behavior:
+
+| ζ Value | $\|\lambda_1\|/\omega_0$ | Recovery Speed |
+|---------|-------------------------|----------------|
+| 1.0 | 1.00 | Fastest non-oscillatory |
+| 1.5 | 0.55 | 1.8× slower |
+| 2.0 | 0.27 | 3.7× slower |
+| ∞ | → 0 | Extremely slow |
+
+**Clinical Implication**: Severe insulin resistance (high ζ) leads to prolonged hyperglycemia post-meal.

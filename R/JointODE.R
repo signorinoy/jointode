@@ -24,6 +24,10 @@
 #' @param survival_data A data frame with time-to-event information containing
 #'   one row per subject. Must include event/censoring times, event indicators,
 #'   and baseline covariates.
+#' @param state A matrix specifying initial conditions for the ODE system with
+#'   two columns: initial biomarker values and their first derivatives. Each row
+#'   corresponds to one subject. If \code{NULL}, defaults to a zero matrix with
+#'   appropriate dimensions (default: \code{NULL}).
 #' @param id Character string specifying the column name for subject
 #'   identifiers. This variable must be present in both longitudinal and
 #'   survival datasets
@@ -204,13 +208,14 @@ JointODE <- function(
   survival_formula,
   longitudinal_data,
   survival_data,
+  state = NULL,
   id = "id",
   time = "time",
   autonomous = TRUE,
   spline_baseline = list(
     degree = 3,
     n_knots = 3,
-    knot_placement = "quantile",
+    knot_placement = "equal",
     boundary_knots = NULL
   ),
   robust = FALSE,
@@ -228,6 +233,7 @@ JointODE <- function(
     survival_formula = survival_formula,
     longitudinal_data = longitudinal_data,
     survival_data = survival_data,
+    state = state,
     id = id,
     time = time,
     autonomous = autonomous,
@@ -240,6 +246,7 @@ JointODE <- function(
     survival_formula = survival_formula,
     longitudinal_data = longitudinal_data,
     survival_data = survival_data,
+    state = state,
     id = id,
     time = time
   )
@@ -333,12 +340,11 @@ JointODE <- function(
   # Control settings
   control_settings <- modifyList(
     list(
-      method = "L-BFGS-B",
       em_maxit = 100,
       maxit = 50,
+      factr = 1e10,
       tol = 1e-4,
-      verbose = FALSE,
-      factr = 1e8
+      verbose = FALSE
     ),
     control
   )
@@ -405,12 +411,13 @@ JointODE <- function(
       ),
       fn = .compute_objective_joint,
       gr = .compute_gradient_joint,
-      method = control_settings$method,
+      method = "L-BFGS-B",
       control = list(
+        factr = control_settings$factr,
         pgtol = control_settings$tol,
         maxit = control_settings$maxit,
-        factr = control_settings$factr,
-        trace = if (verbose_level >= 3) 1 else 0
+        trace = if (verbose_level >= 3) 1 else 0,
+        REPORT = 5
       ),
       data_list = data_process,
       posteriors = posteriors,

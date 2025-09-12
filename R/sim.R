@@ -1,0 +1,160 @@
+#' Simulated Dataset for Joint Ordinary Differential Equation Modeling
+#'
+#' @description
+#' A pre-computed dataset comprising longitudinal biomarker trajectories and
+#' time-to-event outcomes for 200 simulated subjects. This dataset was
+#' generated using the internal function \code{.create_example_data()} which
+#' calls \code{\link{simulate}} with default parameters and seed = 123.
+#' The dataset exemplifies the application of joint
+#' modeling frameworks wherein longitudinal processes are governed by
+#' second-order ordinary differential equations.
+#'
+#' @format A list with two components:
+#' \describe{
+#'   \item{\code{data}}{A list containing the actual simulated data with:
+#'     \describe{
+#'       \item{\code{longitudinal_data}}{A data frame containing longitudinal
+#'         observations with columns: id (subject identifier),
+#'         time (measurement time), observed (biomarker with error),
+#'         biomarker (true value), velocity, acceleration, x1, x2, x3}
+#'       \item{\code{survival_data}}{A data frame containing survival
+#'         information for 200 subjects with columns: id, time (event/censor),
+#'         status (1=event, 0=censored), x1, x2, x3, b (random effect)}
+#'       \item{\code{state}}{A 200 × 2 matrix containing initial conditions
+#'         \eqn{[m_i(0), \dot{m}_i(0)]} for each subject}
+#'     }
+#'   }
+#'   \item{\code{init}}{Initial parameter values for model fitting containing
+#'     coefficients and configurations}
+#' }
+#'
+#' @details
+#' \subsection{Data Generation Process}{
+#' Generated using \code{.create_example_data(n_subjects = 200, seed = 123)},
+#' with follow-up period from 0 to 10 days and shared random effect
+#' \eqn{b_i \sim \mathcal{N}(0, 0.01)} (sd = 0.1).
+#' }
+#'
+#' \subsection{Model Specification}{
+#' \strong{Longitudinal Sub-model (standardized scale):}
+#'
+#' The biomarker trajectory follows the ODE:
+#' \deqn{\ddot{m}_i(t) = -0.6[m_i(t) - 0] - 0.4\dot{m}_i(t) +
+#'       \mathbf{X}_i^T\boldsymbol{\beta}}
+#' \deqn{m_i(0) = 1.0 + \mathbf{X}_i^T\boldsymbol{\beta}_{init},
+#'       \quad \dot{m}_i(0) = 0}
+#' \deqn{y_{ij} = m_i(t_{ij}) + b_i + \epsilon_{ij},
+#'       \quad \epsilon_{ij} \sim \mathcal{N}(0, 0.01)}
+#'
+#' where \eqn{\boldsymbol{\beta} = (0.8, -0.5, -0.5)^T}, and
+#' \eqn{\boldsymbol{\beta}_{init} = (0.1, -0.1, 0.0)^T}.
+#'
+#' \strong{Survival Sub-model:}
+#' \deqn{\lambda_i(t) = \frac{1.5}{8}\left(\frac{t}{8}\right)^{0.5}
+#'       \exp(0.3m_i(t) + 0.7\dot{m}_i(t) +
+#'       \mathbf{W}_i^T\boldsymbol{\phi} + b_i)}
+#'
+#' where \eqn{\mathbf{W}_i = \mathbf{X}_i} and
+#' \eqn{\boldsymbol{\phi} = (0.4, -0.6, -0.3)^T}.
+#' }
+#'
+#' @source
+#' Generated via: \code{sim <- .create_example_data()}
+#'
+#' @seealso
+#' \code{\link{simulate}} for generating customized datasets with different
+#' parameter specifications (note: \code{sim} uses
+#' \code{.create_example_data()} internally);
+#' \code{\link{JointODE}} for fitting joint ODE models to longitudinal and
+#' survival data
+#'
+#' @concept data-simulation
+#' @keywords datasets
+#'
+#' @examples
+#' # Load the pre-generated dataset
+#' data(sim)
+#'
+#' # Access the actual data
+#' long_data <- sim$data$longitudinal_data
+#' surv_data <- sim$data$survival_data
+#'
+#' # Examine dataset structure
+#' str(sim$data)
+#'
+#' # Summary of covariate x3 (binary)
+#' table(sim$data$survival_data$x3)
+#' table(sim$data$survival_data$status)
+#'
+#' # Mean biomarker levels by x3 group
+#' aggregate(observed ~ x3,
+#'           data = sim$data$longitudinal_data,
+#'           FUN = mean)
+#'
+#' # Event rate stratified by x3 group
+#' aggregate(status ~ x3,
+#'           data = sim$data$survival_data,
+#'           FUN = mean)
+#'
+#' # Visualization of multiple individual trajectories
+#' par(mfrow = c(2, 3))  # 2x3 grid for 6 subjects
+#' for(i in 1:6) {
+#'   patient_i <- sim$data$longitudinal_data[
+#'                 sim$data$longitudinal_data$id == i, ]
+#'   plot(patient_i$time, patient_i$observed, type = "l",
+#'        xlab = "Time (days)", ylab = "Biomarker",
+#'        main = paste("Subject", i),
+#'        ylim = c(-3, 3))  # Fixed y-axis for comparison
+#'   abline(h = 0, lty = 2, col = "red", lwd = 0.5)  # Reference level
+#'   # Add true trajectory
+#'   lines(patient_i$time, patient_i$biomarker, col = "blue", lty = 2)
+#' }
+#' par(mfrow = c(1, 1))  # Reset layout
+#' legend("topright", legend = c("Observed", "True", "Equilibrium"),
+#'        col = c("black", "blue", "red"), lty = c(1, 2, 2), cex = 0.8)
+#'
+#' # Comparison of x3 groups (average trajectories)
+#' group1 <- aggregate(biomarker ~ time,
+#'    data = sim$data$longitudinal_data[
+#'           sim$data$longitudinal_data$x3 == 1,],
+#'    FUN = mean)
+#' group0 <- aggregate(biomarker ~ time,
+#'    data = sim$data$longitudinal_data[
+#'           sim$data$longitudinal_data$x3 == 0,],
+#'    FUN = mean)
+#' plot(group1$time, group1$biomarker, type = "l", col = "blue", lwd = 2,
+#'      xlab = "Time (days)", ylab = "Mean Biomarker Level",
+#'      main = "Average Trajectories by x3 Group (10-day follow-up)",
+#'      ylim = range(c(group1$biomarker, group0$biomarker)))
+#' lines(group0$time, group0$biomarker, col = "red", lwd = 2)
+#' abline(h = 0, lty = 2, col = "gray")
+#' legend("topright", legend = c("x3=1", "x3=0", "Equilibrium"),
+#'        col = c("blue", "red", "gray"), lty = c(1, 1, 2), lwd = c(2, 2, 1))
+#'
+#' \dontrun{
+#' # Multiple trajectory visualization using ggplot2
+#' if (requireNamespace("ggplot2", quietly = TRUE)) {
+#'   library(ggplot2)
+#'
+#'   # Subset first 20 subjects for visualization
+#'   subset_data <- sim$data$longitudinal_data[
+#'                  sim$data$longitudinal_data$id <= 20, ]
+#'
+#'   ggplot(subset_data, aes(x = time, y = observed)) +
+#'     geom_line(aes(color = factor(x3))) +
+#'     facet_wrap(~ id, ncol = 5, scales = "free_x") +
+#'     geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.5) +
+#'     geom_smooth(se = FALSE, method = "loess", size = 0.5, alpha = 0.5) +
+#'     scale_color_manual(values = c("0" = "red", "1" = "blue"),
+#'                        labels = c("x3=0", "x3=1")) +
+#'     labs(title = paste("Biomarker Trajectories",
+#'                        "(First 20 Subjects, 10-day follow-up)"),
+#'          subtitle = "Showing convergence dynamics",
+#'          x = "Time (days)", y = "Biomarker Level (standardized)",
+#'          color = "x3 Group") +
+#'     theme_minimal() +
+#'     theme(strip.text = element_text(size = 8))
+#' }
+#' }
+#'
+"sim"
