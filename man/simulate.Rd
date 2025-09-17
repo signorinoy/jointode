@@ -7,51 +7,55 @@
 simulate(
   n_subjects = 200,
   shared_sd = 0.1,
-  longitudinal = list(value = -0.6, slope = -0.4, ref = 0, time = 0, covariates = c(0.8,
-    -0.5, -0.5), initial = list(ref = 1, covariates = c(0.1, -0.1, 0), random_coef = 0),
-    error_sd = 0.1, n_measurements = 10),
+  longitudinal = list(xi = 0.707, period = 5, k = 1, excitation = list(offset = 0,
+    covariates = c(x1 = 0.8, x2 = -0.5)), initial = list(offset = -3, covariates = c(x1 =
+    0.1, x2 = -0.1), random_coef = 0), error_sd = 0.1, n_measurements = 10),
   survival = list(baseline = list(type = "weibull", shape = 1.5, scale = 8), value = 0.3,
-    slope = 0.7, covariates = c(0.4, -0.6, -0.3)),
+    slope = 1, covariates = c(w1 = 0.4, w2 = -0.6)),
   covariates = list(x1 = list(type = "normal", mean = 0, sd = 1), x2 = list(type =
-    "normal", mean = 0, sd = 1), x3 = list(type = "binary", prob = 0.7)),
+    "normal", mean = 0, sd = 1), w1 = list(type = "normal", mean = 0, sd = 1), w2 =
+    list(type = "binary", prob = 0.5)),
   maxt = 10,
   seed = 42
 )
 }
 \arguments{
 \item{n_subjects}{Integer specifying the number of subjects to simulate
-(default: 500)}
+(default: 200)}
 
 \item{shared_sd}{Positive scalar defining the standard deviation of the
-shared
-random effects, \eqn{\sigma_b} (default: 0.1)}
+shared random effects, \eqn{\sigma_b} (default: 0.1)}
 
 \item{longitudinal}{List specifying the longitudinal sub-model parameters:
 \describe{
-\item{value}{Restoring force coefficient \eqn{\kappa} in the ODE
-system (default: -0.6)}
-\item{slope}{Damping coefficient \eqn{\gamma} controlling velocity
-feedback (default: -0.4)}
-\item{ref}{Reference (equilibrium) biomarker value \eqn{m_{ref}}
-(default: 0, for standardized biomarkers)}
-\item{time}{Time-varying coefficient for non-autonomous systems
-(default: 0, indicating autonomous dynamics)}
-\item{covariates}{Vector of fixed effects \eqn{\boldsymbol{\beta}}
-for covariates in the acceleration equation
-(default: c(0.8, -0.5, -0.5))}
+\item{xi}{Damping ratio \eqn{\xi} controlling the oscillation decay.
+Values: \eqn{\xi < 1} (underdamped), \eqn{\xi = 1} (critically damped),
+\eqn{\xi > 1} (overdamped) (default: 0.707, slightly underdamped)}
+\item{period}{Natural period \eqn{T} of oscillation in time units,
+related to natural frequency as \eqn{\omega = 2\pi/T} (default: 5)}
+\item{k}{Excitation amplitude scaling factor \eqn{k} that modulates
+the strength of external forcing (default: 1.0)}
+\item{excitation}{List specifying external forcing parameters:
+\describe{
+\item{offset}{Constant excitation term \eqn{f_0} (default: 0.0)}
+\item{covariates}{Named vector of covariate effects
+\eqn{\boldsymbol{\beta}_{exc}} on excitation
+(default: c(x1 = 0.8, x2 = -0.5))}
+}
+}
 \item{initial}{List specifying initial condition parameters:
 \describe{
-\item{ref}{Baseline mean biomarker value \eqn{\mu_{ref}}
-(default: 1.0, for standardized biomarkers)}
-\item{covariates}{Vector of covariate effects
+\item{offset}{Baseline initial biomarker value \eqn{\mu_0}
+(default: -3.0)}
+\item{covariates}{Named vector of covariate effects
 \eqn{\boldsymbol{\beta}_{init}} on initial biomarker level
-(default: c(0.1, -0.1, 0.0))}
-\item{random_coef}{Scaling coefficient \eqn{\xi} for random effect
+(default: c(x1 = 0.1, x2 = -0.1))}
+\item{random_coef}{Scaling coefficient \eqn{\psi} for random effect
 influence on initial conditions (default: 0.0)}
 }
 }
 \item{error_sd}{Standard deviation \eqn{\sigma_{\epsilon}} of the
-measurement error process (default: 0.1, for standardized scale)}
+measurement error process (default: 0.1)}
 \item{n_measurements}{Number of longitudinal measurements per subject
 (default: 10)}
 }}
@@ -62,7 +66,7 @@ measurement error process (default: 0.1, for standardized scale)}
 \describe{
 \item{type}{Character string specifying the baseline hazard type
 (currently only "weibull" is supported)}
-\item{shape}{Weibull shape parameter \eqn{k > 0}
+\item{shape}{Weibull shape parameter \eqn{\kappa > 0}
 (default: 1.5)}
 \item{scale}{Weibull scale parameter \eqn{\lambda > 0}
 (default: 8.0)}
@@ -71,24 +75,26 @@ measurement error process (default: 0.1, for standardized scale)}
 \item{value}{Association parameter \eqn{\alpha_1} linking current
 biomarker value to hazard (default: 0.3)}
 \item{slope}{Association parameter \eqn{\alpha_2} linking biomarker
-velocity to hazard (default: 0.7)}
-\item{covariates}{Vector of regression coefficients
-\eqn{\boldsymbol{\phi}} for baseline covariates
-(default: c(0.4, -0.6))}
+velocity to hazard (default: 1.0)}
+\item{covariates}{Named vector of regression coefficients
+\eqn{\boldsymbol{\phi}} for survival covariates
+(default: c(w1 = 0.4, w2 = -0.6))}
 }}
 
 \item{covariates}{List defining the distributions of baseline covariates:
 \describe{
 \item{x1}{List with \code{type = "normal"}, \code{mean = 0},
-\code{sd = 1} for standardized continuous covariate}
+\code{sd = 1} for standardized continuous covariate (longitudinal)}
 \item{x2}{List with \code{type = "normal"}, \code{mean = 0},
-\code{sd = 1} for standardized continuous covariate}
-\item{x3}{List with \code{type = "binary"} and \code{prob = 0.7}
-for binary covariate}
+\code{sd = 1} for standardized continuous covariate (longitudinal)}
+\item{w1}{List with \code{type = "normal"}, \code{mean = 0},
+\code{sd = 1} for standardized continuous covariate (survival)}
+\item{w2}{List with \code{type = "binary"} and \code{prob = 0.5}
+for binary covariate (survival)}
 }}
 
 \item{maxt}{Positive scalar specifying the maximum follow-up time in the
-study (default: 10 days)}
+study (default: 10 time units)}
 
 \item{seed}{Integer seed for random number generation to ensure
 reproducibility (default: 42)}
@@ -131,40 +137,36 @@ Baseline covariate values
 }
 \description{
 Generates synthetic longitudinal and time-to-event data under a joint
-modeling
-framework wherein the longitudinal biomarker trajectory is governed by a
-second-order ordinary differential equation (ODE), and the survival process
-is associated with the biomarker dynamics through shared random effects and
-trajectory-dependent hazard functions. By default, biomarkers are generated
-on a standardized scale (mean ~ 0, SD ~ 1) for better numerical stability.
+modeling framework where the longitudinal biomarker trajectory follows a
+damped harmonic oscillator model (second-order ODE), and the survival
+process is associated with the biomarker dynamics through shared random
+effects and trajectory-dependent hazard functions. The biomarker dynamics
+are parameterized using physically interpretable parameters: damping ratio,
+natural period, and excitation amplitude.
 }
 \details{
 The simulation framework implements a joint model comprising longitudinal
-and survival
-sub-models linked through shared random effects and trajectory-dependent
-associations.
+and survival sub-models linked through shared random effects and
+trajectory-dependent associations.
 
 \subsection{Longitudinal Sub-model}{
-The biomarker trajectory \eqn{m_i(t)} for subject \eqn{i} evolves according
-to the
-second-order ordinary differential equation:
-\deqn{\ddot{m}_i(t) = \kappa[m_i(t) - m_{ref}] + \gamma\dot{m}_i(t) +
-  \mathbf{X}_i^T\boldsymbol{\beta} + \theta t}
+The biomarker trajectory \eqn{m_i(t)} for subject \eqn{i} follows a damped
+harmonic oscillator with external forcing:
+\deqn{\ddot{m}_i(t) + 2\xi\omega\dot{m}_i(t) + \omega^2 m_i(t) =
+  k \omega^2 [f_0 + \mathbf{X}_i^T\boldsymbol{\beta}_{exc}]}
 where:
 \itemize{
-\item \eqn{\kappa} represents the restoring force coefficient
-\item \eqn{\gamma} denotes the damping coefficient
-\item \eqn{m_{ref}} is the reference (equilibrium) value
+\item \eqn{\omega = 2\pi/T} is the natural angular frequency
+\item \eqn{\xi} is the damping ratio determining oscillation behavior
+\item \eqn{k} scales the excitation amplitude
+\item \eqn{f_0} is the constant excitation term
 \item \eqn{\mathbf{X}_i} contains time-invariant covariates
-\item \eqn{\boldsymbol{\beta}} represents fixed effects
-\item \eqn{\theta} is the time-varying coefficient
-(0 for autonomous systems)
+\item \eqn{\boldsymbol{\beta}_{exc}} represents covariate effects on excitation
 }
 
 Initial conditions are specified as:
 \itemize{
-\item \eqn{m_i(0) = \mu_{ref} +
-    \mathbf{X}_i^T\boldsymbol{\beta}_{init} + \xi b_i}
+\item \eqn{m_i(0) = \mu_0 + \mathbf{X}_i^T\boldsymbol{\beta}_{init} + \psi b_i}
 \item \eqn{\dot{m}_i(0) = 0} (zero initial velocity)
 }
 
@@ -210,21 +212,37 @@ sim_data <- simulate(n_subjects = 50, seed = 123)
 str(sim_data)
 
 \dontrun{
-# Customized simulation with modified longitudinal dynamics
+# Customized simulation with underdamped oscillator
 sim_data <- simulate(
   n_subjects = 200,
   longitudinal = list(
-    value = -2.5,      # Stronger restoring force
-    slope = -4.0,      # Modified damping
-    ref = -1,          # Lower equilibrium value (standardized)
-    time = 0.1,        # Non-autonomous system
-    covariates = c(-0.4, 0.2, 0.1),
-    initial = list(
-      ref = 2.5,       # Initial value (standardized)
-      covariates = c(-1.0, 0.8, 0.4),
-      random_coef = 1.0
+    xi = 0.3,          # Low damping (more oscillatory)
+    period = 3,        # Faster oscillations
+    k = 1.5,           # Stronger excitation
+    excitation = list(
+      offset = 0.5,
+      covariates = c(x1 = 1.0, x2 = -0.3)
     ),
-    error_sd = 0.5     # Increased measurement error (standardized)
+    initial = list(
+      offset = 0.0,    # Start at equilibrium
+      covariates = c(x1 = 0.5, x2 = -0.2),
+      random_coef = 0.5
+    ),
+    error_sd = 0.2     # Moderate measurement error
+  )
+)
+
+# Overdamped system (no oscillations)
+sim_data_overdamped <- simulate(
+  n_subjects = 100,
+  longitudinal = list(
+    xi = 2.0,          # Overdamped (exponential decay)
+    period = 10,       # Slow dynamics
+    k = 0.5,           # Weak excitation
+    excitation = list(
+      offset = -1.0,
+      covariates = c(x1 = 0.2, x2 = 0.1)
+    )
   )
 )
 }

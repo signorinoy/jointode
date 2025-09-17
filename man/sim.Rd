@@ -12,10 +12,10 @@ A list with two components:
 \item{\code{longitudinal_data}}{A data frame containing longitudinal
 observations with columns: id (subject identifier),
 time (measurement time), observed (biomarker with error),
-biomarker (true value), velocity, acceleration, x1, x2, x3}
+biomarker (true value), velocity, acceleration, x1, x2}
 \item{\code{survival_data}}{A data frame containing survival
 information for 200 subjects with columns: id, time (event/censor),
-status (1=event, 0=censored), x1, x2, x3, b (random effect)}
+status (1=event, 0=censored), w1, w2, b (random effect)}
 \item{\code{state}}{A 200 × 2 matrix containing initial conditions
 \eqn{[m_i(0), \dot{m}_i(0)]} for each subject}
 }
@@ -35,125 +35,106 @@ A pre-computed dataset comprising longitudinal biomarker trajectories and
 time-to-event outcomes for 200 simulated subjects. This dataset was
 generated using the internal function \code{.create_example_data()} which
 calls \code{\link{simulate}} with default parameters and seed = 123.
-The dataset exemplifies the application of joint
-modeling frameworks wherein longitudinal processes are governed by
-second-order ordinary differential equations.
+The biomarker trajectories follow a damped harmonic oscillator model
+with subject-specific initial conditions and external forcing.
 }
 \details{
 \subsection{Data Generation Process}{
 Generated using \code{.create_example_data(n_subjects = 200, seed = 123)},
-with follow-up period from 0 to 10 days and shared random effect
+with follow-up period from 0 to 10 time units and shared random effect
 \eqn{b_i \sim \mathcal{N}(0, 0.01)} (sd = 0.1).
 }
 
 \subsection{Model Specification}{
-\strong{Longitudinal Sub-model (standardized scale):}
+\strong{Longitudinal Sub-model (Damped Harmonic Oscillator):}
 
-The biomarker trajectory follows the ODE:
-\deqn{\ddot{m}_i(t) = -0.6[m_i(t) - 0] - 0.4\dot{m}_i(t) +
-      \mathbf{X}_i^T\boldsymbol{\beta}}
-\deqn{m_i(0) = 1.0 + \mathbf{X}_i^T\boldsymbol{\beta}_{init},
+The biomarker trajectory follows:
+\deqn{\ddot{m}_i(t) + 2\xi\omega\dot{m}_i(t) + \omega^2 m_i(t) =
+      k\omega^2[f_0 + \mathbf{X}_i^T\boldsymbol{\beta}_{exc}]}
+
+With parameters:
+\itemize{
+\item Damping ratio: \eqn{\xi = 0.707} (slightly underdamped)
+\item Natural period: \eqn{T = 5}, giving \eqn{\omega = 2\pi/5}
+\item Excitation amplitude: \eqn{k = 1.0}
+\item Excitation offset: \eqn{f_0 = 0.0}
+\item Excitation coefficients:
+\eqn{\boldsymbol{\beta}_{exc} = (0.8, -0.5)^T}
+}
+
+Initial conditions:
+\deqn{m_i(0) = -3.0 + \mathbf{X}_i^T\boldsymbol{\beta}_{init},
       \quad \dot{m}_i(0) = 0}
+where \eqn{\boldsymbol{\beta}_{init} = (0.1, -0.1)^T}.
+
+Observed measurements:
 \deqn{y_{ij} = m_i(t_{ij}) + b_i + \epsilon_{ij},
       \quad \epsilon_{ij} \sim \mathcal{N}(0, 0.01)}
 
-where \eqn{\boldsymbol{\beta} = (0.8, -0.5, -0.5)^T}, and
-\eqn{\boldsymbol{\beta}_{init} = (0.1, -0.1, 0.0)^T}.
-
 \strong{Survival Sub-model:}
 \deqn{\lambda_i(t) = \frac{1.5}{8}\left(\frac{t}{8}\right)^{0.5}
-      \exp(0.3m_i(t) + 0.7\dot{m}_i(t) +
+      \exp(0.3m_i(t) + 1.0\dot{m}_i(t) +
       \mathbf{W}_i^T\boldsymbol{\phi} + b_i)}
 
-where \eqn{\mathbf{W}_i = \mathbf{X}_i} and
-\eqn{\boldsymbol{\phi} = (0.4, -0.6, -0.3)^T}.
+where \eqn{\boldsymbol{\phi} = (0.4, -0.6)^T} for covariates w1 and w2.
 }
 }
 \examples{
-# Load the pre-generated dataset
+# Load the simulated dataset
 data(sim)
 
-# Access the actual data
-long_data <- sim$data$longitudinal_data
-surv_data <- sim$data$survival_data
+# Explore the data structure
+str(sim$data, max.level = 2)
 
-# Examine dataset structure
-str(sim$data)
+# Summary statistics for longitudinal data
+summary(sim$data$longitudinal_data[, c("biomarker", "velocity")])
 
-# Summary of covariate x3 (binary)
-table(sim$data$survival_data$x3)
-table(sim$data$survival_data$status)
+# Check event rate
+mean(sim$data$survival_data$status)
 
-# Mean biomarker levels by x3 group
-aggregate(observed ~ x3,
-          data = sim$data$longitudinal_data,
-          FUN = mean)
+# Visualize biomarker trajectories for first 10 subjects
+library(ggplot2)
+library(dplyr)
 
-# Event rate stratified by x3 group
-aggregate(status ~ x3,
-          data = sim$data$survival_data,
-          FUN = mean)
+sim$data$longitudinal_data \%>\%
+  filter(id <= 10) \%>\%
+  ggplot(aes(x = time, y = biomarker, group = id)) +
+  geom_line(alpha = 0.7) +
+  geom_point(aes(y = observed), size = 0.5, alpha = 0.5) +
+  facet_wrap(~id, scales = "free_y") +
+  theme_minimal() +
+  labs(title = "Biomarker Trajectories (True and Observed)",
+       x = "Time", y = "Biomarker Value")
 
-# Visualization of multiple individual trajectories
-par(mfrow = c(2, 3))  # 2x3 grid for 6 subjects
-for(i in 1:6) {
-  patient_i <- sim$data$longitudinal_data[
-                sim$data$longitudinal_data$id == i, ]
-  plot(patient_i$time, patient_i$observed, type = "l",
-       xlab = "Time (days)", ylab = "Biomarker",
-       main = paste("Subject", i),
-       ylim = c(-3, 3))  # Fixed y-axis for comparison
-  abline(h = 0, lty = 2, col = "red", lwd = 0.5)  # Reference level
-  # Add true trajectory
-  lines(patient_i$time, patient_i$biomarker, col = "blue", lty = 2)
-}
-par(mfrow = c(1, 1))  # Reset layout
-legend("topright", legend = c("Observed", "True", "Equilibrium"),
-       col = c("black", "blue", "red"), lty = c(1, 2, 2), cex = 0.8)
+# Survival analysis
+library(survival)
 
-# Comparison of x3 groups (average trajectories)
-group1 <- aggregate(biomarker ~ time,
-   data = sim$data$longitudinal_data[
-          sim$data$longitudinal_data$x3 == 1,],
-   FUN = mean)
-group0 <- aggregate(biomarker ~ time,
-   data = sim$data$longitudinal_data[
-          sim$data$longitudinal_data$x3 == 0,],
-   FUN = mean)
-plot(group1$time, group1$biomarker, type = "l", col = "blue", lwd = 2,
-     xlab = "Time (days)", ylab = "Mean Biomarker Level",
-     main = "Average Trajectories by x3 Group (10-day follow-up)",
-     ylim = range(c(group1$biomarker, group0$biomarker)))
-lines(group0$time, group0$biomarker, col = "red", lwd = 2)
-abline(h = 0, lty = 2, col = "gray")
-legend("topright", legend = c("x3=1", "x3=0", "Equilibrium"),
-       col = c("blue", "red", "gray"), lty = c(1, 1, 2), lwd = c(2, 2, 1))
+# Kaplan-Meier curve
+km_fit <- survfit(Surv(time, status) ~ 1, data = sim$data$survival_data)
+plot(km_fit, main = "Kaplan-Meier Survival Curve",
+     xlab = "Time", ylab = "Survival Probability")
 
-\dontrun{
-# Multiple trajectory visualization using ggplot2
-if (requireNamespace("ggplot2", quietly = TRUE)) {
-  library(ggplot2)
+# Examine relationship between initial biomarker and survival
+sim$data$survival_data$initial_biomarker <- sim$data$state[, "biomarker"]
+cox_fit <- coxph(Surv(time, status) ~ w1 + w2, data = sim$data$survival_data)
+summary(cox_fit)
 
-  # Subset first 20 subjects for visualization
-  subset_data <- sim$data$longitudinal_data[
-                 sim$data$longitudinal_data$id <= 20, ]
+# Verify ODE dynamics - compare numerical solution with data
+# Extract parameters used in simulation
+omega <- 2 * pi / 5  # Natural frequency
+xi <- 0.707          # Damping ratio
 
-  ggplot(subset_data, aes(x = time, y = observed)) +
-    geom_line(aes(color = factor(x3))) +
-    facet_wrap(~ id, ncol = 5, scales = "free_x") +
-    geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.5) +
-    geom_smooth(se = FALSE, method = "loess", size = 0.5, alpha = 0.5) +
-    scale_color_manual(values = c("0" = "red", "1" = "blue"),
-                       labels = c("x3=0", "x3=1")) +
-    labs(title = paste("Biomarker Trajectories",
-                       "(First 20 Subjects, 10-day follow-up)"),
-         subtitle = "Showing convergence dynamics",
-         x = "Time (days)", y = "Biomarker Level (standardized)",
-         color = "x3 Group") +
-    theme_minimal() +
-    theme(strip.text = element_text(size = 8))
-}
-}
+# Check phase space (velocity vs biomarker)
+subject_5 <- sim$data$longitudinal_data[
+  sim$data$longitudinal_data$id == 5,
+]
+plot(subject_5$biomarker, subject_5$velocity,
+     type = "l", main = "Phase Portrait (Subject 5)",
+     xlab = "Biomarker", ylab = "Velocity")
+points(subject_5$biomarker[1], subject_5$velocity[1],
+       col = "red", pch = 16, cex = 1.5)
+legend("topright", c("Trajectory", "Initial State"),
+       col = c("black", "red"), pch = c(NA, 16), lty = c(1, NA))
 
 }
 \seealso{

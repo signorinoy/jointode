@@ -44,23 +44,32 @@ test_that("simulate handles custom parameters correctly", {
     n_subjects = 10,
     shared_sd = 1.2,
     longitudinal = list(
-      value = -0.15,
-      slope = -0.9,
-      ref = 0.5,
-      time = 0.1,
-      covariates = c(-0.2, 0.1),
-      initial = list(ref = 1.2, covariates = c(-0.4, 0.2), random_coef = 1.0),
-      error_sd = 0.5
+      xi = 0.5,
+      period = 3,
+      k = 1.5,
+      excitation = list(
+        offset = 0.2,
+        covariates = c(x1 = -0.2, x2 = 0.1)
+      ),
+      initial = list(
+        offset = 1.2,
+        covariates = c(x1 = -0.4, x2 = 0.2),
+        random_coef = 1.0
+      ),
+      error_sd = 0.5,
+      n_measurements = 10
     ),
     survival = list(
       baseline = list(type = "weibull", shape = 2, scale = 100),
       value = 0.01,
       slope = 0.5,
-      covariates = c(-0.5, 0.3)
+      covariates = c(w1 = -0.5, w2 = 0.3)
     ),
     covariates = list(
-      trt = list(type = "binary", prob = 0.6),
-      age = list(type = "normal", mean = 0, sd = 1)
+      x1 = list(type = "normal", mean = 0, sd = 1),
+      x2 = list(type = "normal", mean = 0, sd = 1),
+      w1 = list(type = "normal", mean = 0, sd = 1),
+      w2 = list(type = "binary", prob = 0.6)
     ),
     maxt = 50,
     seed = 111
@@ -69,7 +78,7 @@ test_that("simulate handles custom parameters correctly", {
   expect_equal(ncol(sim$longitudinal_data), 8)
   expect_true(all(sim$survival_data$time <= 50))
   expect_true(
-    mean(sim$survival_data$trt) > 0.4 && mean(sim$survival_data$trt) < 0.8
+    mean(sim$survival_data$w2) > 0.4 && mean(sim$survival_data$w2) < 0.8
   )
 })
 
@@ -93,16 +102,27 @@ test_that("simulate validates input parameters", {
     JointODE::simulate(
       n_subjects = 10,
       longitudinal = list(
-        value = -0.2,
-        slope = -0.6,
-        ref = 140,
-        time = 0,
-        covariates = c(1, 2), # 2 covariates
-        initial = list(ref = 170, covariates = c(1), random_coef = 12),
-        error_sd = 4
+        xi = 0.5,
+        period = 5,
+        k = 1.0,
+        excitation = list(
+          offset = 0,
+          covariates = c(x1 = 1, x2 = 2) # 2 covariates
+        ),
+        initial = list(
+          offset = 1.0,
+          covariates = c(x1 = 1), # Only 1 covariate - mismatch!
+          random_coef = 0.5
+        ),
+        error_sd = 0.2,
+        n_measurements = 10
+      ),
+      covariates = list(
+        x1 = list(type = "normal", mean = 0, sd = 1)
+        # Missing x2 definition
       )
     ),
-    "same length"
+    "Missing covariate"
   )
 })
 
@@ -143,7 +163,7 @@ test_that("simulate generates valid survival times", {
       baseline = list(type = "weibull", shape = 1.5, scale = 20),
       value = 0.1,
       slope = 0.2,
-      covariates = c(0.1, -0.1, -0.1)
+      covariates = c(w1 = 0.1, w2 = -0.1)
     ),
     seed = 333
   )
@@ -160,15 +180,31 @@ test_that("simulate handles edge cases", {
   sim_noisy <- JointODE::simulate(
     n_subjects = 10,
     longitudinal = list(
-      value = -0.2,
-      slope = -0.6,
-      ref = 0,
-      time = 0,
-      covariates = numeric(0),
-      initial = list(ref = 1.5, covariates = numeric(0), random_coef = 1.0),
-      error_sd = 10
+      xi = 0.7,
+      period = 5,
+      k = 1.0,
+      excitation = list(
+        offset = 0,
+        covariates = numeric(0)
+      ),
+      initial = list(
+        offset = 1.5,
+        covariates = numeric(0),
+        random_coef = 1.0
+      ),
+      error_sd = 10,
+      n_measurements = 10
     ),
-    covariates = list(),
+    survival = list(
+      baseline = list(type = "weibull", shape = 1.5, scale = 8),
+      value = 0.3,
+      slope = 0.7,
+      covariates = numeric(0)
+    ),
+    covariates = list(
+      w1 = list(type = "normal", mean = 0, sd = 1),
+      w2 = list(type = "binary", prob = 0.5)
+    ),
     seed = 555
   )
   expect_true(sd(sim_noisy$longitudinal_data$observed) > 5)
@@ -177,13 +213,20 @@ test_that("simulate handles edge cases", {
   sim_no_cov <- JointODE::simulate(
     n_subjects = 10,
     longitudinal = list(
-      value = -0.2,
-      slope = -0.6,
-      ref = 0,
-      time = 0,
-      covariates = numeric(0),
-      initial = list(ref = 1.5, covariates = numeric(0), random_coef = 1.0),
-      error_sd = 0.4
+      xi = 0.7,
+      period = 5,
+      k = 1.0,
+      excitation = list(
+        offset = 0,
+        covariates = numeric(0)
+      ),
+      initial = list(
+        offset = 1.5,
+        covariates = numeric(0),
+        random_coef = 1.0
+      ),
+      error_sd = 0.4,
+      n_measurements = 10
     ),
     survival = list(
       baseline = list(type = "weibull", shape = 1.6, scale = 150),
@@ -220,34 +263,43 @@ test_that("simulate respects covariate distributions", {
   sim <- JointODE::simulate(
     n_subjects = n,
     longitudinal = list(
-      value = -0.2,
-      slope = -0.6,
-      ref = 0,
-      time = 0,
-      covariates = c(-0.2, 0.1), # Must match number of covariates
-      initial = list(ref = 1.5, covariates = c(-0.5, 0.3), random_coef = 1.0),
-      error_sd = 0.4
+      xi = 0.7,
+      period = 5,
+      k = 1.0,
+      excitation = list(
+        offset = 0,
+        covariates = c(x1 = -0.2, x2 = 0.1)
+      ),
+      initial = list(
+        offset = 1.5,
+        covariates = c(x1 = -0.5, x2 = 0.3),
+        random_coef = 1.0
+      ),
+      error_sd = 0.4,
+      n_measurements = 10
     ),
     survival = list(
       baseline = list(type = "weibull", shape = 1.6, scale = 150),
       value = 0.08,
       slope = 0.4,
-      covariates = c(-0.7, 0.3) # Must match number of covariates
+      covariates = c(w1 = -0.7, w2 = 0.3)
     ),
     covariates = list(
-      binary_var = list(type = "binary", prob = 0.3),
-      normal_var = list(type = "normal", mean = 0, sd = 1)
+      x1 = list(type = "normal", mean = 0, sd = 1),
+      x2 = list(type = "normal", mean = 0, sd = 1),
+      w1 = list(type = "normal", mean = 0, sd = 1),
+      w2 = list(type = "binary", prob = 0.3)
     ),
     seed = 888
   )
 
   # Binary variable
-  prop <- mean(sim$survival_data$binary_var)
+  prop <- mean(sim$survival_data$w2)
   expect_true(abs(prop - 0.3) < 0.15) # Wider tolerance for smaller sample
 
-  # Normal variable
-  expect_true(abs(mean(sim$survival_data$normal_var) - 0) < 0.4)
-  expect_true(abs(sd(sim$survival_data$normal_var) - 1) < 0.4)
+  # Normal variable (w1)
+  expect_true(abs(mean(sim$survival_data$w1) - 0) < 0.4)
+  expect_true(abs(sd(sim$survival_data$w1) - 1) < 0.4)
 })
 
 # Tests for .create_example_data

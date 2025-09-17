@@ -286,16 +286,19 @@ JointODE <- function(
   } else {
     character(0)
   }
-  long_response_name <- as.character(longitudinal_formula[[2]])
-  biomarker_names <- paste0(long_response_name, c("_value", "_slope"))
+
+  # Use mathematical notation for parameter names
+  hazard_names <- c("alpha_1", "alpha_2", surv_vars_names)
+  accel_names <- if (autonomous) {
+    c("-omega_n^2", "-2*xi*omega_n", long_vars_names)
+  } else {
+    c("-omega_n^2", "-2*xi*omega_n", long_vars_names, "time")
+  }
+
   coef_names <- list(
     baseline = paste0("bs", seq_len(spline_baseline_config$df)),
-    hazard = c(biomarker_names, surv_vars_names),
-    acceleration = if (autonomous) {
-      c(biomarker_names, long_vars_names)
-    } else {
-      c(biomarker_names, long_vars_names, "time")
-    }
+    hazard = hazard_names,
+    acceleration = accel_names
   )
   coef_names_expanded <- c(
     paste0("baseline:", coef_names$baseline),
@@ -683,7 +686,7 @@ JointODE <- function(
 #' @return A summary.JointODE object with coefficients and test statistics
 #'
 #' @concept model-summary
-#' @importFrom stats coef pnorm
+#' @importFrom stats coef pnorm qnorm
 #' @export
 summary.JointODE <- function(object, ...) {
   coefs <- coef(object)
@@ -732,6 +735,67 @@ summary.JointODE <- function(object, ...) {
     rownames(coef_longitudinal)
   )
 
+  # Delta method for derived parameters (period and xi)
+  derived_params <- NULL
+  if (!is.null(object$vcov) && n_longitudinal >= 2) {
+    # Extract coefficients from the acceleration equation:
+    # acceleration = β₁ * biomarker + β₂ * velocity + ...
+    # Comparing with damped harmonic oscillator: ẍ = -ω²x - 2ξωẋ + kω²f
+    # We have: β₁ = -ω² and β₂ = -2ξω
+
+    value_coef <- coefs[idx_longitudinal[1]] # β₁ = -ω²
+    slope_coef <- coefs[idx_longitudinal[2]] # β₂ = -2ξω
+
+    # Variances and covariance
+    var_value <- object$vcov[idx_longitudinal[1], idx_longitudinal[1]]
+    var_slope <- object$vcov[idx_longitudinal[2], idx_longitudinal[2]]
+    cov_value_slope <- object$vcov[idx_longitudinal[1], idx_longitudinal[2]]
+
+    # Check if value_coef is negative (as expected for -ω²)
+    if (value_coef < 0) {
+      # Calculate omega_n from β₁ = -ωₙ²
+      # ωₙ = √(-β₁)
+      omega_est <- sqrt(-value_coef)
+
+      # Calculate period T = 2π/ωₙ
+      period_est <- 2 * pi / omega_est
+
+      # Calculate xi from β₂ = -2ξωₙ
+      # ξ = -β₂ / (2ωₙ) = -β₂ / (2√(-β₁))
+      xi_est <- -slope_coef / (2 * omega_est)
+
+      # Delta method for period
+      # T = 2π/ωₙ = 2π/√(-β₁)
+      # ∂T/∂β₁ = π/((-β₁)^(3/2))
+      grad_period_value <- pi / ((-value_coef)^(3 / 2))
+      var_period <- grad_period_value^2 * var_value
+      se_period <- sqrt(var_period)
+
+      # Delta method for xi
+      # ξ = -β₂/(2√(-β₁))
+      # ∂ξ/∂β₁ = β₂/(4*(-β₁)^(3/2))
+      # ∂ξ/∂β₂ = -1/(2√(-β₁))
+      grad_xi_value <- slope_coef / (4 * (-value_coef)^(3 / 2))
+      grad_xi_slope <- -1 / (2 * sqrt(-value_coef))
+
+      # Variance of xi using Delta method with covariance
+      var_xi <- grad_xi_value^2 *
+        var_value +
+        grad_xi_slope^2 * var_slope +
+        2 * grad_xi_value * grad_xi_slope * cov_value_slope
+      se_xi <- sqrt(var_xi)
+
+      # Create coefficient matrix for derived parameters
+      derived_params <- cbind(
+        Estimate = c(period_est, xi_est),
+        `Std. Error` = c(se_period, se_xi),
+        `z value` = c(period_est / se_period, xi_est / se_xi),
+        `Pr(>|z|)` = 2 * pnorm(-abs(c(period_est / se_period, xi_est / se_xi)))
+      )
+      rownames(derived_params) <- c("T (period)", "xi (damping ratio)")
+    }
+  }
+
   # Count longitudinal observations and events
   n_observations <- attr(object$data, "n_observations")
   n_subjects <- attr(object$data, "n_subjects")
@@ -744,6 +808,7 @@ summary.JointODE <- function(object, ...) {
       coef_baseline = coef_baseline,
       coef_survival = coef_survival,
       coef_longitudinal = coef_longitudinal,
+      derived_params = derived_params,
       sigma = with(
         object$parameters$coefficients,
         c(sigma_e = measurement_error_sd, sigma_b = random_effect_sd)
@@ -796,6 +861,17 @@ print.summary.JointODE <- function(
   if (!is.null(x$coef_longitudinal)) {
     printCoefmat(
       x$coef_longitudinal,
+      digits = digits,
+      signif.stars = signif.stars,
+      ...
+    )
+  }
+
+  # Derived ODE characteristics
+  if (!is.null(x$derived_params)) {
+    cat("\nODE System Characteristics:\n")
+    printCoefmat(
+      x$derived_params,
       digits = digits,
       signif.stars = signif.stars,
       ...

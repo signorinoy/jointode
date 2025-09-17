@@ -13,8 +13,8 @@ test_that("JointODE basic functionality", {
 
   # Test that function can be called and returns expected structure
   result <- JointODE(
-    longitudinal_formula = observed ~ x1 + x2 + x3,
-    survival_formula = Surv(time, status) ~ x1 + x2 + x3,
+    longitudinal_formula = observed ~ x1 + x2,
+    survival_formula = Surv(time, status) ~ w1 + w2,
     longitudinal_data = tiny_data$data$longitudinal_data,
     survival_data = tiny_data$data$survival_data,
     state = as.matrix(tiny_data$data$state),

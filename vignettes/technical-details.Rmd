@@ -34,26 +34,23 @@ where:
 The biomarker trajectory evolution is characterized by the following second-order differential equation:
 
 $$
-\ddot{m}_i(t) = f\big(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t\big)
+\ddot{m}_i(t) + 2 \xi \omega_n \dot{m}_i(t) + \omega_n^2 m_i(t) = k \omega_n^2 \boldsymbol{X}_i(t)^{\top} \boldsymbol{\beta},
 $$
-
-where $f: \mathbb{R} \times \mathbb{R} \times \mathbb{R}^p \times \mathbb{R}^+ \to \mathbb{R}$ is a smooth function modeling the biomarker acceleration as a function of its current value $m_i(t)$, velocity $\dot{m}_i(t)$, time-varying covariates $\mathbf{X}_i(t) \in \mathbb{R}^p$, and time $t$.
+   
+where $\dot{m}_i(t)$ and $\ddot{m}_i(t)$ denote the biomarker’s velocity and acceleration, respectively, and $\boldsymbol{X}_i(t)$ denotes time-varying covariates. The parameters have the usual interpretations: $\omega_n > 0$ is the natural frequency, $\xi$ is the damping ratio, and $k$ is the steady-state gain.
 
 ### Survival Sub-Model
 
 The hazard function incorporates biomarker dynamics:
 
 $$
-\lambda_i(t) = \lambda_{0}(t)\exp\left[\mathbf{W}_i^{\top}\boldsymbol{\phi}+\mathbf{m}_i(t)^{\top}\boldsymbol{\alpha}+b_{i}\right]
+\lambda_i(t) = \lambda_{0}(t)\exp\left[\alpha_1 m_i(t) + \alpha_2 \dot{m}_i(t) + \mathbf{W}_i(t)^{\top}\boldsymbol{\phi}+b_{i}\right]
 $$
 
 where:
 
 -   $\lambda_{0}(t)$: Baseline hazard (e.g., Weibull, piecewise constant)
--   $\mathbf{m}_i(t)=\left(m_i(t), \dot{m}_i(t)\right)^{\top}$: Biomarker value and derivatives
--   $\boldsymbol{\alpha}=(\alpha_1, \alpha_2)^{\top}$: Association parameters for value and velocity
--   $\mathbf{W}_i$: Baseline covariates with coefficients $\boldsymbol{\phi}$
--   $b_i$: Subject-specific random intercept
+-   $\mathbf{W}_i(t)$: Time-dependent or time-independent covariates with effects $\boldsymbol{\phi}$
 
 ### ODE System
 
@@ -63,17 +60,15 @@ $$
 \frac{d\mathbf{s}_i}{dt} = \begin{pmatrix}
 \lambda_i(t|b_i) \\
 \dot{m}_i(t) \\
-f(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t)
+\ddot{m}_i(t)
 \end{pmatrix}
 $$
 
 with initial conditions $\mathbf{s}_i(0) = (0, m_{i0}, \dot{m}_{i0})^{\top}$, where $m_{i0}$ and $\dot{m}_{i0}$ are the initial biomarker value and velocity for subject $i$.
 
-## Statistical Inference
+## Model Parameterization
 
 For parameter estimation, we need to specify parametric forms for the model components.
-
-### Model Parameterization
 
 **Hazard Function:**
 We parameterize the log baseline hazard using B-splines:
@@ -87,16 +82,11 @@ $$\lambda_i(t|b_i) = \exp\left[\boldsymbol{\eta}^{\top} \mathbf{B}^{(\lambda)}(t
 where $\mathbf{B}^{(\lambda)}(t)$ is the B-spline basis for the log baseline hazard, and $\boldsymbol{\eta}$ are the corresponding coefficients.
 
 **Acceleration Function:**
-To make the model tractable, we approximate the unknown acceleration function $f$ using a linear model:
+To make the model tractable, we express the acceleration as a linear function of the feature vector:
 
-$$f(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t) \approx \boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)$$
+$$\ddot{m}_i(t) = \boldsymbol{\beta}^{\top} \mathbf{Z}_i(t)$$
 
-where:
-
-- $\mathbf{Z}_i(t) = [m_i(t), \dot{m}_i(t), \mathbf{X}_i^{\top}(t), t]^{\top}$ is the feature vector
-- $\boldsymbol{\beta}$ are the linear coefficients (no constraints needed)
-
-### Likelihood
+where $\mathbf{Z}_i(t) = [m_i(t), \dot{m}_i(t), \mathbf{X}_i(t)^{\top}(t)]^{\top}$ is the feature vector with coefficients $\boldsymbol{\beta} = [\beta_1, \beta_2, \boldsymbol{\beta}_X^{\top}]^{\top}$.
 
 The joint likelihood for subject $i$ integrates over the random effect:
 
@@ -115,11 +105,11 @@ where $\boldsymbol{\theta} = (\boldsymbol{\eta}, \boldsymbol{\phi}, \boldsymbol{
 3. **Random Effect:**
    $$p(b_i) \sim \mathcal{N}(0, \sigma_b^2)$$
 
-### Parameter Estimation
+## Estimation Procedure
 
 For the linear acceleration model, we use direct gradient-based optimization of the marginal likelihood.
 
-#### Posterior Computation
+### Posterior Computation
 
 For each subject $i$, compute the posterior distribution of $b_i$ given observed data $\mathcal{O}_i$.
 
@@ -139,7 +129,7 @@ For each subject $i$, compute the posterior distribution of $b_i$ given observed
    - Variance: $\hat{v}_i = \text{Var}[b_i|\mathcal{O}_i]$
    - Transform: $E[e^{b_i}|\mathcal{O}_i]$ for survival updates
 
-#### Objective Function
+### Objective Function
 
 We maximize the expected complete-data log-likelihood:
 
@@ -314,82 +304,28 @@ where $\mathbf{e}_k$ is the $k$-th unit vector (i.e., a vector with 1 in the $k$
 
 ## Inference
 
+For the longitudinal sub-model, there are several statistcs that are useful for inference, including $T = \frac{2\pi}{\omega_n}$ and the damping ratio $\xi$.
 
-Linear differential equations are fundamental tools for modeling biomedical systems:
+However, these are not directly estimated parameters. We can use the delta method to obtain their standard errors.
 
-- **First-order ODE**: $\frac{dy}{dt} = ay + b$ (drug metabolism, cell growth)
-- **Second-order ODE**: $\frac{d^2y}{dt^2} = ay + b\frac{dy}{dt} + c$ (glucose regulation, heart rate variability)
-
-### Parameter Transformation
-
-For stable first-order systems ($a<0$):
-$$\tau = -\frac{1}{a}, \quad K = -\frac{b}{a}$$
-
-For stable second-order systems ($a<0, b<0$):
-$$\omega_0 = \sqrt{-a}, \quad \zeta = -\frac{b}{2\sqrt{-a}}, \quad K = -\frac{c}{a}$$
-
-### Physical Interpretation
-
-| Parameter | Symbol | Physical Meaning | Clinical Relevance |
-|-----------|--------|------------------|-------------------|
-| Time constant | τ | Response speed | Drug half-life |
-| Natural frequency | ω₀ | Oscillation rate | Metabolic rhythm |
-| Damping ratio | ζ | Oscillation decay | Regulatory stability |
-| Steady-state gain | K | Final equilibrium | Baseline levels |
-
-### First-Order Dynamics
-
-$$y(t) = K + (y_0 - K)e^{-t/\tau}$$
-
-### Second-Order Dynamics
-
-$$y(t) - K = \begin{cases}
-Ae^{-\zeta\omega_0 t}\cos(\omega_d t + \phi) & \text{if } \zeta < 1 \text{ (under-damped)} \\
-(A + Bt)e^{-\omega_0 t} & \text{if } \zeta = 1 \text{ (critically damped)} \\
-A_1 e^{\lambda_1 t} + A_2 e^{\lambda_2 t} & \text{if } \zeta > 1 \text{ (over-damped)}
-\end{cases}$$
-
-## Case Study: Glucose-Insulin Regulation
-
-### Mathematical Model
-
-The simplified glucose dynamics following meal intake:
-$$\frac{d^2G}{dt^2} = -k_1 G - k_2 \frac{dG}{dt} + I_{meal}$$
-
-where:
-- $G$: glucose deviation from baseline
-- $k_1$: insulin sensitivity (feedback strength)
-- $k_2$: regulatory delay (damping effect)
-- $I_{meal}$: meal input
-
-### Parametric Response
-
-Post-meal glucose response:
-$$G(t) = G_{basal} + Ae^{-\zeta\omega_0 t}\cos(\omega_d t + \phi)$$
-
-with damped oscillation frequency: $\omega_d = \omega_0\sqrt{1-\zeta^2}$
-
-### Physiological Classification
-
-| Damping Ratio | Physiological State | Clinical Presentation |
-|---------------|-------------------|----------------------|
-| ζ < 0.5 | Under-regulated | Glucose oscillations (pre-diabetes) |
-| 0.5 < ζ < 1 | Normal regulation | Mild fluctuation with stabilization |
-| ζ = 1 | Critical damping | Optimal response |
-| ζ > 1 | Over-damped | Slow recovery (insulin resistance) |
-
-### Over-damping Mechanism (ζ > 1)
-
-For over-damped systems, the characteristic roots are:
-$$\lambda_1 = -\zeta\omega_0 + \omega_0\sqrt{\zeta^2-1}, \quad \lambda_2 = -\zeta\omega_0 - \omega_0\sqrt{\zeta^2-1}$$
-
-The dominant mode ($\lambda_1$) determines long-term behavior:
-
-| ζ Value | $\|\lambda_1\|/\omega_0$ | Recovery Speed |
-|---------|-------------------------|----------------|
-| 1.0 | 1.00 | Fastest non-oscillatory |
-| 1.5 | 0.55 | 1.8× slower |
-| 2.0 | 0.27 | 3.7× slower |
-| ∞ | → 0 | Extremely slow |
-
-**Clinical Implication**: Severe insulin resistance (high ζ) leads to prolonged hyperglycemia post-meal.
+Since 
+$$
+\omega_n = \sqrt{-\beta_1}, \quad \xi = -\frac{\beta_2}{2\sqrt{-\beta_1}},
+$$
+we have
+$$
+\frac{\partial T}{\partial \beta_1} = -\frac{\pi}{(-\beta_1)^{3/2}}, \quad \frac{\partial T}{\partial \beta_2} = 0, \quad
+\frac{\partial \xi}{\partial \beta_1} = -\frac{\beta_2}{4(-\beta_1)^{3/2}}, \quad \frac{\partial \xi}{\partial \beta_2} = -\frac{1}{2\sqrt{-\beta_1}}.
+$$
+Thus, the variance-covariance matrix of $(\omega_n, \xi)$ can be approximated as
+$$
+\mathbf{J} \begin{pmatrix}
+\text{Var}(\beta_1) & \text{Cov}(\beta_1, \beta_2) \\
+\text{Cov}(\beta_1, \beta_2) & \text{Var}(\beta_2)
+\end{pmatrix} \mathbf{J}^{\top},
+$$
+where
+$$\mathbf{J} = \begin{pmatrix}
+\frac{\partial T}{\partial \beta_1} & \frac{\partial T}{\partial \beta_2} \\
+\frac{\partial \xi}{\partial \beta_1} & \frac{\partial \xi}{\partial \beta_2}
+\end{pmatrix}.$$

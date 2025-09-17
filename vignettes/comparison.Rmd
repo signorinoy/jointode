@@ -244,22 +244,19 @@ jsm_data <- dataPreprocess(
     obstime = time,
     start = start.join,
     stop = stop.join,
-    event = event.join,
-    x1 = x1.long,
-    x2 = x2.long,
-    x3 = x3.long
+    event = event.join
   ) %>%
   select(
     ID, obstime, observed, biomarker, velocity, acceleration,
-    x1, x2, x3, b, start, stop, event
+    x1, x2, w1, w2, b, start, stop, event
   )
 
 #--------------------------------------------
 # Model 1: JointODE (Proposed Method)
 #--------------------------------------------
 fit_jointode <- JointODE(
-  longitudinal_formula = observed ~ x1 + x2 + x3,
-  survival_formula = Surv(time, status) ~ x1 + x2 + x3,
+  longitudinal_formula = observed ~ x1 + x2,
+  survival_formula = Surv(time, status) ~ w1 + w2,
   longitudinal_data = sim$data$longitudinal_data,
   survival_data = sim$data$survival_data,
   state = as.matrix(sim$data$state)
@@ -268,16 +265,17 @@ fit_jointode <- JointODE(
 #--------------------------------------------
 # Model 2: Traditional Joint Model (JSM)
 #--------------------------------------------
-# Step 1: Longitudinal sub-model
+# Step 1: Longitudinal sub-model with natural splines
 fit_lme <- lme(
-  observed ~ obstime + x1 + x2 + x3,
+  observed ~ x1 * bs(obstime, df = 5, Boundary.knots = c(0, 10)) +
+    x2 * bs(obstime, df = 5, Boundary.knots = c(0, 10)),
   random = ~ 1 | ID,
   data = jsm_data
 )
 
 # Step 2: Survival sub-model
 fit_cox <- coxph(
-  Surv(start, stop, event) ~ x1 + x2 + x3,
+  Surv(start, stop, event) ~ w1 + w2 + cluster(ID),
   data = jsm_data, x = TRUE
 )
 
@@ -292,8 +290,85 @@ fit_jsm <- jmodelTM(
 # Model 3: Time-varying Cox (Oracle - Theoretical Benchmark)
 #--------------------------------------------
 fit_oracle <- coxph(
-  Surv(start, stop, event) ~ biomarker + velocity  + x1 + x2 + x3 +
+  Surv(start, stop, event) ~ biomarker + velocity  + w1 + w2 +
     offset(b) + cluster(ID),
   data = jsm_data
 )
 ```
+
+
+## Real Data Example
+
+```{r example, eval=FALSE}
+data(pbc)
+
+#--------------------------------------------
+# Model 1: Traditional JSM (使用原始pbc数据)
+#--------------------------------------------
+fit_lme_pbc <- lme(
+  log(serBilir) ~ drug *
+    bs(obstime, df = 4, degree = 2, Boundary.knots = c(0, 15)),
+  random = ~ 1 | ID,
+  data = pbc
+)
+
+fit_cox_pbc <- coxph(
+  Surv(start, stop, event) ~ drug,
+  data = pbc,
+  x = TRUE
+)
+
+fit_jt_pbc <- jmodelTM(
+  fit_lme_pbc, fit_cox_pbc, pbc,
+  timeVarY = "obstime"
+)
+
+summary(fit_jt_pbc)
+
+#--------------------------------------------
+# Model 2: JointODE (使用分离的数据)
+#--------------------------------------------
+longitudinal_pbc <- pbc %>%
+  select(ID, obstime, serBilir, drug) %>%
+  filter(!is.na(serBilir)) %>%
+  mutate(observed = log(serBilir)) %>%  # 取对数转换
+  rename(id = ID, time = obstime) %>%
+  select(id, time, observed, drug) %>%
+  arrange(id, time)
+
+survival_pbc <- pbc %>%
+  group_by(ID) %>%
+  slice_tail(n = 1) %>%  # 取每个患者的最后一条记录
+  ungroup() %>%
+  select(ID, Time, death, drug) %>%
+  rename(
+    id = ID,
+    time = Time,  # 真实生存时间
+    status = death  # 事件状态
+  )
+
+# 创建初始状态矩阵（使用第一次观测）
+initial_states <- longitudinal_pbc %>%
+  group_by(id) %>%
+  slice(1) %>%
+  ungroup() %>%
+  select(id, observed) %>%
+  mutate(
+    velocity = 0  # 初始速度假设为0
+  ) %>%
+  arrange(id)
+
+state_matrix <- as.matrix(initial_states[, c("observed", "velocity")])
+
+fit_jointode_pbc <- JointODE(
+  longitudinal_formula = observed ~ drug,
+  survival_formula = Surv(time, status) ~ drug,
+  longitudinal_data = longitudinal_pbc,
+  survival_data = survival_pbc,
+  state = state_matrix,
+  parallel = TRUE,
+  control = list(verbose = 3)
+)
+
+```
+

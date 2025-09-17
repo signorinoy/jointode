@@ -4,9 +4,9 @@ test_that(".solve_joint_ode works with basic sensitivity type", {
   # Create test data structure
   data_processed <- .process(
     longitudinal_data = sim$data$longitudinal_data,
-    longitudinal_formula = observed ~ x1 + x2 + x3,
+    longitudinal_formula = observed ~ x1 + x2,
     survival_data = sim$data$survival_data,
-    survival_formula = Surv(time, status) ~ x1 + x2 + x3,
+    survival_formula = Surv(time, status) ~ w1 + w2,
     state = as.matrix(sim$data$state),
     id = "id",
     time = "time"

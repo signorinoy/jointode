@@ -25,11 +25,9 @@ The **JointODE** package provides a unified framework for joint modeling of long
 
 ## Model Setup
 
-### Longitudinal Model
+The observed biomarker measurements are modeled as:
 
-The observed biomarker measurements are modeled as: $$
-V_{ij}=m_i(T_{ij})+b_i+\varepsilon_{ij},\quad i=1,\ldots,n,\quad j=1,\ldots,n_i
-$$
+$$V_{ij}=m_i(T_{ij})+b_i+\varepsilon_{ij},\quad i=1,\ldots,n,\quad j=1,\ldots,n_i$$
 
 where:
 
@@ -41,26 +39,23 @@ where:
 The biomarker trajectory evolution is characterized by the following second-order differential equation:
 
 $$
-\ddot{m}_i(t) = f\big(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t\big)
+\ddot{m}_i(t) + 2 \xi \omega_n \dot{m}_i(t) + \omega_n^2 m_i(t) = k \omega_n^2 \boldsymbol{X}_i(t)^{\top} \boldsymbol{\beta},
 $$
+   
+where $\dot{m}_i(t)$ and $\ddot{m}_i(t)$ denote the biomarker’s velocity and acceleration, respectively, and $\boldsymbol{X}_i(t)$ denotes time-varying covariates. The parameters have the usual interpretations: $\omega_n > 0$ is the natural frequency, $\xi$ is the damping ratio, and $k$ is the steady-state gain.
 
-where $f: \mathbb{R} \times \mathbb{R} \times \mathbb{R}^p \times \mathbb{R}^+ \to \mathbb{R}$ is a smooth function modeling the biomarker acceleration as a function of its current value $m_i(t)$, velocity $\dot{m}_i(t)$, time-varying covariates $\mathbf{X}_i(t) \in \mathbb{R}^p$, and time $t$.
-
-### Survival Model
+### Survival Sub-Model
 
 The hazard function incorporates biomarker dynamics:
 
 $$
-\lambda_i(t) = \lambda_{0}(t)\exp\left[\mathbf{m}_i(t)^{\top}\boldsymbol{\alpha}+\mathbf{W}_i^{\top}\boldsymbol{\phi}+b_{i}\right]
+\lambda_i(t) = \lambda_{0}(t)\exp\left[\alpha_1 m_i(t) + \alpha_2 \dot{m}_i(t) + \mathbf{W}_i(t)^{\top}\boldsymbol{\phi}+b_{i}\right]
 $$
 
 where:
 
 -   $\lambda_{0}(t)$: Baseline hazard (e.g., Weibull, piecewise constant)
--   $\mathbf{m}_i(t)=\left(m_i(t), \dot{m}_i(t)\right)^{\top}$: Biomarker value and velocity
--   $\boldsymbol{\alpha}=(\alpha_1, \alpha_2)^{\top}$: Association parameters for value and velocity
--   $\mathbf{W}_i$: Baseline covariates with coefficients $\boldsymbol{\phi}$
--   $b_i$: Subject-specific random intercept
+-   $\mathbf{W}_i(t)$: Time-dependent or time-independent covariates with effects $\boldsymbol{\phi}$
 
 For detailed mathematical derivations including ODE formulation, likelihood construction, and EM algorithm specifics, see the [technical documentation](http://gongziyang.com/JointODE/articles/technical-details.html).
 
@@ -86,8 +81,8 @@ data(sim)
 
 # Fit joint ODE model
 fit <- JointODE(
-  longitudinal_formula = observed ~ x1 + x2 + x3,
-  survival_formula = Surv(time, status) ~ x1 + x2 + x3,
+  longitudinal_formula = observed ~ x1 + x2,
+  survival_formula = Surv(time, status) ~ w1 + w2,
   longitudinal_data = sim$data$longitudinal_data,
   survival_data = sim$data$survival_data,
   state = as.matrix(sim$data$state),
