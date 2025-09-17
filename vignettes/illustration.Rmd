@@ -1,0 +1,374 @@
+---
+title: "Biomarker Dynamics via Second-Order ODEs"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Biomarker Dynamics via Second-Order ODEs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 6,
+  fig.align = "center",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+```{r setup, echo=FALSE}
+library(JointODE)
+library(dplyr)
+library(purrr)
+
+library(nlme)
+library(ggplot2)
+library(gridExtra)
+library(grid)
+```
+
+> **Note**: This vignette draws inspiration from the [doremi](https://CRAN.R-project.org/package=doremi) package for modeling dynamical systems.
+
+Ordinary differential equations (ODEs) provide a rigorous mathematical framework for characterizing biomarker dynamics in complex biological systems. This vignette analyzes second-order ODE models, emphasizing damping's role in system behavior.
+
+The temporal evolution of biomarkers is governed by the following second-order linear ordinary differential equation with initial conditions:
+
+$$\frac{d^2m}{dt^2} + 2\xi\omega_n\frac{dm}{dt} + \omega_n^2 m = k\omega_n^2 u(t), \quad m(0) = m_0, \quad \frac{dm}{dt}(0) = v_0$$
+
+where:
+
+- $m(t)$: biomarker value at time $t$
+- $\xi$: damping ratio (dimensionless)
+- $\omega_n$: natural frequency (rad/s)
+- $k$: steady-state gain
+- $u(t)$: excitation function
+
+Three key characteristics govern system dynamics:
+
+1. **Damping Ratio** ($\xi$): Controls oscillatory behavior and stability
+2. **Oscillation Period** ($T=2\pi/\omega_n$): Time between successive peaks
+3. **Steady-State Equilibrium** ($m_{eq}$): Asymptotic value when derivatives vanish
+
+## Autonomous Systems
+
+For autonomous systems with constant excitation ($u(t) = c$), we simulate various damping ratios with zero excitation ($c = 0$):
+
+```{r simulation, echo=FALSE, message=FALSE, warning=FALSE}
+# Define damping ratios including key values
+xi <- c(-0.1, 0, 0.1, 0.3, 0.5, 0.707, 0.9, 1.0, 1.2, 1.5, 2.0)
+
+# Categorize damping ratios
+xi_group <- cut(
+  xi,
+  breaks = c(-Inf, 0, 0.7, 1, Inf),
+  labels = c(
+    "Divergent (ξ ≤ 0)",
+    "Underdamped (0 < ξ ≤ 0.7)",
+    "Critical (0.7 < ξ < 1)",
+    "Overdamped (ξ ≥ 1)"
+  ),
+  include.lowest = TRUE,
+  right = TRUE
+)
+
+# Run simulations
+simulations <- map(
+  xi,
+  ~ JointODE:::.solve_simple_biomarker_ode(configurations = list(xi = .x))
+)
+
+# Combine results
+simulation_data <- map2_df(
+  simulations,
+  seq_along(simulations),
+  function(data, idx) {
+    data.frame(
+      time = data$time,
+      biomarker = data$biomarker,
+      velocity = data$velocity,
+      damping_ratio = xi[idx],
+      group = xi_group[idx]
+    )
+  }
+)
+```
+
+```{r dynamics-plots, fig.width=12, fig.height=6, echo=FALSE}
+# Time series plot
+p_time <- ggplot(
+  simulation_data,
+  aes(x = time, y = biomarker, color = as.factor(damping_ratio))
+) +
+  geom_line(size = 1, alpha = 0.85) +
+  geom_hline(yintercept = 0, linetype = "dotted", alpha = 0.4) +
+  facet_wrap(~group, scales = "free_y", ncol = 2) +
+  scale_color_viridis_d(name = "ξ", option = "plasma") +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    legend.text = element_text(size = 7),
+    plot.title = element_text(face = "bold", size = 12),
+    strip.text = element_text(face = "bold", size = 9),
+    strip.background = element_rect(fill = "gray95", color = NA),
+    panel.grid.minor = element_blank()
+  ) +
+  labs(x = "Time", y = "Biomarker")
+
+# Phase portrait plot
+selected_xi <- c(-0.1, 0.3, 0.707, 1.5)
+phase_data <- simulation_data %>%
+  filter(damping_ratio %in% selected_xi)
+
+p_phase <- ggplot(phase_data, aes(x = biomarker, y = velocity)) +
+  geom_path(aes(color = time), size = 1, alpha = 0.8) +
+  geom_point(
+    data = phase_data %>%
+      group_by(damping_ratio) %>%
+      slice_min(time),
+    size = 2, shape = 21, fill = "green", color = "darkgreen"
+  ) +
+  geom_point(
+    data = phase_data %>%
+      group_by(damping_ratio) %>%
+      slice_max(time),
+    size = 2, shape = 21, fill = "red", color = "darkred"
+  ) +
+  facet_wrap(~ sprintf("ξ = %.3f", damping_ratio), scales = "free", ncol = 2) +
+  scale_color_viridis_c(name = "Time", option = "magma") +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", size = 12),
+    strip.text = element_text(face = "bold", size = 9),
+    strip.background = element_rect(fill = "gray95", color = NA),
+    panel.grid.minor = element_blank()
+  ) +
+  labs(
+    x = "Biomarker",
+    y = "Rate of Change (dm/dt)",
+    caption = "Initial conditions (green) and terminal states (red) indicated"
+  )
+
+# Combine plots side by side
+grid.arrange(p_time, p_phase, ncol = 2, widths = c(1, 1))
+```
+
+
+| Damping Range | Dynamic Regime | Qualitative Behavior |
+|--------------------------------|------------------|----------------------|
+| $\xi \leq 0$ | Unstable/Marginally Stable | Exponential divergence or sustained oscillations |
+| $0 < \xi \leq 0.7$ | Underdamped | Decaying oscillations with convergence to equilibrium |
+| $0.7 < \xi < 1$ | Near-Critical Damping | Rapid convergence with minimal overshoot |
+| $\xi \geq 1$ | Overdamped | Monotonic exponential approach to equilibrium |
+
+Four biological datasets illustrate distinct damping behaviors:
+
+- **Canadian Lynx** (1821-1934): Annual trapping data showing predator-prey population cycles with pronounced oscillations
+- **Theophylline**: Pharmacokinetic data from 12 subjects showing drug concentration after oral administration of the anti-asthmatic medication
+- **Indomethacin**: Plasma concentration following intravenous injection of the anti-inflammatory drug in 6 subjects
+- **Orange Tree Growth**: Trunk circumference measurements over time from a forestry growth study
+
+```{r real-data, fig.width=12, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+# Prepare data
+data(lynx)
+lynx_df <- data.frame(time = 1821:1860, value = lynx[1:40])
+
+data(Theoph)
+theoph_df <- Theoph[Theoph$Subject == 1, ]
+theoph_df <- data.frame(time = theoph_df$Time, value = theoph_df$conc)
+
+data(Indometh)
+indo_df <- Indometh[Indometh$Subject == 1, ]
+indo_df <- data.frame(time = indo_df$time, value = indo_df$conc)
+
+data(Orange)
+orange_df <- Orange[Orange$Tree == 1, ]
+orange_df <- data.frame(time = orange_df$age, value = orange_df$circumference)
+
+# Create individual plots with specific axis labels
+p_lynx <- ggplot(lynx_df, aes(x = time, y = value)) +
+  geom_line(size = 1, alpha = 0.9, color = "#C73E1D") +
+  geom_point(size = 1.5, alpha = 0.7, color = "#C73E1D") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(face = "bold", size = 10),
+    strip.background = element_rect(fill = "gray95", color = NA),
+    panel.grid.minor = element_blank(),
+    axis.title = element_text(size = 9),
+    axis.text = element_text(size = 8)
+  ) +
+  labs(
+    title = "Lynx",
+    x = "Year",
+    y = "Population (thousands)"
+  )
+
+p_theoph <- ggplot(theoph_df, aes(x = time, y = value)) +
+  geom_line(size = 1, alpha = 0.9, color = "#2E86AB") +
+  geom_point(size = 1.5, alpha = 0.7, color = "#2E86AB") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(face = "bold", size = 10),
+    strip.background = element_rect(fill = "gray95", color = NA),
+    panel.grid.minor = element_blank(),
+    axis.title = element_text(size = 9),
+    axis.text = element_text(size = 8)
+  ) +
+  labs(
+    title = "Theophylline", x = "hours", y = "mg/L"
+  )
+
+p_indo <- ggplot(indo_df, aes(x = time, y = value)) +
+  geom_line(size = 1, alpha = 0.9, color = "#A23B72") +
+  geom_point(size = 1.5, alpha = 0.7, color = "#A23B72") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(face = "bold", size = 10),
+    strip.background = element_rect(fill = "gray95", color = NA),
+    panel.grid.minor = element_blank(),
+    axis.title = element_text(size = 9),
+    axis.text = element_text(size = 8)
+  ) +
+  labs(
+    title = "Indomethacin", x = "hours", y = "mcg/ml"
+  )
+
+p_orange <- ggplot(orange_df, aes(x = time, y = value)) +
+  geom_line(size = 1, alpha = 0.9, color = "#F18F01") +
+  geom_point(size = 1.5, alpha = 0.7, color = "#F18F01") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(face = "bold", size = 10),
+    strip.background = element_rect(fill = "gray95", color = NA),
+    panel.grid.minor = element_blank(),
+    axis.title = element_text(size = 9),
+    axis.text = element_text(size = 8)
+  ) +
+  labs(title = "Orange Tree", x = "days", y = "Circumference (mm)")
+
+# Combine plots
+grid.arrange(p_lynx, p_theoph, p_indo, p_orange, ncol = 2, nrow = 2)
+```
+
+## Non-Autonomous System
+
+Non-autonomous systems with time-varying excitation $u(t)$ occur in pharmacological and environmental contexts. The response depends on both damping ratio $\xi$ and input characteristics.
+
+Consider a step input at $t = 50$:
+
+$$
+u(t) = \begin{cases}
+0 & t < 50 \\
+0.5 & t \geq 50
+\end{cases}
+$$
+
+This induces a transition from $m_{\text{eq}} = 0$ to $m_{\text{eq}} = 0.5k$, with transient behavior determined by $\xi$:
+
+```{r non-autonomous, fig.width=12, fig.height=6, echo=FALSE}
+xi_values <- c(-0.1, 0, 0.1, 0.3, 0.5, 0.707, 0.9, 1.0, 1.2, 1.5, 2.0)
+
+# Categorize damping ratios
+xi_group <- cut(
+  xi_values,
+  breaks = c(-Inf, 0, 0.7, 1, Inf),
+  labels = c(
+    "Divergent (ξ ≤ 0)",
+    "Underdamped (0 < ξ ≤ 0.7)",
+    "Critical (0.7 < ξ < 1)",
+    "Overdamped (ξ ≥ 1)"
+  ),
+  include.lowest = TRUE,
+  right = TRUE
+)
+
+# Define step input function
+step_input <- function(t) {
+  ifelse(t < 50, 0, 1) * 0.5
+}
+
+# Simulate responses using JointODE function
+na_data <- map2_df(xi_values, xi_group, function(xi, group) {
+  result <- JointODE:::.solve_simple_biomarker_ode(
+    configurations = list(xi = xi, excitation = step_input)
+  )
+
+  data.frame(
+    time = result$time,
+    biomarker = result$biomarker,
+    velocity = result$velocity,
+    damping_ratio = xi,
+    group = group
+  )
+})
+
+# Time series plot
+p_time_na <- ggplot(
+  na_data,
+  aes(x = time, y = biomarker, color = as.factor(damping_ratio))
+) +
+  geom_line(size = 1, alpha = 0.85) +
+  geom_vline(
+    xintercept = 50, linetype = "dashed",
+    color = "red", alpha = 0.5
+  ) +
+  geom_hline(yintercept = 0, linetype = "dotted", alpha = 0.4) +
+  geom_hline(yintercept = 1, linetype = "dotted", alpha = 0.4) +
+  facet_wrap(~group, scales = "free_y", ncol = 2) +
+  scale_color_viridis_d(name = "ξ", option = "plasma") +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    legend.text = element_text(size = 7),
+    plot.title = element_text(face = "bold", size = 12),
+    strip.text = element_text(face = "bold", size = 9),
+    strip.background = element_rect(fill = "gray95", color = NA),
+    panel.grid.minor = element_blank()
+  ) +
+  labs(x = "Time", y = "Biomarker")
+
+selected_xi_na <- c(-0.1, 0.707, 1.0, 1.5)
+phase_data_na <- na_data %>%
+  filter(damping_ratio %in% selected_xi_na)
+
+p_phase_na <- ggplot(phase_data_na, aes(x = biomarker, y = velocity)) +
+  geom_path(aes(color = time), size = 1, alpha = 0.8) +
+  geom_point(
+    data = phase_data_na %>%
+      group_by(damping_ratio) %>%
+      slice_min(time),
+    size = 2, shape = 21, fill = "green", color = "darkgreen"
+  ) +
+  geom_point(
+    data = phase_data_na %>%
+      group_by(damping_ratio) %>%
+      slice_max(time),
+    size = 2, shape = 21, fill = "red", color = "darkred"
+  ) +
+  facet_wrap(~ sprintf("ξ = %.3f", damping_ratio),
+    scales = "free", ncol = 2
+  ) +
+  scale_color_viridis_c(name = "Time", option = "magma") +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", size = 12),
+    strip.text = element_text(face = "bold", size = 9),
+    strip.background = element_rect(fill = "gray95", color = NA),
+    panel.grid.minor = element_blank()
+  ) +
+  labs(
+    x = "Biomarker",
+    y = "Rate of Change (dm/dt)",
+    caption = "Initial conditions (green) and terminal states (red) indicated"
+  )
+
+# Combine plots side by side
+grid.arrange(p_time_na, p_phase_na, ncol = 2, widths = c(1, 1))
+```
+
+
+This analysis requires $\omega_n^2 \geq 0$ for real natural frequencies, focusing on stable or oscillatory systems that better represent biological reality. Systems with $\omega_n^2 < 0$ exhibit purely exponential divergence without oscillations and lack practical relevance for modeling physiological processes.

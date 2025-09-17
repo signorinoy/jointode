@@ -14,6 +14,8 @@ template:
       articles:
         text: Vignettes
         menu:
+        - text: Biomarker Dynamics via Second-Order ODEs
+          href: articles/illustration.html
         - text: Technical Details
           href: articles/technical-details.html
         - text: Comparison
@@ -24,6 +26,7 @@ articles:
 - title: Technical Documentation
   navbar: ~
   contents:
+  - illustration
   - technical-details
   - comparison
 

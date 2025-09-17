@@ -39,7 +39,9 @@ Suggests:
     nlme,
     tibble,
     tidyr,
-    patchwork
+    patchwork,
+    purrr,
+    gridExtra
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 Depends:
