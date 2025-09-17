@@ -76,10 +76,10 @@ Here’s a basic example demonstrating typical usage:
 
 ``` r
 library(JointODE)
-#> 
+#>
 #> Attaching package: 'JointODE'
 #> The following object is masked from 'package:stats':
-#> 
+#>
 #>     simulate
 library(survival)
 
@@ -98,56 +98,56 @@ fit <- JointODE(
 
 # Model summary
 summary(fit)
-#> 
+#>
 #> Call:
-#> JointODE(longitudinal_formula = observed ~ x1 + x2, survival_formula = Surv(time, 
-#>     status) ~ w1 + w2, longitudinal_data = sim$data$longitudinal_data, 
-#>     survival_data = sim$data$survival_data, state = as.matrix(sim$data$state), 
+#> JointODE(longitudinal_formula = observed ~ x1 + x2, survival_formula = Surv(time,
+#>     status) ~ w1 + w2, longitudinal_data = sim$data$longitudinal_data,
+#>     survival_data = sim$data$survival_data, state = as.matrix(sim$data$state),
 #>     parallel = TRUE)
-#> 
+#>
 #> Data Descriptives:
 #> Longitudinal Process            Survival Process
 #> Number of Observations: 1222    Number of Events: 135 (68%)
 #> Number of Subjects: 200
-#> 
+#>
 #>        AIC        BIC     logLik
 #>  -1801.969  -1742.599    918.984
-#> 
+#>
 #> Coefficients:
 #> Longitudinal Process: Second-Order ODE Model
-#>                Estimate Std. Error z value Pr(>|z|)    
+#>                Estimate Std. Error z value Pr(>|z|)
 #> -omega_n^2    -1.581145   0.016643 -95.004   <2e-16 ***
 #> -2*xi*omega_n -1.788044   0.023600 -75.764   <2e-16 ***
-#> (Intercept)    0.002820   0.007587   0.372     0.71    
+#> (Intercept)    0.002820   0.007587   0.372     0.71
 #> x1             1.258015   0.014802  84.992   <2e-16 ***
 #> x2            -0.785201   0.010397 -75.520   <2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-#> 
+#>
 #> ODE System Characteristics:
-#>                    Estimate Std. Error z value Pr(>|z|)    
+#>                    Estimate Std. Error z value Pr(>|z|)
 #> T (period)          4.99682    0.02630  190.01   <2e-16 ***
 #> xi (damping ratio)  0.71099    0.01286   55.27   <2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-#> 
+#>
 #> Survival Process: Proportional Hazards Model
-#>         Estimate Std. Error z value Pr(>|z|)    
-#> alpha_1   0.3623     0.1188   3.050  0.00229 ** 
-#> alpha_2   0.7140     0.3944   1.810  0.07026 .  
+#>         Estimate Std. Error z value Pr(>|z|)
+#> alpha_1   0.3623     0.1188   3.050  0.00229 **
+#> alpha_2   0.7140     0.3944   1.810  0.07026 .
 #> w1        0.3389     0.0855   3.964 7.37e-05 ***
-#> w2       -0.4955     0.1725  -2.873  0.00407 ** 
+#> w2       -0.4955     0.1725  -2.873  0.00407 **
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-#> 
+#>
 #> Baseline Hazard: B-spline with 7 basis functions
 #> (Coefficients range: [-2.930, -1.514] )
-#> 
+#>
 #> Variance Components:
 #>               StdDev
 #> Random Effect       0.092774
 #> Residual            0.102891
-#> 
+#>
 #> Model Diagnostics:
 #> C-index (Concordance): 0.793
 #> Convergence: EM algorithm converged after 35 iterations
@@ -158,13 +158,13 @@ predictions <- predict(fit, times = seq(0, 10, by = 0.25))
 
 ## Visualization
 
-    #> 
+    #>
     #> Attaching package: 'dplyr'
     #> The following objects are masked from 'package:stats':
-    #> 
+    #>
     #>     filter, lag
     #> The following objects are masked from 'package:base':
-    #> 
+    #>
     #>     intersect, setdiff, setequal, union
 
 <img src="man/figures/README-visualization-1.png" width="100%" />

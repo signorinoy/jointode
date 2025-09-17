@@ -1,8 +1,8 @@
 ---
-title: "Biomarker Dynamics via Second-Order ODEs"
+title: "Illustration"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Biomarker Dynamics via Second-Order ODEs}
+  %\VignetteIndexEntry{Illustration}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -30,7 +30,9 @@ library(gridExtra)
 library(grid)
 ```
 
-> **Note**: This vignette draws inspiration from the [doremi](https://CRAN.R-project.org/package=doremi) package for modeling dynamical systems.
+## Biomarker Trajectories
+
+> **Note**: This part draws inspiration from the [doremi](https://CRAN.R-project.org/package=doremi) package for modeling dynamical systems.
 
 Ordinary differential equations (ODEs) provide a rigorous mathematical framework for characterizing biomarker dynamics in complex biological systems. This vignette analyzes second-order ODE models, emphasizing damping's role in system behavior.
 
@@ -52,7 +54,7 @@ Three key characteristics govern system dynamics:
 2. **Oscillation Period** ($T=2\pi/\omega_n$): Time between successive peaks
 3. **Steady-State Equilibrium** ($m_{eq}$): Asymptotic value when derivatives vanish
 
-## Autonomous Systems
+### Autonomous Systems
 
 For autonomous systems with constant excitation ($u(t) = c$), we simulate various damping ratios with zero excitation ($c = 0$):
 
@@ -164,96 +166,8 @@ grid.arrange(p_time, p_phase, ncol = 2, widths = c(1, 1))
 | $0.7 < \xi < 1$ | Near-Critical Damping | Rapid convergence with minimal overshoot |
 | $\xi \geq 1$ | Overdamped | Monotonic exponential approach to equilibrium |
 
-Four biological datasets illustrate distinct damping behaviors:
 
-- **Canadian Lynx** (1821-1934): Annual trapping data showing predator-prey population cycles with pronounced oscillations
-- **Theophylline**: Pharmacokinetic data from 12 subjects showing drug concentration after oral administration of the anti-asthmatic medication
-- **Indomethacin**: Plasma concentration following intravenous injection of the anti-inflammatory drug in 6 subjects
-- **Orange Tree Growth**: Trunk circumference measurements over time from a forestry growth study
-
-```{r real-data, fig.width=12, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
-# Prepare data
-data(lynx)
-lynx_df <- data.frame(time = 1821:1860, value = lynx[1:40])
-
-data(Theoph)
-theoph_df <- Theoph[Theoph$Subject == 1, ]
-theoph_df <- data.frame(time = theoph_df$Time, value = theoph_df$conc)
-
-data(Indometh)
-indo_df <- Indometh[Indometh$Subject == 1, ]
-indo_df <- data.frame(time = indo_df$time, value = indo_df$conc)
-
-data(Orange)
-orange_df <- Orange[Orange$Tree == 1, ]
-orange_df <- data.frame(time = orange_df$age, value = orange_df$circumference)
-
-# Create individual plots with specific axis labels
-p_lynx <- ggplot(lynx_df, aes(x = time, y = value)) +
-  geom_line(size = 1, alpha = 0.9, color = "#C73E1D") +
-  geom_point(size = 1.5, alpha = 0.7, color = "#C73E1D") +
-  theme_minimal() +
-  theme(
-    strip.text = element_text(face = "bold", size = 10),
-    strip.background = element_rect(fill = "gray95", color = NA),
-    panel.grid.minor = element_blank(),
-    axis.title = element_text(size = 9),
-    axis.text = element_text(size = 8)
-  ) +
-  labs(
-    title = "Lynx",
-    x = "Year",
-    y = "Population (thousands)"
-  )
-
-p_theoph <- ggplot(theoph_df, aes(x = time, y = value)) +
-  geom_line(size = 1, alpha = 0.9, color = "#2E86AB") +
-  geom_point(size = 1.5, alpha = 0.7, color = "#2E86AB") +
-  theme_minimal() +
-  theme(
-    strip.text = element_text(face = "bold", size = 10),
-    strip.background = element_rect(fill = "gray95", color = NA),
-    panel.grid.minor = element_blank(),
-    axis.title = element_text(size = 9),
-    axis.text = element_text(size = 8)
-  ) +
-  labs(
-    title = "Theophylline", x = "hours", y = "mg/L"
-  )
-
-p_indo <- ggplot(indo_df, aes(x = time, y = value)) +
-  geom_line(size = 1, alpha = 0.9, color = "#A23B72") +
-  geom_point(size = 1.5, alpha = 0.7, color = "#A23B72") +
-  theme_minimal() +
-  theme(
-    strip.text = element_text(face = "bold", size = 10),
-    strip.background = element_rect(fill = "gray95", color = NA),
-    panel.grid.minor = element_blank(),
-    axis.title = element_text(size = 9),
-    axis.text = element_text(size = 8)
-  ) +
-  labs(
-    title = "Indomethacin", x = "hours", y = "mcg/ml"
-  )
-
-p_orange <- ggplot(orange_df, aes(x = time, y = value)) +
-  geom_line(size = 1, alpha = 0.9, color = "#F18F01") +
-  geom_point(size = 1.5, alpha = 0.7, color = "#F18F01") +
-  theme_minimal() +
-  theme(
-    strip.text = element_text(face = "bold", size = 10),
-    strip.background = element_rect(fill = "gray95", color = NA),
-    panel.grid.minor = element_blank(),
-    axis.title = element_text(size = 9),
-    axis.text = element_text(size = 8)
-  ) +
-  labs(title = "Orange Tree", x = "days", y = "Circumference (mm)")
-
-# Combine plots
-grid.arrange(p_lynx, p_theoph, p_indo, p_orange, ncol = 2, nrow = 2)
-```
-
-## Non-Autonomous System
+### Non-Autonomous System
 
 Non-autonomous systems with time-varying excitation $u(t)$ occur in pharmacological and environmental contexts. The response depends on both damping ratio $\xi$ and input characteristics.
 
@@ -370,5 +284,106 @@ p_phase_na <- ggplot(phase_data_na, aes(x = biomarker, y = velocity)) +
 grid.arrange(p_time_na, p_phase_na, ncol = 2, widths = c(1, 1))
 ```
 
+### Real-Data Examples
+
+Four biological datasets illustrate distinct damping behaviors:
+
+- **Canadian Lynx** (1821-1934): Annual trapping data showing predator-prey population cycles with pronounced oscillations
+- **Theophylline**: Pharmacokinetic data from 12 subjects showing drug concentration after oral administration of the anti-asthmatic medication
+- **Indomethacin**: Plasma concentration following intravenous injection of the anti-inflammatory drug in 6 subjects
+- **Orange Tree Growth**: Trunk circumference measurements over time from a forestry growth study
+
+```{r real-data, fig.width=12, fig.height=6, echo=FALSE, message=FALSE, warning=FALSE}
+# Prepare data
+data(lynx)
+lynx_df <- data.frame(time = 1821:1860, value = lynx[1:40])
+
+data(Theoph)
+theoph_df <- Theoph[Theoph$Subject == 1, ]
+theoph_df <- data.frame(time = theoph_df$Time, value = theoph_df$conc)
+
+data(Indometh)
+indo_df <- Indometh[Indometh$Subject == 1, ]
+indo_df <- data.frame(time = indo_df$time, value = indo_df$conc)
+
+data(Orange)
+orange_df <- Orange[Orange$Tree == 1, ]
+orange_df <- data.frame(time = orange_df$age, value = orange_df$circumference)
+
+# Create individual plots with specific axis labels
+p_lynx <- ggplot(lynx_df, aes(x = time, y = value)) +
+  geom_line(size = 1, alpha = 0.9, color = "#C73E1D") +
+  geom_point(size = 1.5, alpha = 0.7, color = "#C73E1D") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(face = "bold", size = 10),
+    strip.background = element_rect(fill = "gray95", color = NA),
+    panel.grid.minor = element_blank(),
+    axis.title = element_text(size = 9),
+    axis.text = element_text(size = 8)
+  ) +
+  labs(
+    title = "Lynx",
+    x = "Year",
+    y = "Population (thousands)"
+  )
+
+p_theoph <- ggplot(theoph_df, aes(x = time, y = value)) +
+  geom_line(size = 1, alpha = 0.9, color = "#2E86AB") +
+  geom_point(size = 1.5, alpha = 0.7, color = "#2E86AB") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(face = "bold", size = 10),
+    strip.background = element_rect(fill = "gray95", color = NA),
+    panel.grid.minor = element_blank(),
+    axis.title = element_text(size = 9),
+    axis.text = element_text(size = 8)
+  ) +
+  labs(
+    title = "Theophylline", x = "hours", y = "mg/L"
+  )
+
+p_indo <- ggplot(indo_df, aes(x = time, y = value)) +
+  geom_line(size = 1, alpha = 0.9, color = "#A23B72") +
+  geom_point(size = 1.5, alpha = 0.7, color = "#A23B72") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(face = "bold", size = 10),
+    strip.background = element_rect(fill = "gray95", color = NA),
+    panel.grid.minor = element_blank(),
+    axis.title = element_text(size = 9),
+    axis.text = element_text(size = 8)
+  ) +
+  labs(
+    title = "Indomethacin", x = "hours", y = "mcg/ml"
+  )
+
+p_orange <- ggplot(orange_df, aes(x = time, y = value)) +
+  geom_line(size = 1, alpha = 0.9, color = "#F18F01") +
+  geom_point(size = 1.5, alpha = 0.7, color = "#F18F01") +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(face = "bold", size = 10),
+    strip.background = element_rect(fill = "gray95", color = NA),
+    panel.grid.minor = element_blank(),
+    axis.title = element_text(size = 9),
+    axis.text = element_text(size = 8)
+  ) +
+  labs(title = "Orange Tree", x = "days", y = "Circumference (mm)")
+
+# Combine plots
+grid.arrange(p_lynx, p_theoph, p_indo, p_orange, ncol = 2, nrow = 2)
+```
 
 This analysis requires $\omega_n^2 \geq 0$ for real natural frequencies, focusing on stable or oscillatory systems that better represent biological reality. Systems with $\omega_n^2 < 0$ exhibit purely exponential divergence without oscillations and lack practical relevance for modeling physiological processes.
+
+## Survival Outcomes
+
+The hazard function incorporates both biomarker value and its rate of change:
+
+$$h(t) = h_0(t) \exp(\beta_1 m(t) + \beta_2 |m'(t)|)$$
+
+Here $|m'(t)|$ captures variability—rapid changes in either direction indicate instability and elevated risk.
+
+Consider blood glucose: stable levels suggest controlled diabetes, while rapid fluctuations (high $|m'(t)|$) indicate poor glycemic control and higher complication risk, effectively measuring the temporal variance of the biomarker.
+

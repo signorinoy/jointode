@@ -14,7 +14,7 @@ template:
       articles:
         text: Vignettes
         menu:
-        - text: Biomarker Dynamics via Second-Order ODEs
+        - text: Illustration
           href: articles/illustration.html
         - text: Technical Details
           href: articles/technical-details.html
