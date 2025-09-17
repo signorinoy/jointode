@@ -98,10 +98,10 @@ hazard and <span class="math inline">\alpha = (\alpha_1,
 \alpha_2)</span> captures the association with biomarker value and
 velocity.</p>
 <pre><code><span><span class="co">#&gt; True Parameters:</span></span>
-<span><span class="co">#&gt;   Hazard: α = [0.3, 1.5], φ = [0.4, -0.6]</span></span>
+<span><span class="co">#&gt;   Hazard: α = [0.3, 1.0], φ = [0.4, -0.6]</span></span>
 <span><span class="co">#&gt;   ODE: β = [-1.6, -1.8, 0.0, 1.3, -0.8]</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Dataset: 200 subjects, 1177 observations, 68% events</span></span></code></pre>
+<span><span class="co">#&gt; Dataset: 200 subjects, 1222 observations, 68% events</span></span></code></pre>
 <div class="section level3">
 <h3 id="ode-dynamics">ODE Dynamics<a class="anchor" aria-label="anchor" href="#ode-dynamics"></a>
 </h3>
@@ -113,14 +113,14 @@ of random intercept and measurement error by comparing the true
 biomarker trajectories (lines) with the observed measurements
 (points).</p>
 <pre><code><span><span class="co">#&gt; Variance Components:</span></span>
-<span><span class="co">#&gt;   Biomarker: 1.022</span></span>
-<span><span class="co">#&gt;   Velocity: 0.194</span></span>
-<span><span class="co">#&gt;   Acceleration: 1.895</span></span>
+<span><span class="co">#&gt;   Biomarker: 1.735</span></span>
+<span><span class="co">#&gt;   Velocity: 0.425</span></span>
+<span><span class="co">#&gt;   Acceleration: 3.803</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Pairwise Correlations:</span></span>
-<span><span class="co">#&gt;   ρ(Biomarker, Velocity): -0.012</span></span>
-<span><span class="co">#&gt;   ρ(Biomarker, Acceleration): -0.518</span></span>
-<span><span class="co">#&gt;   ρ(Velocity, Acceleration): -0.294</span></span></code></pre>
+<span><span class="co">#&gt;   ρ(Biomarker, Velocity): -0.119</span></span>
+<span><span class="co">#&gt;   ρ(Biomarker, Acceleration): -0.655</span></span>
+<span><span class="co">#&gt;   ρ(Velocity, Acceleration): -0.315</span></span></code></pre>
 <p>The variance hierarchy and correlation structure reflect the
 fundamental properties of the ODE system. Unlike independent variables
 in traditional models, these components are mechanistically linked

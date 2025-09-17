@@ -73,10 +73,8 @@
 <div class="section level2">
 <h2 id="model-setup">Model Setup<a class="anchor" aria-label="anchor" href="#model-setup"></a>
 </h2>
-<div class="section level3">
-<h3 id="longitudinal-model">Longitudinal Model<a class="anchor" aria-label="anchor" href="#longitudinal-model"></a>
-</h3>
-<p>The observed biomarker measurements are modeled as: <span class="math display">V_{ij}=m_i(T_{ij})+b_i+\varepsilon_{ij},\quad i=1,\ldots,n,\quad j=1,\ldots,n_i</span></p>
+<p>The observed biomarker measurements are modeled as:</p>
+<p><span class="math display">V_{ij}=m_i(T_{ij})+b_i+\varepsilon_{ij},\quad i=1,\ldots,n,\quad j=1,\ldots,n_i</span></p>
 <p>where:</p>
 <ul>
 <li>
@@ -90,27 +88,20 @@
 <span class="math inline">\varepsilon_{ij}\sim\mathcal{N}(0,\sigma_{e}^{2})</span>: Measurement error</li>
 </ul>
 <p>The biomarker trajectory evolution is characterized by the following second-order differential equation:</p>
-<p><span class="math display">\ddot{m}_i(t) = f\big(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t\big)</span></p>
-<p>where <span class="math inline">f: \mathbb{R} \times \mathbb{R} \times \mathbb{R}^p \times \mathbb{R}^+ \to \mathbb{R}</span> is a smooth function modeling the biomarker acceleration as a function of its current value <span class="math inline">m_i(t)</span>, velocity <span class="math inline">\dot{m}_i(t)</span>, time-varying covariates <span class="math inline">\mathbf{X}_i(t) \in \mathbb{R}^p</span>, and time <span class="math inline">t</span>.</p>
-</div>
+<p><span class="math display">\ddot{m}_i(t) + 2 \xi \omega_n \dot{m}_i(t) + \omega_n^2 m_i(t) = k \omega_n^2 \boldsymbol{X}_i(t)^{\top} \boldsymbol{\beta},</span></p>
+<p>where <span class="math inline">\dot{m}_i(t)</span> and <span class="math inline">\ddot{m}_i(t)</span> denote the biomarker’s velocity and acceleration, respectively, and <span class="math inline">\boldsymbol{X}_i(t)</span> denotes time-varying covariates. The parameters have the usual interpretations: <span class="math inline">\omega_n &gt; 0</span> is the natural frequency, <span class="math inline">\xi</span> is the damping ratio, and <span class="math inline">k</span> is the steady-state gain.</p>
 <div class="section level3">
-<h3 id="survival-model">Survival Model<a class="anchor" aria-label="anchor" href="#survival-model"></a>
+<h3 id="survival-sub-model">Survival Sub-Model<a class="anchor" aria-label="anchor" href="#survival-sub-model"></a>
 </h3>
 <p>The hazard function incorporates biomarker dynamics:</p>
-<p><span class="math display">\lambda_i(t) = \lambda_{0}(t)\exp\left[\mathbf{m}_i(t)^{\top}\boldsymbol{\alpha}+\mathbf{W}_i^{\top}\boldsymbol{\phi}+b_{i}\right]</span></p>
+<p><span class="math display">\lambda_i(t) = \lambda_{0}(t)\exp\left[\alpha_1 m_i(t) + \alpha_2 \dot{m}_i(t) + \mathbf{W}_i(t)^{\top}\boldsymbol{\phi}+b_{i}\right]</span></p>
 <p>where:</p>
 <ul>
 <li>
 <span class="math inline">\lambda_{0}(t)</span>: Baseline hazard (e.g., Weibull, piecewise constant)</li>
 <li>
-<span class="math inline">\mathbf{m}_i(t)=\left(m_i(t), \dot{m}_i(t)\right)^{\top}</span>: Biomarker value and velocity</li>
-<li>
-<span class="math inline">\boldsymbol{\alpha}=(\alpha_1, \alpha_2)^{\top}</span>: Association parameters for value and velocity</li>
-<li>
-<span class="math inline">\mathbf{W}_i</span>: Baseline covariates with coefficients <span class="math inline">\boldsymbol{\phi}</span>
+<span class="math inline">\mathbf{W}_i(t)</span>: Time-dependent or time-independent covariates with effects <span class="math inline">\boldsymbol{\phi}</span>
 </li>
-<li>
-<span class="math inline">b_i</span>: Subject-specific random intercept</li>
 </ul>
 <p>For detailed mathematical derivations including ODE formulation, likelihood construction, and EM algorithm specifics, see the <a href="http://gongziyang.com/JointODE/articles/technical-details.html">technical documentation</a>.</p>
 </div>
@@ -129,10 +120,10 @@
 <p>Here’s a basic example demonstrating typical usage:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ziyangg98/JointODE" class="external-link">JointODE</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Attaching package: 'JointODE'</span></span>
 <span><span class="co">#&gt; The following object is masked from 'package:stats':</span></span>
-<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     simulate</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/therneau/survival" class="external-link">survival</a></span><span class="op">)</span></span>
 <span></span>
@@ -151,59 +142,59 @@
 <span></span>
 <span><span class="co"># Model summary</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Call:</span></span>
-<span><span class="co">#&gt; JointODE(longitudinal_formula = observed ~ x1 + x2, survival_formula = Surv(time,</span></span>
-<span><span class="co">#&gt;     status) ~ w1 + w2, longitudinal_data = sim$data$longitudinal_data,</span></span>
-<span><span class="co">#&gt;     survival_data = sim$data$survival_data, state = as.matrix(sim$data$state),</span></span>
+<span><span class="co">#&gt; JointODE(longitudinal_formula = observed ~ x1 + x2, survival_formula = Surv(time, </span></span>
+<span><span class="co">#&gt;     status) ~ w1 + w2, longitudinal_data = sim$data$longitudinal_data, </span></span>
+<span><span class="co">#&gt;     survival_data = sim$data$survival_data, state = as.matrix(sim$data$state), </span></span>
 <span><span class="co">#&gt;     parallel = TRUE)</span></span>
-<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Data Descriptives:</span></span>
 <span><span class="co">#&gt; Longitudinal Process            Survival Process</span></span>
-<span><span class="co">#&gt; Number of Observations: 1177    Number of Events: 135 (68%)</span></span>
+<span><span class="co">#&gt; Number of Observations: 1222    Number of Events: 135 (68%)</span></span>
 <span><span class="co">#&gt; Number of Subjects: 200</span></span>
-<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;        AIC        BIC     logLik</span></span>
-<span><span class="co">#&gt;  -1798.979  -1739.609    917.489</span></span>
-<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt;  -1801.969  -1742.599    918.984</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt; Longitudinal Process: Second-Order ODE Model</span></span>
-<span><span class="co">#&gt;                Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; -omega_n^2    -1.591306   0.026152 -60.847   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; -2*xi*omega_n -1.794229   0.037153 -48.293   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; (Intercept)   -0.010535   0.007797  -1.351    0.177</span></span>
-<span><span class="co">#&gt; x1             1.265599   0.022198  57.015   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; x2            -0.781541   0.014546 -53.728   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt;                Estimate Std. Error z value Pr(&gt;|z|)    </span></span>
+<span><span class="co">#&gt; -omega_n^2    -1.581145   0.016643 -95.004   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; -2*xi*omega_n -1.788044   0.023600 -75.764   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; (Intercept)    0.002820   0.007587   0.372     0.71    </span></span>
+<span><span class="co">#&gt; x1             1.258015   0.014802  84.992   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; x2            -0.785201   0.010397 -75.520   &lt;2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ODE System Characteristics:</span></span>
-<span><span class="co">#&gt;                    Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; T (period)          4.98085    0.04093  121.69   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; xi (damping ratio)  0.71117    0.02017   35.27   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt;                    Estimate Std. Error z value Pr(&gt;|z|)    </span></span>
+<span><span class="co">#&gt; T (period)          4.99682    0.02630  190.01   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; xi (damping ratio)  0.71099    0.01286   55.27   &lt;2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Survival Process: Proportional Hazards Model</span></span>
-<span><span class="co">#&gt;         Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; alpha_1  0.18641    0.12778   1.459  0.14460</span></span>
-<span><span class="co">#&gt; alpha_2  1.72151    0.38675   4.451 8.54e-06 ***</span></span>
-<span><span class="co">#&gt; w1       0.34102    0.08549   3.989 6.64e-05 ***</span></span>
-<span><span class="co">#&gt; w2      -0.50665    0.17343  -2.921  0.00348 **</span></span>
+<span><span class="co">#&gt;         Estimate Std. Error z value Pr(&gt;|z|)    </span></span>
+<span><span class="co">#&gt; alpha_1   0.3623     0.1188   3.050  0.00229 ** </span></span>
+<span><span class="co">#&gt; alpha_2   0.7140     0.3944   1.810  0.07026 .  </span></span>
+<span><span class="co">#&gt; w1        0.3389     0.0855   3.964 7.37e-05 ***</span></span>
+<span><span class="co">#&gt; w2       -0.4955     0.1725  -2.873  0.00407 ** </span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Baseline Hazard: B-spline with 7 basis functions</span></span>
-<span><span class="co">#&gt; (Coefficients range: [-4.240, -1.656] )</span></span>
-<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; (Coefficients range: [-2.930, -1.514] )</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Variance Components:</span></span>
 <span><span class="co">#&gt;               StdDev</span></span>
-<span><span class="co">#&gt; Random Effect       0.082872</span></span>
-<span><span class="co">#&gt; Residual            0.102896</span></span>
-<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; Random Effect       0.092774</span></span>
+<span><span class="co">#&gt; Residual            0.102891</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Model Diagnostics:</span></span>
-<span><span class="co">#&gt; C-index (Concordance): 0.832</span></span>
-<span><span class="co">#&gt; Convergence: EM algorithm converged after 31 iterations</span></span>
+<span><span class="co">#&gt; C-index (Concordance): 0.793</span></span>
+<span><span class="co">#&gt; Convergence: EM algorithm converged after 35 iterations</span></span>
 <span></span>
 <span><span class="co"># Generate predictions</span></span>
 <span><span class="va">predictions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, times <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">10</span>, by <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
@@ -211,13 +202,13 @@
 <div class="section level2">
 <h2 id="visualization">Visualization<a class="anchor" aria-label="anchor" href="#visualization"></a>
 </h2>
-<div class="sourceCode" id="cb3"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co">#&gt;</span></span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; Attaching package: 'dplyr'</span></span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from 'package:stats':</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;     filter, lag</span></span>
 <span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from 'package:base':</span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt;</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
 <span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt;     intersect, setdiff, setequal, union</span></span></code></pre></div>
 <p><img src="reference/figures/README-visualization-1.png" width="100%"></p>
 </div>

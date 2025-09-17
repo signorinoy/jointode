@@ -108,21 +108,21 @@ Measurement error</li>
 <p>The biomarker trajectory evolution is characterized by the following
 second-order differential equation:</p>
 <p><span class="math display">
-\ddot{m}_i(t) = f\big(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t\big)
+\ddot{m}_i(t) + 2 \xi \omega_n \dot{m}_i(t) + \omega_n^2 m_i(t) = k
+\omega_n^2 \boldsymbol{X}_i(t)^{\top} \boldsymbol{\beta},
 </span></p>
-<p>where <span class="math inline">f: \mathbb{R} \times \mathbb{R}
-\times \mathbb{R}^p \times \mathbb{R}^+ \to \mathbb{R}</span> is a
-smooth function modeling the biomarker acceleration as a function of its
-current value <span class="math inline">m_i(t)</span>, velocity <span class="math inline">\dot{m}_i(t)</span>, time-varying covariates <span class="math inline">\mathbf{X}_i(t) \in \mathbb{R}^p</span>, and time
-<span class="math inline">t</span>.</p>
+<p>where <span class="math inline">\dot{m}_i(t)</span> and <span class="math inline">\ddot{m}_i(t)</span> denote the biomarker’s velocity
+and acceleration, respectively, and <span class="math inline">\boldsymbol{X}_i(t)</span> denotes time-varying
+covariates. The parameters have the usual interpretations: <span class="math inline">\omega_n &gt; 0</span> is the natural frequency,
+<span class="math inline">\xi</span> is the damping ratio, and <span class="math inline">k</span> is the steady-state gain.</p>
 </div>
 <div class="section level3">
 <h3 id="survival-sub-model">Survival Sub-Model<a class="anchor" aria-label="anchor" href="#survival-sub-model"></a>
 </h3>
 <p>The hazard function incorporates biomarker dynamics:</p>
 <p><span class="math display">
-\lambda_i(t) =
-\lambda_{0}(t)\exp\left[\mathbf{W}_i^{\top}\boldsymbol{\phi}+\mathbf{m}_i(t)^{\top}\boldsymbol{\alpha}+b_{i}\right]
+\lambda_i(t) = \lambda_{0}(t)\exp\left[\alpha_1 m_i(t) + \alpha_2
+\dot{m}_i(t) + \mathbf{W}_i(t)^{\top}\boldsymbol{\phi}+b_{i}\right]
 </span></p>
 <p>where:</p>
 <ul>
@@ -130,19 +130,9 @@ current value <span class="math inline">m_i(t)</span>, velocity <span class="mat
 <span class="math inline">\lambda_{0}(t)</span>: Baseline hazard
 (e.g., Weibull, piecewise constant)</li>
 <li>
-<span class="math inline">\mathbf{m}_i(t)=\left(m_i(t),
-\dot{m}_i(t)\right)^{\top}</span>: Biomarker value and derivatives</li>
-<li>
-<span class="math inline">\boldsymbol{\alpha}=(\alpha_1,
-\alpha_2)^{\top}</span>: Association parameters for value and
-velocity</li>
-<li>
-<span class="math inline">\mathbf{W}_i</span>: Baseline covariates
-with coefficients <span class="math inline">\boldsymbol{\phi}</span>
+<span class="math inline">\mathbf{W}_i(t)</span>: Time-dependent or
+time-independent covariates with effects <span class="math inline">\boldsymbol{\phi}</span>
 </li>
-<li>
-<span class="math inline">b_i</span>: Subject-specific random
-intercept</li>
 </ul>
 </div>
 <div class="section level3">
@@ -155,7 +145,7 @@ the survival process. The state vector <span class="math inline">\mathbf{s}_i(t)
 \frac{d\mathbf{s}_i}{dt} = \begin{pmatrix}
 \lambda_i(t|b_i) \\
 \dot{m}_i(t) \\
-f(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t), t)
+\ddot{m}_i(t)
 \end{pmatrix}
 </span></p>
 <p>with initial conditions <span class="math inline">\mathbf{s}_i(0) =
@@ -164,13 +154,10 @@ and velocity for subject <span class="math inline">i</span>.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="statistical-inference">Statistical Inference<a class="anchor" aria-label="anchor" href="#statistical-inference"></a>
+<h2 id="model-parameterization">Model Parameterization<a class="anchor" aria-label="anchor" href="#model-parameterization"></a>
 </h2>
 <p>For parameter estimation, we need to specify parametric forms for the
 model components.</p>
-<div class="section level3">
-<h3 id="model-parameterization">Model Parameterization<a class="anchor" aria-label="anchor" href="#model-parameterization"></a>
-</h3>
 <p><strong>Hazard Function:</strong> We parameterize the log baseline
 hazard using B-splines:</p>
 <p><span class="math display">\log\lambda_0(t) =
@@ -184,22 +171,14 @@ hazard using B-splines:</p>
 the B-spline basis for the log baseline hazard, and <span class="math inline">\boldsymbol{\eta}</span> are the corresponding
 coefficients.</p>
 <p><strong>Acceleration Function:</strong> To make the model tractable,
-we approximate the unknown acceleration function <span class="math inline">f</span> using a linear model:</p>
-<p><span class="math display">f(m_i(t), \dot{m}_i(t), \mathbf{X}_i(t),
-t) \approx \boldsymbol{\beta}^{\top}\mathbf{Z}_i(t)</span></p>
-<p>where:</p>
-<ul>
-<li>
-<span class="math inline">\mathbf{Z}_i(t) = [m_i(t), \dot{m}_i(t),
-\mathbf{X}_i^{\top}(t), t]^{\top}</span> is the feature vector</li>
-<li>
-<span class="math inline">\boldsymbol{\beta}</span> are the linear
-coefficients (no constraints needed)</li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="likelihood">Likelihood<a class="anchor" aria-label="anchor" href="#likelihood"></a>
-</h3>
+we express the acceleration as a linear function of the feature
+vector:</p>
+<p><span class="math display">\ddot{m}_i(t) = \boldsymbol{\beta}^{\top}
+\mathbf{Z}_i(t)</span></p>
+<p>where <span class="math inline">\mathbf{Z}_i(t) = [m_i(t),
+\dot{m}_i(t), \mathbf{X}_i(t)^{\top}(t)]^{\top}</span> is the feature
+vector with coefficients <span class="math inline">\boldsymbol{\beta} =
+[\beta_1, \beta_2, \boldsymbol{\beta}_X^{\top}]^{\top}</span>.</p>
 <p>The joint likelihood for subject <span class="math inline">i</span>
 integrates over the random effect:</p>
 <p><span class="math display">L_i(\boldsymbol{\theta}) = \int
@@ -219,14 +198,14 @@ db_i</span></p>
 \sim \mathcal{N}(0, \sigma_b^2)</span></p></li>
 </ol>
 </div>
-<div class="section level3">
-<h3 id="parameter-estimation">Parameter Estimation<a class="anchor" aria-label="anchor" href="#parameter-estimation"></a>
-</h3>
+<div class="section level2">
+<h2 id="estimation-procedure">Estimation Procedure<a class="anchor" aria-label="anchor" href="#estimation-procedure"></a>
+</h2>
 <p>For the linear acceleration model, we use direct gradient-based
 optimization of the marginal likelihood.</p>
-<div class="section level4">
-<h4 id="posterior-computation">Posterior Computation<a class="anchor" aria-label="anchor" href="#posterior-computation"></a>
-</h4>
+<div class="section level3">
+<h3 id="posterior-computation">Posterior Computation<a class="anchor" aria-label="anchor" href="#posterior-computation"></a>
+</h3>
 <p>For each subject <span class="math inline">i</span>, compute the
 posterior distribution of <span class="math inline">b_i</span> given
 observed data <span class="math inline">\mathcal{O}_i</span>.</p>
@@ -264,9 +243,9 @@ for survival updates</li>
 </li>
 </ol>
 </div>
-<div class="section level4">
-<h4 id="objective-function">Objective Function<a class="anchor" aria-label="anchor" href="#objective-function"></a>
-</h4>
+<div class="section level3">
+<h3 id="objective-function">Objective Function<a class="anchor" aria-label="anchor" href="#objective-function"></a>
+</h3>
 <p>We maximize the expected complete-data log-likelihood:</p>
 <p><span class="math display">Q(\boldsymbol{\theta}) = Q_{\text{long}} +
 Q_{\text{surv}} + Q_{\text{RE}}</span></p>
@@ -297,7 +276,6 @@ Q(\boldsymbol{\theta})
 + \hat{v}_i],\quad\sigma_b^2 = \frac{1}{n}\sum_i(\hat{b}_i^2 +
 \hat{v}_i)
 </span></p>
-</div>
 </div>
 </div>
 <div class="section level2">
@@ -536,181 +514,31 @@ the <span class="math inline">k</span>-th position and 0 elsewhere).</p>
 <div class="section level2">
 <h2 id="inference">Inference<a class="anchor" aria-label="anchor" href="#inference"></a>
 </h2>
-<p>Linear differential equations are fundamental tools for modeling
-biomedical systems:</p>
-<ul>
-<li>
-<strong>First-order ODE</strong>: <span class="math inline">\frac{dy}{dt} = ay + b</span> (drug metabolism, cell
-growth)</li>
-<li>
-<strong>Second-order ODE</strong>: <span class="math inline">\frac{d^2y}{dt^2} = ay + b\frac{dy}{dt} + c</span>
-(glucose regulation, heart rate variability)</li>
-</ul>
-<div class="section level3">
-<h3 id="parameter-transformation">Parameter Transformation<a class="anchor" aria-label="anchor" href="#parameter-transformation"></a>
-</h3>
-<p>For stable first-order systems (<span class="math inline">a&lt;0</span>): <span class="math display">\tau =
--\frac{1}{a}, \quad K = -\frac{b}{a}</span></p>
-<p>For stable second-order systems (<span class="math inline">a&lt;0,
-b&lt;0</span>): <span class="math display">\omega_0 = \sqrt{-a}, \quad
-\zeta = -\frac{b}{2\sqrt{-a}}, \quad K = -\frac{c}{a}</span></p>
-</div>
-<div class="section level3">
-<h3 id="physical-interpretation">Physical Interpretation<a class="anchor" aria-label="anchor" href="#physical-interpretation"></a>
-</h3>
-<table class="table">
-<thead><tr class="header">
-<th>Parameter</th>
-<th>Symbol</th>
-<th>Physical Meaning</th>
-<th>Clinical Relevance</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>Time constant</td>
-<td>τ</td>
-<td>Response speed</td>
-<td>Drug half-life</td>
-</tr>
-<tr class="even">
-<td>Natural frequency</td>
-<td>ω₀</td>
-<td>Oscillation rate</td>
-<td>Metabolic rhythm</td>
-</tr>
-<tr class="odd">
-<td>Damping ratio</td>
-<td>ζ</td>
-<td>Oscillation decay</td>
-<td>Regulatory stability</td>
-</tr>
-<tr class="even">
-<td>Steady-state gain</td>
-<td>K</td>
-<td>Final equilibrium</td>
-<td>Baseline levels</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section level3">
-<h3 id="first-order-dynamics">First-Order Dynamics<a class="anchor" aria-label="anchor" href="#first-order-dynamics"></a>
-</h3>
-<p><span class="math display">y(t) = K + (y_0 - K)e^{-t/\tau}</span></p>
-</div>
-<div class="section level3">
-<h3 id="second-order-dynamics">Second-Order Dynamics<a class="anchor" aria-label="anchor" href="#second-order-dynamics"></a>
-</h3>
-<p><span class="math display">y(t) - K = \begin{cases}
-Ae^{-\zeta\omega_0 t}\cos(\omega_d t + \phi) &amp; \text{if } \zeta &lt;
-1 \text{ (under-damped)} \\
-(A + Bt)e^{-\omega_0 t} &amp; \text{if } \zeta = 1 \text{ (critically
-damped)} \\
-A_1 e^{\lambda_1 t} + A_2 e^{\lambda_2 t} &amp; \text{if } \zeta &gt; 1
-\text{ (over-damped)}
-\end{cases}</span></p>
-</div>
-</div>
-<div class="section level2">
-<h2 id="case-study-glucose-insulin-regulation">Case Study: Glucose-Insulin Regulation<a class="anchor" aria-label="anchor" href="#case-study-glucose-insulin-regulation"></a>
-</h2>
-<div class="section level3">
-<h3 id="mathematical-model">Mathematical Model<a class="anchor" aria-label="anchor" href="#mathematical-model"></a>
-</h3>
-<p>The simplified glucose dynamics following meal intake: <span class="math display">\frac{d^2G}{dt^2} = -k_1 G - k_2 \frac{dG}{dt} +
-I_{meal}</span></p>
-<p>where: - <span class="math inline">G</span>: glucose deviation from
-baseline - <span class="math inline">k_1</span>: insulin sensitivity
-(feedback strength) - <span class="math inline">k_2</span>: regulatory
-delay (damping effect) - <span class="math inline">I_{meal}</span>: meal
-input</p>
-</div>
-<div class="section level3">
-<h3 id="parametric-response">Parametric Response<a class="anchor" aria-label="anchor" href="#parametric-response"></a>
-</h3>
-<p>Post-meal glucose response: <span class="math display">G(t) =
-G_{basal} + Ae^{-\zeta\omega_0 t}\cos(\omega_d t + \phi)</span></p>
-<p>with damped oscillation frequency: <span class="math inline">\omega_d
-= \omega_0\sqrt{1-\zeta^2}</span></p>
-</div>
-<div class="section level3">
-<h3 id="physiological-classification">Physiological Classification<a class="anchor" aria-label="anchor" href="#physiological-classification"></a>
-</h3>
-<table class="table">
-<colgroup>
-<col width="26%">
-<col width="33%">
-<col width="39%">
-</colgroup>
-<thead><tr class="header">
-<th>Damping Ratio</th>
-<th>Physiological State</th>
-<th>Clinical Presentation</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>ζ &lt; 0.5</td>
-<td>Under-regulated</td>
-<td>Glucose oscillations (pre-diabetes)</td>
-</tr>
-<tr class="even">
-<td>0.5 &lt; ζ &lt; 1</td>
-<td>Normal regulation</td>
-<td>Mild fluctuation with stabilization</td>
-</tr>
-<tr class="odd">
-<td>ζ = 1</td>
-<td>Critical damping</td>
-<td>Optimal response</td>
-</tr>
-<tr class="even">
-<td>ζ &gt; 1</td>
-<td>Over-damped</td>
-<td>Slow recovery (insulin resistance)</td>
-</tr>
-</tbody>
-</table>
-</div>
-<div class="section level3">
-<h3 id="over-damping-mechanism-ζ-1">Over-damping Mechanism (ζ &gt; 1)<a class="anchor" aria-label="anchor" href="#over-damping-mechanism-%CE%B6-1"></a>
-</h3>
-<p>For over-damped systems, the characteristic roots are: <span class="math display">\lambda_1 = -\zeta\omega_0 +
-\omega_0\sqrt{\zeta^2-1}, \quad \lambda_2 = -\zeta\omega_0 -
-\omega_0\sqrt{\zeta^2-1}</span></p>
-<p>The dominant mode (<span class="math inline">\lambda_1</span>)
-determines long-term behavior:</p>
-<table class="table">
-<thead><tr class="header">
-<th>ζ Value</th>
-<th><span class="math inline">\|\lambda_1\|/\omega_0</span></th>
-<th>Recovery Speed</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>1.0</td>
-<td>1.00</td>
-<td>Fastest non-oscillatory</td>
-</tr>
-<tr class="even">
-<td>1.5</td>
-<td>0.55</td>
-<td>1.8× slower</td>
-</tr>
-<tr class="odd">
-<td>2.0</td>
-<td>0.27</td>
-<td>3.7× slower</td>
-</tr>
-<tr class="even">
-<td>∞</td>
-<td>→ 0</td>
-<td>Extremely slow</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Clinical Implication</strong>: Severe insulin resistance
-(high ζ) leads to prolonged hyperglycemia post-meal.</p>
-</div>
+<p>For the longitudinal sub-model, there are several statistcs that are
+useful for inference, including <span class="math inline">T =
+\frac{2\pi}{\omega_n}</span> and the damping ratio <span class="math inline">\xi</span>.</p>
+<p>However, these are not directly estimated parameters. We can use the
+delta method to obtain their standard errors.</p>
+<p>Since <span class="math display">
+\omega_n = \sqrt{-\beta_1}, \quad \xi =
+-\frac{\beta_2}{2\sqrt{-\beta_1}},
+</span> we have <span class="math display">
+\frac{\partial T}{\partial \beta_1} = -\frac{\pi}{(-\beta_1)^{3/2}},
+\quad \frac{\partial T}{\partial \beta_2} = 0, \quad
+\frac{\partial \xi}{\partial \beta_1} =
+-\frac{\beta_2}{4(-\beta_1)^{3/2}}, \quad \frac{\partial \xi}{\partial
+\beta_2} = -\frac{1}{2\sqrt{-\beta_1}}.
+</span> Thus, the variance-covariance matrix of <span class="math inline">(\omega_n, \xi)</span> can be approximated as <span class="math display">
+\mathbf{J} \begin{pmatrix}
+\text{Var}(\beta_1) &amp; \text{Cov}(\beta_1, \beta_2) \\
+\text{Cov}(\beta_1, \beta_2) &amp; \text{Var}(\beta_2)
+\end{pmatrix} \mathbf{J}^{\top},
+</span> where <span class="math display">\mathbf{J} = \begin{pmatrix}
+\frac{\partial T}{\partial \beta_1} &amp; \frac{\partial T}{\partial
+\beta_2} \\
+\frac{\partial \xi}{\partial \beta_1} &amp; \frac{\partial \xi}{\partial
+\beta_2}
+\end{pmatrix}.</span></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
