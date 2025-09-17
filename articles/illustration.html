@@ -5,13 +5,13 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Biomarker Dynamics via Second-Order ODEs • JointODE</title>
+<title>Illustration • JointODE</title>
 <!-- katex math --><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script><script src="../katex-auto.js"></script><script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Biomarker Dynamics via Second-Order ODEs">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Illustration">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -34,7 +34,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/illustration.html">Biomarker Dynamics via Second-Order ODEs</a></li>
+<li><a class="dropdown-item" href="../articles/illustration.html">Illustration</a></li>
     <li><a class="dropdown-item" href="../articles/technical-details.html">Technical Details</a></li>
     <li><a class="dropdown-item" href="../articles/comparison.html">Comparison</a></li>
   </ul>
@@ -67,7 +67,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Biomarker Dynamics via Second-Order ODEs</h1>
+      <h1>Illustration</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/ziyangg98/JointODE/blob/main/vignettes/illustration.Rmd" class="external-link"><code>vignettes/illustration.Rmd</code></a></small>
@@ -76,8 +76,11 @@
 
     
     
+<div class="section level2">
+<h2 id="biomarker-trajectories">Biomarker Trajectories<a class="anchor" aria-label="anchor" href="#biomarker-trajectories"></a>
+</h2>
 <blockquote>
-<p><strong>Note</strong>: This vignette draws inspiration from the <a href="https://CRAN.R-project.org/package=doremi" class="external-link">doremi</a> package for
+<p><strong>Note</strong>: This part draws inspiration from the <a href="https://CRAN.R-project.org/package=doremi" class="external-link">doremi</a> package for
 modeling dynamical systems.</p>
 </blockquote>
 <p>Ordinary differential equations (ODEs) provide a rigorous
@@ -118,9 +121,9 @@ peaks</li>
 <strong>Steady-State Equilibrium</strong> (<span class="math inline">m_{eq}</span>): Asymptotic value when derivatives
 vanish</li>
 </ol>
-<div class="section level2">
-<h2 id="autonomous-systems">Autonomous Systems<a class="anchor" aria-label="anchor" href="#autonomous-systems"></a>
-</h2>
+<div class="section level3">
+<h3 id="autonomous-systems">Autonomous Systems<a class="anchor" aria-label="anchor" href="#autonomous-systems"></a>
+</h3>
 <p>For autonomous systems with constant excitation (<span class="math inline">u(t) = c</span>), we simulate various damping ratios
 with zero excitation (<span class="math inline">c = 0</span>):</p>
 <p><img src="illustration_files/figure-html/dynamics-plots-1.png" width="1152" style="display: block; margin: auto;"></p>
@@ -158,6 +161,26 @@ with zero excitation (<span class="math inline">c = 0</span>):</p>
 </tr>
 </tbody>
 </table>
+</div>
+<div class="section level3">
+<h3 id="non-autonomous-system">Non-Autonomous System<a class="anchor" aria-label="anchor" href="#non-autonomous-system"></a>
+</h3>
+<p>Non-autonomous systems with time-varying excitation <span class="math inline">u(t)</span> occur in pharmacological and
+environmental contexts. The response depends on both damping ratio <span class="math inline">\xi</span> and input characteristics.</p>
+<p>Consider a step input at <span class="math inline">t = 50</span>:</p>
+<p><span class="math display">
+u(t) = \begin{cases}
+0 &amp; t &lt; 50 \\
+0.5 &amp; t \geq 50
+\end{cases}
+</span></p>
+<p>This induces a transition from <span class="math inline">m_{\text{eq}} = 0</span> to <span class="math inline">m_{\text{eq}} = 0.5k</span>, with transient behavior
+determined by <span class="math inline">\xi</span>:</p>
+<p><img src="illustration_files/figure-html/non-autonomous-1.png" width="1152" style="display: block; margin: auto;"></p>
+</div>
+<div class="section level3">
+<h3 id="real-data-examples">Real-Data Examples<a class="anchor" aria-label="anchor" href="#real-data-examples"></a>
+</h3>
 <p>Four biological datasets illustrate distinct damping behaviors:</p>
 <ul>
 <li>
@@ -176,27 +199,27 @@ intravenous injection of the anti-inflammatory drug in 6 subjects</li>
 measurements over time from a forestry growth study</li>
 </ul>
 <p><img src="illustration_files/figure-html/real-data-1.png" width="1152" style="display: block; margin: auto;"></p>
-</div>
-<div class="section level2">
-<h2 id="non-autonomous-system">Non-Autonomous System<a class="anchor" aria-label="anchor" href="#non-autonomous-system"></a>
-</h2>
-<p>Non-autonomous systems with time-varying excitation <span class="math inline">u(t)</span> occur in pharmacological and
-environmental contexts. The response depends on both damping ratio <span class="math inline">\xi</span> and input characteristics.</p>
-<p>Consider a step input at <span class="math inline">t = 50</span>:</p>
-<p><span class="math display">
-u(t) = \begin{cases}
-0 &amp; t &lt; 50 \\
-0.5 &amp; t \geq 50
-\end{cases}
-</span></p>
-<p>This induces a transition from <span class="math inline">m_{\text{eq}} = 0</span> to <span class="math inline">m_{\text{eq}} = 0.5k</span>, with transient behavior
-determined by <span class="math inline">\xi</span>:</p>
-<p><img src="illustration_files/figure-html/non-autonomous-1.png" width="1152" style="display: block; margin: auto;"></p>
 <p>This analysis requires <span class="math inline">\omega_n^2 \geq
 0</span> for real natural frequencies, focusing on stable or oscillatory
 systems that better represent biological reality. Systems with <span class="math inline">\omega_n^2 &lt; 0</span> exhibit purely exponential
 divergence without oscillations and lack practical relevance for
 modeling physiological processes.</p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="survival-outcomes">Survival Outcomes<a class="anchor" aria-label="anchor" href="#survival-outcomes"></a>
+</h2>
+<p>The hazard function incorporates both biomarker value and its rate of
+change:</p>
+<p><span class="math display">h(t) = h_0(t) \exp(\beta_1 m(t) + \beta_2
+|m'(t)|)</span></p>
+<p>Here <span class="math inline">|m'(t)|</span> captures
+variability—rapid changes in either direction indicate instability and
+elevated risk.</p>
+<p>Consider blood glucose: stable levels suggest controlled diabetes,
+while rapid fluctuations (high <span class="math inline">|m'(t)|</span>) indicate poor glycemic control
+and higher complication risk, effectively measuring the temporal
+variance of the biomarker.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

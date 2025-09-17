@@ -36,7 +36,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/illustration.html">Biomarker Dynamics via Second-Order ODEs</a></li>
+<li><a class="dropdown-item" href="articles/illustration.html">Illustration</a></li>
     <li><a class="dropdown-item" href="articles/technical-details.html">Technical Details</a></li>
     <li><a class="dropdown-item" href="articles/comparison.html">Comparison</a></li>
   </ul>
@@ -120,10 +120,10 @@
 <p>Here’s a basic example demonstrating typical usage:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/ziyangg98/JointODE" class="external-link">JointODE</a></span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Attaching package: 'JointODE'</span></span>
 <span><span class="co">#&gt; The following object is masked from 'package:stats':</span></span>
-<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt;     simulate</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/therneau/survival" class="external-link">survival</a></span><span class="op">)</span></span>
 <span></span>
@@ -142,56 +142,56 @@
 <span></span>
 <span><span class="co"># Model summary</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Call:</span></span>
-<span><span class="co">#&gt; JointODE(longitudinal_formula = observed ~ x1 + x2, survival_formula = Surv(time, </span></span>
-<span><span class="co">#&gt;     status) ~ w1 + w2, longitudinal_data = sim$data$longitudinal_data, </span></span>
-<span><span class="co">#&gt;     survival_data = sim$data$survival_data, state = as.matrix(sim$data$state), </span></span>
+<span><span class="co">#&gt; JointODE(longitudinal_formula = observed ~ x1 + x2, survival_formula = Surv(time,</span></span>
+<span><span class="co">#&gt;     status) ~ w1 + w2, longitudinal_data = sim$data$longitudinal_data,</span></span>
+<span><span class="co">#&gt;     survival_data = sim$data$survival_data, state = as.matrix(sim$data$state),</span></span>
 <span><span class="co">#&gt;     parallel = TRUE)</span></span>
-<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Data Descriptives:</span></span>
 <span><span class="co">#&gt; Longitudinal Process            Survival Process</span></span>
 <span><span class="co">#&gt; Number of Observations: 1222    Number of Events: 135 (68%)</span></span>
 <span><span class="co">#&gt; Number of Subjects: 200</span></span>
-<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt;        AIC        BIC     logLik</span></span>
 <span><span class="co">#&gt;  -1801.969  -1742.599    918.984</span></span>
-<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt; Longitudinal Process: Second-Order ODE Model</span></span>
-<span><span class="co">#&gt;                Estimate Std. Error z value Pr(&gt;|z|)    </span></span>
+<span><span class="co">#&gt;                Estimate Std. Error z value Pr(&gt;|z|)</span></span>
 <span><span class="co">#&gt; -omega_n^2    -1.581145   0.016643 -95.004   &lt;2e-16 ***</span></span>
 <span><span class="co">#&gt; -2*xi*omega_n -1.788044   0.023600 -75.764   &lt;2e-16 ***</span></span>
-<span><span class="co">#&gt; (Intercept)    0.002820   0.007587   0.372     0.71    </span></span>
+<span><span class="co">#&gt; (Intercept)    0.002820   0.007587   0.372     0.71</span></span>
 <span><span class="co">#&gt; x1             1.258015   0.014802  84.992   &lt;2e-16 ***</span></span>
 <span><span class="co">#&gt; x2            -0.785201   0.010397 -75.520   &lt;2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; ODE System Characteristics:</span></span>
-<span><span class="co">#&gt;                    Estimate Std. Error z value Pr(&gt;|z|)    </span></span>
+<span><span class="co">#&gt;                    Estimate Std. Error z value Pr(&gt;|z|)</span></span>
 <span><span class="co">#&gt; T (period)          4.99682    0.02630  190.01   &lt;2e-16 ***</span></span>
 <span><span class="co">#&gt; xi (damping ratio)  0.71099    0.01286   55.27   &lt;2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Survival Process: Proportional Hazards Model</span></span>
-<span><span class="co">#&gt;         Estimate Std. Error z value Pr(&gt;|z|)    </span></span>
-<span><span class="co">#&gt; alpha_1   0.3623     0.1188   3.050  0.00229 ** </span></span>
-<span><span class="co">#&gt; alpha_2   0.7140     0.3944   1.810  0.07026 .  </span></span>
+<span><span class="co">#&gt;         Estimate Std. Error z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; alpha_1   0.3623     0.1188   3.050  0.00229 **</span></span>
+<span><span class="co">#&gt; alpha_2   0.7140     0.3944   1.810  0.07026 .</span></span>
 <span><span class="co">#&gt; w1        0.3389     0.0855   3.964 7.37e-05 ***</span></span>
-<span><span class="co">#&gt; w2       -0.4955     0.1725  -2.873  0.00407 ** </span></span>
+<span><span class="co">#&gt; w2       -0.4955     0.1725  -2.873  0.00407 **</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
-<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Baseline Hazard: B-spline with 7 basis functions</span></span>
 <span><span class="co">#&gt; (Coefficients range: [-2.930, -1.514] )</span></span>
-<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Variance Components:</span></span>
 <span><span class="co">#&gt;               StdDev</span></span>
 <span><span class="co">#&gt; Random Effect       0.092774</span></span>
 <span><span class="co">#&gt; Residual            0.102891</span></span>
-<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Model Diagnostics:</span></span>
 <span><span class="co">#&gt; C-index (Concordance): 0.793</span></span>
 <span><span class="co">#&gt; Convergence: EM algorithm converged after 35 iterations</span></span>
@@ -202,13 +202,13 @@
 <div class="section level2">
 <h2 id="visualization">Visualization<a class="anchor" aria-label="anchor" href="#visualization"></a>
 </h2>
-<div class="sourceCode" id="cb3"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<div class="sourceCode" id="cb3"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co">#&gt;</span></span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">#&gt; Attaching package: 'dplyr'</span></span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from 'package:stats':</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;</span></span>
 <span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;     filter, lag</span></span>
 <span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt; The following objects are masked from 'package:base':</span></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt; </span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">#&gt;</span></span>
 <span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co">#&gt;     intersect, setdiff, setequal, union</span></span></code></pre></div>
 <p><img src="reference/figures/README-visualization-1.png" width="100%"></p>
 </div>
