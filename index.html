@@ -141,8 +141,8 @@
 <span></span>
 <span><span class="co"># Fit joint ODE model</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/JointODE.html">JointODE</a></span><span class="op">(</span></span>
-<span>  longitudinal_formula <span class="op">=</span> <span class="va">observed</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
-<span>  survival_formula <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span> <span class="op">+</span> <span class="va">x3</span>,</span>
+<span>  longitudinal_formula <span class="op">=</span> <span class="va">observed</span> <span class="op">~</span> <span class="va">x1</span> <span class="op">+</span> <span class="va">x2</span>,</span>
+<span>  survival_formula <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span>,</span>
 <span>  longitudinal_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span>,</span>
 <span>  survival_data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span>,</span>
 <span>  state <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">state</span><span class="op">)</span>,</span>
@@ -153,52 +153,57 @@
 <span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Call:</span></span>
-<span><span class="co">#&gt; JointODE(longitudinal_formula = observed ~ x1 + x2 + x3, survival_formula = Surv(time,</span></span>
-<span><span class="co">#&gt;     status) ~ x1 + x2 + x3, longitudinal_data = sim$data$longitudinal_data,</span></span>
+<span><span class="co">#&gt; JointODE(longitudinal_formula = observed ~ x1 + x2, survival_formula = Surv(time,</span></span>
+<span><span class="co">#&gt;     status) ~ w1 + w2, longitudinal_data = sim$data$longitudinal_data,</span></span>
 <span><span class="co">#&gt;     survival_data = sim$data$survival_data, state = as.matrix(sim$data$state),</span></span>
 <span><span class="co">#&gt;     parallel = TRUE)</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Data Descriptives:</span></span>
 <span><span class="co">#&gt; Longitudinal Process            Survival Process</span></span>
-<span><span class="co">#&gt; Number of Observations: 1458    Number of Events: 117 (58%)</span></span>
+<span><span class="co">#&gt; Number of Observations: 1177    Number of Events: 135 (68%)</span></span>
 <span><span class="co">#&gt; Number of Subjects: 200</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt;        AIC        BIC     logLik</span></span>
-<span><span class="co">#&gt;  -2365.178  -2299.212   1202.589</span></span>
+<span><span class="co">#&gt;  -1798.979  -1739.609    917.489</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Coefficients:</span></span>
 <span><span class="co">#&gt; Longitudinal Process: Second-Order ODE Model</span></span>
-<span><span class="co">#&gt;                 Estimate Std. Error  z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; observed_value -0.601674   0.001776 -338.820  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; observed_slope -0.399887   0.002427 -164.793  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; (Intercept)    -0.011712   0.003629   -3.228  0.00125 **</span></span>
-<span><span class="co">#&gt; x1              0.804521   0.003196  251.727  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; x2             -0.497826   0.002527 -196.981  &lt; 2e-16 ***</span></span>
-<span><span class="co">#&gt; x3             -0.489528   0.004278 -114.426  &lt; 2e-16 ***</span></span>
+<span><span class="co">#&gt;                Estimate Std. Error z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; -omega_n^2    -1.591306   0.026152 -60.847   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; -2*xi*omega_n -1.794229   0.037153 -48.293   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; (Intercept)   -0.010535   0.007797  -1.351    0.177</span></span>
+<span><span class="co">#&gt; x1             1.265599   0.022198  57.015   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; x2            -0.781541   0.014546 -53.728   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; ---</span></span>
+<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
+<span><span class="co">#&gt;</span></span>
+<span><span class="co">#&gt; ODE System Characteristics:</span></span>
+<span><span class="co">#&gt;                    Estimate Std. Error z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; T (period)          4.98085    0.04093  121.69   &lt;2e-16 ***</span></span>
+<span><span class="co">#&gt; xi (damping ratio)  0.71117    0.02017   35.27   &lt;2e-16 ***</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Survival Process: Proportional Hazards Model</span></span>
-<span><span class="co">#&gt;                Estimate Std. Error z value Pr(&gt;|z|)</span></span>
-<span><span class="co">#&gt; observed_value   0.1115     0.1950   0.572 0.567249</span></span>
-<span><span class="co">#&gt; observed_slope   0.4359     0.3304   1.319 0.187080</span></span>
-<span><span class="co">#&gt; x1               0.5545     0.2667   2.079 0.037611 *</span></span>
-<span><span class="co">#&gt; x2              -0.6983     0.1764  -3.959 7.53e-05 ***</span></span>
-<span><span class="co">#&gt; x3              -0.8837     0.2300  -3.842 0.000122 ***</span></span>
+<span><span class="co">#&gt;         Estimate Std. Error z value Pr(&gt;|z|)</span></span>
+<span><span class="co">#&gt; alpha_1  0.18641    0.12778   1.459  0.14460</span></span>
+<span><span class="co">#&gt; alpha_2  1.72151    0.38675   4.451 8.54e-06 ***</span></span>
+<span><span class="co">#&gt; w1       0.34102    0.08549   3.989 6.64e-05 ***</span></span>
+<span><span class="co">#&gt; w2      -0.50665    0.17343  -2.921  0.00348 **</span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Baseline Hazard: B-spline with 7 basis functions</span></span>
-<span><span class="co">#&gt; (Coefficients range: [-3.118, -0.404] )</span></span>
+<span><span class="co">#&gt; (Coefficients range: [-4.240, -1.656] )</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Variance Components:</span></span>
 <span><span class="co">#&gt;               StdDev</span></span>
-<span><span class="co">#&gt; Random Effect       0.093266</span></span>
-<span><span class="co">#&gt; Residual            0.101037</span></span>
+<span><span class="co">#&gt; Random Effect       0.082872</span></span>
+<span><span class="co">#&gt; Residual            0.102896</span></span>
 <span><span class="co">#&gt;</span></span>
 <span><span class="co">#&gt; Model Diagnostics:</span></span>
-<span><span class="co">#&gt; C-index (Concordance): 0.587</span></span>
-<span><span class="co">#&gt; Convergence: EM algorithm converged after 52 iterations</span></span>
+<span><span class="co">#&gt; C-index (Concordance): 0.832</span></span>
+<span><span class="co">#&gt; Convergence: EM algorithm converged after 31 iterations</span></span>
 <span></span>
 <span><span class="co"># Generate predictions</span></span>
 <span><span class="va">predictions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, times <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">10</span>, by <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>

@@ -3,15 +3,13 @@
 time-to-event outcomes for 200 simulated subjects. This dataset was
 generated using the internal function .create_example_data() which
 calls simulate with default parameters and seed = 123.
-The dataset exemplifies the application of joint
-modeling frameworks wherein longitudinal processes are governed by
-second-order ordinary differential equations."><meta property="og:description" content="A pre-computed dataset comprising longitudinal biomarker trajectories and
+The biomarker trajectories follow a damped harmonic oscillator model
+with subject-specific initial conditions and external forcing."><meta property="og:description" content="A pre-computed dataset comprising longitudinal biomarker trajectories and
 time-to-event outcomes for 200 simulated subjects. This dataset was
 generated using the internal function .create_example_data() which
 calls simulate with default parameters and seed = 123.
-The dataset exemplifies the application of joint
-modeling frameworks wherein longitudinal processes are governed by
-second-order ordinary differential equations."></head><body>
+The biomarker trajectories follow a damped harmonic oscillator model
+with subject-specific initial conditions and external forcing."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -62,9 +60,8 @@ second-order ordinary differential equations."></head><body>
 time-to-event outcomes for 200 simulated subjects. This dataset was
 generated using the internal function <code>.create_example_data()</code> which
 calls <code><a href="simulate.html">simulate</a></code> with default parameters and seed = 123.
-The dataset exemplifies the application of joint
-modeling frameworks wherein longitudinal processes are governed by
-second-order ordinary differential equations.</p>
+The biomarker trajectories follow a damped harmonic oscillator model
+with subject-specific initial conditions and external forcing.</p>
     </div>
 
     <div class="section level2">
@@ -79,12 +76,12 @@ second-order ordinary differential equations.</p>
 <dd><p>A data frame containing longitudinal
 observations with columns: id (subject identifier),
 time (measurement time), observed (biomarker with error),
-biomarker (true value), velocity, acceleration, x1, x2, x3</p></dd>
+biomarker (true value), velocity, acceleration, x1, x2</p></dd>
 
 <dt><code>survival_data</code></dt>
 <dd><p>A data frame containing survival
 information for 200 subjects with columns: id, time (event/censor),
-status (1=event, 0=censored), x1, x2, x3, b (random effect)</p></dd>
+status (1=event, 0=censored), w1, w2, b (random effect)</p></dd>
 
 <dt><code>state</code></dt>
 <dd><p>A 200 × 2 matrix containing initial conditions
@@ -109,28 +106,34 @@ coefficients and configurations</p></dd>
 <div class="section">
 <h3 id="data-generation-process">Data Generation Process<a class="anchor" aria-label="anchor" href="#data-generation-process"></a></h3>
 <p>Generated using <code>.create_example_data(n_subjects = 200, seed = 123)</code>,
-with follow-up period from 0 to 10 days and shared random effect
+with follow-up period from 0 to 10 time units and shared random effect
 \(b_i \sim \mathcal{N}(0, 0.01)\) (sd = 0.1).</p>
 </div>
 
 <div class="section">
 <h3 id="model-specification">Model Specification<a class="anchor" aria-label="anchor" href="#model-specification"></a></h3>
-<p><strong>Longitudinal Sub-model (standardized scale):</strong></p>
-<p>The biomarker trajectory follows the ODE:
-$$\ddot{m}_i(t) = -0.6[m_i(t) - 0] - 0.4\dot{m}_i(t) +
-      \mathbf{X}_i^T\boldsymbol{\beta}$$
-$$m_i(0) = 1.0 + \mathbf{X}_i^T\boldsymbol{\beta}_{init},
+<p><strong>Longitudinal Sub-model (Damped Harmonic Oscillator):</strong></p>
+<p>The biomarker trajectory follows:
+$$\ddot{m}_i(t) + 2\xi\omega\dot{m}_i(t) + \omega^2 m_i(t) =
+      k\omega^2[f_0 + \mathbf{X}_i^T\boldsymbol{\beta}_{exc}]$$</p>
+<p>With parameters:</p><ul><li><p>Damping ratio: \(\xi = 0.707\) (slightly underdamped)</p></li>
+<li><p>Natural period: \(T = 5\), giving \(\omega = 2\pi/5\)</p></li>
+<li><p>Excitation amplitude: \(k = 1.0\)</p></li>
+<li><p>Excitation offset: \(f_0 = 0.0\)</p></li>
+<li><p>Excitation coefficients:
+\(\boldsymbol{\beta}_{exc} = (0.8, -0.5)^T\)</p></li>
+</ul><p>Initial conditions:
+$$m_i(0) = -2.0 + \mathbf{X}_i^T\boldsymbol{\beta}_{init},
       \quad \dot{m}_i(0) = 0$$
+where \(\boldsymbol{\beta}_{init} = (0.1, -0.1)^T\).</p>
+<p>Observed measurements:
 $$y_{ij} = m_i(t_{ij}) + b_i + \epsilon_{ij},
       \quad \epsilon_{ij} \sim \mathcal{N}(0, 0.01)$$</p>
-<p>where \(\boldsymbol{\beta} = (0.8, -0.5, -0.5)^T\), and
-\(\boldsymbol{\beta}_{init} = (0.1, -0.1, 0.0)^T\).</p>
 <p><strong>Survival Sub-model:</strong>
 $$\lambda_i(t) = \frac{1.5}{8}\left(\frac{t}{8}\right)^{0.5}
-      \exp(0.3m_i(t) + 0.7\dot{m}_i(t) +
+      \exp(0.3m_i(t) + 1.5\dot{m}_i(t) +
       \mathbf{W}_i^T\boldsymbol{\phi} + b_i)$$</p>
-<p>where \(\mathbf{W}_i = \mathbf{X}_i\) and
-\(\boldsymbol{\phi} = (0.4, -0.6, -0.3)^T\).</p>
+<p>where \(\boldsymbol{\phi} = (0.4, -0.6)^T\) for covariates w1 and w2.</p>
 </div>
 
     </div>
@@ -145,126 +148,124 @@ survival data</p></div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Load the pre-generated dataset</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Load the simulated dataset</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">sim</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Access the actual data</span></span></span>
-<span class="r-in"><span><span class="va">long_data</span> <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span></span></span>
-<span class="r-in"><span><span class="va">surv_data</span> <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span></span></span>
-<span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Examine dataset structure</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># Explore the data structure</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span>, max.level <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> List of 3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ longitudinal_data:'data.frame':	1458 obs. of  9 variables:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id          : int [1:1458] 1 1 1 2 2 2 3 3 3 3 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time        : num [1:1458] 0 1 2 0 1 2 0 1 2 3 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ observed    : num [1:1458] 1.19 1.71 2.32 1.44 1.56 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ biomarker   : num [1:1458] 1.23 1.67 2.59 1.25 1.62 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ velocity    : num [1:1458] 0 0.789 0.946 0 0.659 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ acceleration: num [1:1458] 1.059 0.478 -0.137 0.885 0.399 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x1          : num [1:1458] 2.2 2.2 2.2 1.31 1.31 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x2          : num [1:1458] -0.0736 -0.0736 -0.0736 -1.1687 -1.1687 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x3          : int [1:1458] 0 0 0 0 0 0 1 1 1 1 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ survival_data    :'data.frame':	200 obs. of  7 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ longitudinal_data:'data.frame':	1177 obs. of  8 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id          : int [1:1177] 1 2 3 3 3 3 3 3 3 3 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time        : num [1:1177] 0 0 0 1 2 3 4 5 6 7 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ observed    : num [1:1177] -1.7882 -1.5595 -1.8088 -0.9452 0.0634 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ biomarker   : num [1:1177] -1.773 -1.752 -1.963 -1.091 -0.165 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ velocity    : num [1:1177] 0 0 0 1.173 0.608 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ acceleration: num [1:1177] 5.635 5.347 3.266 -0.196 -0.654 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x1          : num [1:1177] 2.199 1.312 -0.265 -0.265 -0.265 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x2          : num [1:1177] -0.0736 -1.1687 -0.6347 -0.6347 -0.6347 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ survival_data    :'data.frame':	200 obs. of  6 variables:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id    : int [1:200] 1 2 3 4 5 6 7 8 9 10 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time  : num [1:200] 2.11 2.29 5.62 1.51 10 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ status: int [1:200] 1 1 1 1 0 1 1 0 1 0 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x1    : num [1:200] 2.199 1.312 -0.265 0.543 -0.414 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x2    : num [1:200] -0.0736 -1.1687 -0.6347 -0.0288 0.6707 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x3    : int [1:200] 0 0 1 0 1 0 1 1 0 1 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time  : num [1:200] 0.919 0.66 10 10 8.252 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ status: int [1:200] 1 1 0 0 1 1 1 0 0 1 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ w1    : num [1:200] 1.074 -0.0273 -0.0333 -1.5161 0.7904 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ w2    : int [1:200] 1 0 0 1 1 0 1 0 1 0 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ b     : num [1:200] -0.05605 -0.02302 0.15587 0.00705 0.01293 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ state            :'data.frame':	200 obs. of  2 variables:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ biomarker: num [1:200] 1.227 1.248 1.037 1.057 0.891 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ biomarker: num [1:200] -1.77 -1.75 -1.96 -1.94 -2.11 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ velocity : num [1:200] 0 0 0 0 0 0 0 0 0 0 ...</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Summary of covariate x3 (binary)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">$</span><span class="va">x3</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0   1 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  54 146 </span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">$</span><span class="va">status</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   0   1 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  83 117 </span>
+<span class="r-in"><span><span class="co"># Summary statistics for longitudinal data</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"biomarker"</span>, <span class="st">"velocity"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    biomarker           velocity         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Min.   :-2.34808   Min.   :-8.274e-02  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1st Qu.:-1.55463   1st Qu.:-4.999e-03  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Median :-0.77136   Median : 4.797e-05  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Mean   :-0.72180   Mean   : 2.310e-01  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3rd Qu.:-0.02961   3rd Qu.: 2.820e-01  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Max.   : 2.53323   Max.   : 2.299e+00  </span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Mean biomarker levels by x3 group</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">observed</span> <span class="op">~</span> <span class="va">x3</span>,</span></span>
-<span class="r-in"><span>          data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span>,</span></span>
-<span class="r-in"><span>          FUN <span class="op">=</span> <span class="va">mean</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   x3   observed</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1  0 -0.3558958</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2  1 -0.8654282</span>
+<span class="r-in"><span><span class="co"># Check event rate</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">$</span><span class="va">status</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.675</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Event rate stratified by x3 group</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">status</span> <span class="op">~</span> <span class="va">x3</span>,</span></span>
-<span class="r-in"><span>          data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span>,</span></span>
-<span class="r-in"><span>          FUN <span class="op">=</span> <span class="va">mean</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   x3    status</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1  0 0.7037037</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2  1 0.5410959</span>
+<span class="r-in"><span><span class="co"># Visualize biomarker trajectories for first 10 subjects</span></span></span>
+<span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Attaching package: ‘dplyr’</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> The following objects are masked from ‘package:stats’:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     filter, lag</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> The following objects are masked from ‘package:base’:</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>     intersect, setdiff, setequal, union</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Visualization of multiple individual trajectories</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>  <span class="co"># 2x3 grid for 6 subjects</span></span></span>
-<span class="r-in"><span><span class="kw">for</span><span class="op">(</span><span class="va">i</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span>  <span class="va">patient_i</span> <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">[</span></span></span>
-<span class="r-in"><span>                <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">$</span><span class="va">id</span> <span class="op">==</span> <span class="va">i</span>, <span class="op">]</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">patient_i</span><span class="op">$</span><span class="va">time</span>, <span class="va">patient_i</span><span class="op">$</span><span class="va">observed</span>, type <span class="op">=</span> <span class="st">"l"</span>,</span></span>
-<span class="r-in"><span>       xlab <span class="op">=</span> <span class="st">"Time (days)"</span>, ylab <span class="op">=</span> <span class="st">"Biomarker"</span>,</span></span>
-<span class="r-in"><span>       main <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Subject"</span>, <span class="va">i</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>       ylim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">3</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>  <span class="co"># Fixed y-axis for comparison</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>h <span class="op">=</span> <span class="fl">0</span>, lty <span class="op">=</span> <span class="fl">2</span>, col <span class="op">=</span> <span class="st">"red"</span>, lwd <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>  <span class="co"># Reference level</span></span></span>
-<span class="r-in"><span>  <span class="co"># Add true trajectory</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">patient_i</span><span class="op">$</span><span class="va">time</span>, <span class="va">patient_i</span><span class="op">$</span><span class="va">biomarker</span>, col <span class="op">=</span> <span class="st">"blue"</span>, lty <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/par.html" class="external-link">par</a></span><span class="op">(</span>mfrow <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span>  <span class="co"># Reset layout</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"topright"</span>, legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Observed"</span>, <span class="st">"True"</span>, <span class="st">"Equilibrium"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>       col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"black"</span>, <span class="st">"blue"</span>, <span class="st">"red"</span><span class="op">)</span>, lty <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">2</span>, <span class="fl">2</span><span class="op">)</span>, cex <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">id</span> <span class="op">&lt;=</span> <span class="fl">10</span><span class="op">)</span> <span class="op"><a href="https://magrittr.tidyverse.org/reference/pipe.html" class="external-link">%&gt;%</a></span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">time</span>, y <span class="op">=</span> <span class="va">biomarker</span>, group <span class="op">=</span> <span class="va">id</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_point.html" class="external-link">geom_point</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">observed</span><span class="op">)</span>, size <span class="op">=</span> <span class="fl">0.5</span>, alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span><span class="va">id</span>, scales <span class="op">=</span> <span class="st">"free_y"</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
+<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="st">"Biomarker Trajectories (True and Observed)"</span>,</span></span>
+<span class="r-in"><span>       x <span class="op">=</span> <span class="st">"Time"</span>, y <span class="op">=</span> <span class="st">"Biomarker Value"</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> `geom_line()`: Each group consists of only one observation.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Do you need to adjust the <span style="color: #00BB00;">group</span> aesthetic?</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> `geom_line()`: Each group consists of only one observation.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Do you need to adjust the <span style="color: #00BB00;">group</span> aesthetic?</span>
 <span class="r-plt img"><img src="sim-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Comparison of x3 groups (average trajectories)</span></span></span>
-<span class="r-in"><span><span class="va">group1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">biomarker</span> <span class="op">~</span> <span class="va">time</span>,</span></span>
-<span class="r-in"><span>   data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">[</span></span></span>
-<span class="r-in"><span>          <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">$</span><span class="va">x3</span> <span class="op">==</span> <span class="fl">1</span>,<span class="op">]</span>,</span></span>
-<span class="r-in"><span>   FUN <span class="op">=</span> <span class="va">mean</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">group0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">biomarker</span> <span class="op">~</span> <span class="va">time</span>,</span></span>
-<span class="r-in"><span>   data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">[</span></span></span>
-<span class="r-in"><span>          <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">$</span><span class="va">x3</span> <span class="op">==</span> <span class="fl">0</span>,<span class="op">]</span>,</span></span>
-<span class="r-in"><span>   FUN <span class="op">=</span> <span class="va">mean</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">group1</span><span class="op">$</span><span class="va">time</span>, <span class="va">group1</span><span class="op">$</span><span class="va">biomarker</span>, type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="st">"blue"</span>, lwd <span class="op">=</span> <span class="fl">2</span>,</span></span>
-<span class="r-in"><span>     xlab <span class="op">=</span> <span class="st">"Time (days)"</span>, ylab <span class="op">=</span> <span class="st">"Mean Biomarker Level"</span>,</span></span>
-<span class="r-in"><span>     main <span class="op">=</span> <span class="st">"Average Trajectories by x3 Group (10-day follow-up)"</span>,</span></span>
-<span class="r-in"><span>     ylim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">group1</span><span class="op">$</span><span class="va">biomarker</span>, <span class="va">group0</span><span class="op">$</span><span class="va">biomarker</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span><span class="va">group0</span><span class="op">$</span><span class="va">time</span>, <span class="va">group0</span><span class="op">$</span><span class="va">biomarker</span>, col <span class="op">=</span> <span class="st">"red"</span>, lwd <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/abline.html" class="external-link">abline</a></span><span class="op">(</span>h <span class="op">=</span> <span class="fl">0</span>, lty <span class="op">=</span> <span class="fl">2</span>, col <span class="op">=</span> <span class="st">"gray"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"topright"</span>, legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x3=1"</span>, <span class="st">"x3=0"</span>, <span class="st">"Equilibrium"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>       col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"blue"</span>, <span class="st">"red"</span>, <span class="st">"gray"</span><span class="op">)</span>, lty <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">2</span><span class="op">)</span>, lwd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">2</span>, <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># Survival analysis</span></span></span>
+<span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/therneau/survival" class="external-link">survival</a></span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Kaplan-Meier curve</span></span></span>
+<span class="r-in"><span><span class="va">km_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/survfit.html" class="external-link">survfit</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="fl">1</span>, data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">km_fit</span>, main <span class="op">=</span> <span class="st">"Kaplan-Meier Survival Curve"</span>,</span></span>
+<span class="r-in"><span>     xlab <span class="op">=</span> <span class="st">"Time"</span>, ylab <span class="op">=</span> <span class="st">"Survival Probability"</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="sim-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="co"># Multiple trajectory visualization using ggplot2</span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"ggplot2"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span></span>
-<span class="r-in"><span>  <span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># Examine relationship between initial biomarker and survival</span></span></span>
+<span class="r-in"><span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">$</span><span class="va">initial_biomarker</span> <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">state</span><span class="op">[</span>, <span class="st">"biomarker"</span><span class="op">]</span></span></span>
+<span class="r-in"><span><span class="va">cox_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span>, data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">cox_fit</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Call:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> coxph(formula = Surv(time, status) ~ w1 + w2, data = sim$data$survival_data)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   n= 200, number of events= 135 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        coef exp(coef) se(coef)      z Pr(&gt;|z|)    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> w1  0.34990   1.41893  0.08684  4.029  5.6e-05 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> w2 -0.31005   0.73341  0.17326 -1.789   0.0735 .  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> ---</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    exp(coef) exp(-coef) lower .95 upper .95</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> w1    1.4189     0.7048    1.1969     1.682</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> w2    0.7334     1.3635    0.5222     1.030</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Concordance= 0.601  (se = 0.025 )</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Likelihood ratio test= 18.57  on 2 df,   p=9e-05</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Wald test            = 18.16  on 2 df,   p=1e-04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Score (logrank) test = 18.37  on 2 df,   p=1e-04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span>  <span class="co"># Subset first 20 subjects for visualization</span></span></span>
-<span class="r-in"><span>  <span class="va">subset_data</span> <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">[</span></span></span>
-<span class="r-in"><span>                 <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">$</span><span class="va">id</span> <span class="op">&lt;=</span> <span class="fl">20</span>, <span class="op">]</span></span></span>
+<span class="r-in"><span><span class="co"># Verify ODE dynamics - compare numerical solution with data</span></span></span>
+<span class="r-in"><span><span class="co"># Extract parameters used in simulation</span></span></span>
+<span class="r-in"><span><span class="va">omega</span> <span class="op">&lt;-</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">pi</span> <span class="op">/</span> <span class="fl">5</span>  <span class="co"># Natural frequency</span></span></span>
+<span class="r-in"><span><span class="va">xi</span> <span class="op">&lt;-</span> <span class="fl">0.707</span>          <span class="co"># Damping ratio</span></span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">subset_data</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">time</span>, y <span class="op">=</span> <span class="va">observed</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>color <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">x3</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">id</span>, ncol <span class="op">=</span> <span class="fl">5</span>, scales <span class="op">=</span> <span class="st">"free_x"</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_abline.html" class="external-link">geom_hline</a></span><span class="op">(</span>yintercept <span class="op">=</span> <span class="fl">0</span>, linetype <span class="op">=</span> <span class="st">"dashed"</span>, alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_smooth.html" class="external-link">geom_smooth</a></span><span class="op">(</span>se <span class="op">=</span> <span class="cn">FALSE</span>, method <span class="op">=</span> <span class="st">"loess"</span>, size <span class="op">=</span> <span class="fl">0.5</span>, alpha <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_manual.html" class="external-link">scale_color_manual</a></span><span class="op">(</span>values <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"0"</span> <span class="op">=</span> <span class="st">"red"</span>, <span class="st">"1"</span> <span class="op">=</span> <span class="st">"blue"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>                       labels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x3=0"</span>, <span class="st">"x3=1"</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"Biomarker Trajectories"</span>,</span></span>
-<span class="r-in"><span>                       <span class="st">"(First 20 Subjects, 10-day follow-up)"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>         subtitle <span class="op">=</span> <span class="st">"Showing convergence dynamics"</span>,</span></span>
-<span class="r-in"><span>         x <span class="op">=</span> <span class="st">"Time (days)"</span>, y <span class="op">=</span> <span class="st">"Biomarker Level (standardized)"</span>,</span></span>
-<span class="r-in"><span>         color <span class="op">=</span> <span class="st">"x3 Group"</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span></span>
-<span class="r-in"><span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>strip.text <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html" class="external-link">element_text</a></span><span class="op">(</span>size <span class="op">=</span> <span class="fl">8</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span><span class="co"># Check phase space (velocity vs biomarker)</span></span></span>
+<span class="r-in"><span><span class="va">subject_5</span> <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">[</span></span></span>
+<span class="r-in"><span>  <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">$</span><span class="va">id</span> <span class="op">==</span> <span class="fl">5</span>,</span></span>
+<span class="r-in"><span><span class="op">]</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">subject_5</span><span class="op">$</span><span class="va">biomarker</span>, <span class="va">subject_5</span><span class="op">$</span><span class="va">velocity</span>,</span></span>
+<span class="r-in"><span>     type <span class="op">=</span> <span class="st">"l"</span>, main <span class="op">=</span> <span class="st">"Phase Portrait (Subject 5)"</span>,</span></span>
+<span class="r-in"><span>     xlab <span class="op">=</span> <span class="st">"Biomarker"</span>, ylab <span class="op">=</span> <span class="st">"Velocity"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/points.html" class="external-link">points</a></span><span class="op">(</span><span class="va">subject_5</span><span class="op">$</span><span class="va">biomarker</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, <span class="va">subject_5</span><span class="op">$</span><span class="va">velocity</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>,</span></span>
+<span class="r-in"><span>       col <span class="op">=</span> <span class="st">"red"</span>, pch <span class="op">=</span> <span class="fl">16</span>, cex <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span><span class="st">"topright"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Trajectory"</span>, <span class="st">"Initial State"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>       col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"black"</span>, <span class="st">"red"</span><span class="op">)</span>, pch <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="fl">16</span><span class="op">)</span>, lty <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="cn">NA</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="sim-3.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
