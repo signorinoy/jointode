@@ -61,11 +61,13 @@
 #'       \quad \epsilon_{ij} \sim \mathcal{N}(0, 0.01)}
 #'
 #' \strong{Survival Sub-model:}
-#' \deqn{\lambda_i(t) = \frac{1.5}{8}\left(\frac{t}{8}\right)^{0.5}
+#' \deqn{\lambda_i(t) = \frac{1}{8}
 #'       \exp(0.3m_i(t) + 1.0\dot{m}_i(t) +
 #'       \mathbf{W}_i^T\boldsymbol{\phi} + b_i)}
 #'
 #' where \eqn{\boldsymbol{\phi} = (0.4, -0.6)^T} for covariates w1 and w2.
+#' Note: With shape parameter = 1.0, the Weibull baseline reduces to an
+#' exponential distribution with constant hazard 1/8.
 #' }
 #'
 #' @source
@@ -107,7 +109,10 @@
 #'      xlab = "Time", ylab = "Survival Probability")
 #'
 #' # Examine relationship between initial biomarker and survival
-#' sim$data$survival_data$initial_biomarker <- sim$data$state[, "biomarker"]
+#' # Note: Ensure proper alignment of subject IDs when extracting initial states
+#' sim$data$survival_data$initial_biomarker <- sim$data$state[
+#'   sim$data$survival_data$id, "biomarker"
+#' ]
 #' cox_fit <- coxph(Surv(time, status) ~ w1 + w2, data = sim$data$survival_data)
 #' summary(cox_fit)
 #'

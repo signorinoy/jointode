@@ -45,14 +45,14 @@ where the true biomarker trajectory $m_i(t)$ evolves according to:
 
 $$\ddot{m}_i(t) = \beta_1 m_i(t) + \beta_2 \dot{m}_i(t) + \beta_3 + \beta_4 x_{i1} + \beta_5 x_{i2}$$
 
-with $b_i \sim \mathcal{N}(0, \sigma_b^2)$ (random intercept) and $\epsilon_{ij} \sim \mathcal{N}(0, \sigma_e^2)$ (measurement error).
+where $x_{i1}$ and $x_{i2}$ are longitudinal covariates, with $b_i \sim \mathcal{N}(0, \sigma_b^2)$ representing the random intercept and $\epsilon_{ij} \sim \mathcal{N}(0, \sigma_e^2)$ representing the measurement error.
 
 **Survival Process:**
 
 The hazard function incorporates biomarker dynamics:
 $$\lambda_i(t) = \lambda_0(t) \exp\{\alpha_1 m_i(t) + \alpha_2 \dot{m}_i(t) + \phi_1 w_{i1} + \phi_2 w_{i2} + b_i\}$$
 
-where $\lambda_0(t)=8$ is the baseline hazard and $\alpha = (\alpha_1, \alpha_2)$ captures the association with biomarker value and velocity.
+where $\lambda_0(t) = 8$ is the constant baseline hazard, $w_{i1}$ and $w_{i2}$ are baseline covariates, and $\boldsymbol{\alpha} = (\alpha_1, \alpha_2)^\top$ captures the association with the biomarker value and its velocity.
 
 ```{r params-data, echo=FALSE}
 # Load data
@@ -288,7 +288,7 @@ summary(fit_jsm)
 # Model 3: Time-varying Cox (Oracle - Theoretical Benchmark)
 #--------------------------------------------
 fit_oracle <- coxph(
-  Surv(start, stop, event) ~ biomarker + velocity  + w1 + w2 +
+  Surv(start, stop, event) ~ biomarker + velocity + w1 + w2 +
     offset(b) + cluster(ID),
   data = jsm_data
 )

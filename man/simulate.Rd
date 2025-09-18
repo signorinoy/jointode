@@ -10,7 +10,7 @@ simulate(
   longitudinal = list(xi = 0.707, period = 5, k = 1, excitation = list(offset = 0,
     covariates = c(x1 = 0.8, x2 = -0.5)), initial = list(offset = -3, covariates = c(x1 =
     0.1, x2 = -0.1), random_coef = 0.2), error_sd = 0.1, n_measurements = 10),
-  survival = list(baseline = list(type = "weibull", shape = 1.5, scale = 8), value = 0.3,
+  survival = list(baseline = list(type = "weibull", shape = 1, scale = 8), value = 0.3,
     slope = 1, covariates = c(w1 = 0.4, w2 = -0.6)),
   covariates = list(x1 = list(type = "normal", mean = 0, sd = 1), x2 = list(type =
     "normal", mean = 0, sd = 1), w1 = list(type = "normal", mean = 0, sd = 1), w2 =
@@ -51,7 +51,7 @@ the strength of external forcing (default: 1.0)}
 \eqn{\boldsymbol{\beta}_{init}} on initial biomarker level
 (default: c(x1 = 0.1, x2 = -0.1))}
 \item{random_coef}{Scaling coefficient \eqn{\psi} for random effect
-influence on initial conditions (default: 0.0)}
+influence on initial conditions (default: 0.2)}
 }
 }
 \item{error_sd}{Standard deviation \eqn{\sigma_{\epsilon}} of the
@@ -67,7 +67,7 @@ measurement error process (default: 0.1)}
 \item{type}{Character string specifying the baseline hazard type
 (currently only "weibull" is supported)}
 \item{shape}{Weibull shape parameter \eqn{\kappa > 0}
-(default: 1.5)}
+(default: 1.0)}
 \item{scale}{Weibull scale parameter \eqn{\lambda > 0}
 (default: 8.0)}
 }
@@ -115,7 +115,7 @@ measurement error, \eqn{y_{ij}}
 \eqn{\dot{m}_i(t_{ij})}
 \item \code{acceleration}: Second derivative of the biomarker
 trajectory, \eqn{\ddot{m}_i(t_{ij})}
-\item \code{x1}, \code{x2}, \code{x3}:
+\item \code{x1}, \code{x2}:
 Time-invariant covariates
 }
 }
@@ -127,8 +127,8 @@ with columns:
 \item \code{status}: Event indicator, \eqn{\delta_i}
 (1 = event observed, 0 = censored)
 \item \code{b}: Realized subject-specific random effect, \eqn{b_i}
-\item \code{x1}, \code{x2}, \code{x3}:
-Baseline covariate values
+\item \code{w1}, \code{w2}:
+Baseline survival covariates
 }
 }
 \item{\code{state}}{An \eqn{n \times 2} matrix containing initial states
@@ -186,7 +186,7 @@ and velocity:
 where:
 \itemize{
 \item \eqn{\lambda_0(t)} denotes the Weibull baseline hazard:
-\eqn{\lambda_0(t) = (k/\lambda)(t/\lambda)^{k-1}}
+\eqn{\lambda_0(t) = (\kappa/\lambda)(t/\lambda)^{\kappa-1}}
 \item \eqn{\alpha_1} quantifies the association with current biomarker
 value
 \item \eqn{\alpha_2} quantifies the association with biomarker velocity

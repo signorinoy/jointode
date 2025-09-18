@@ -23,6 +23,7 @@ test_that("gradient computation comprehensive tests", {
     coefficients$hazard,
     coefficients$acceleration
   )
+  params <- params + rnorm(length(params), 0, 0.1)
   fixed_params <- list(
     measurement_error_sd = coefficients$measurement_error_sd,
     random_effect_sd = coefficients$random_effect_sd
@@ -54,7 +55,7 @@ test_that("gradient computation comprehensive tests", {
     grad_analytical[1:n_hazard],
     grad_numerical[1:n_hazard],
     "Survival gradient",
-    tolerance = 1e-1
+    tolerance = 1e-2
   )
 
   # Test 2: Check dimensions

@@ -38,7 +38,7 @@
 #'           \eqn{\boldsymbol{\beta}_{init}} on initial biomarker level
 #'           (default: c(x1 = 0.1, x2 = -0.1))}
 #'         \item{random_coef}{Scaling coefficient \eqn{\psi} for random effect
-#'           influence on initial conditions (default: 0.0)}
+#'           influence on initial conditions (default: 0.2)}
 #'       }
 #'     }
 #'     \item{error_sd}{Standard deviation \eqn{\sigma_{\epsilon}} of the
@@ -53,7 +53,7 @@
 #'         \item{type}{Character string specifying the baseline hazard type
 #'           (currently only "weibull" is supported)}
 #'         \item{shape}{Weibull shape parameter \eqn{\kappa > 0}
-#'           (default: 1.5)}
+#'           (default: 1.0)}
 #'         \item{scale}{Weibull scale parameter \eqn{\lambda > 0}
 #'           (default: 8.0)}
 #'       }
@@ -97,7 +97,7 @@
 #'         \eqn{\dot{m}_i(t_{ij})}
 #'       \item \code{acceleration}: Second derivative of the biomarker
 #'         trajectory, \eqn{\ddot{m}_i(t_{ij})}
-#'       \item \code{x1}, \code{x2}, \code{x3}:
+#'       \item \code{x1}, \code{x2}:
 #'         Time-invariant covariates
 #'     }
 #'   }
@@ -109,8 +109,8 @@
 #'       \item \code{status}: Event indicator, \eqn{\delta_i}
 #'         (1 = event observed, 0 = censored)
 #'       \item \code{b}: Realized subject-specific random effect, \eqn{b_i}
-#'       \item \code{x1}, \code{x2}, \code{x3}:
-#'         Baseline covariate values
+#'       \item \code{w1}, \code{w2}:
+#'         Baseline survival covariates
 #'     }
 #'   }
 #'   \item{\code{state}}{An \eqn{n \times 2} matrix containing initial states
@@ -159,7 +159,7 @@
 #' where:
 #' \itemize{
 #'   \item \eqn{\lambda_0(t)} denotes the Weibull baseline hazard:
-#'     \eqn{\lambda_0(t) = (k/\lambda)(t/\lambda)^{k-1}}
+#'     \eqn{\lambda_0(t) = (\kappa/\lambda)(t/\lambda)^{\kappa-1}}
 #'   \item \eqn{\alpha_1} quantifies the association with current biomarker
 #'     value
 #'   \item \eqn{\alpha_2} quantifies the association with biomarker velocity
@@ -249,7 +249,7 @@ simulate <- function(
   survival = list(
     baseline = list(
       type = "weibull",
-      shape = 1.5,
+      shape = 1.0,
       scale = 8.0
     ),
     value = 0.3,

@@ -86,6 +86,12 @@ fit <- JointODE(
   longitudinal_data = sim$data$longitudinal_data,
   survival_data = sim$data$survival_data,
   state = as.matrix(sim$data$state),
+  spline_baseline = list(
+    degree = 2,
+    n_knots = 1,
+    knot_placement = "equal",
+    boundary_knots = NULL
+  ),
   parallel = TRUE
 )
 
