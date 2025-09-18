@@ -379,11 +379,17 @@ This analysis requires $\omega_n^2 \geq 0$ for real natural frequencies, focusin
 
 ## Survival Outcomes
 
-The hazard function incorporates both biomarker value and its rate of change:
+The hazard function incorporates both the biomarker level and its rate of change:
 
-$$h(t) = h_0(t) \exp(\beta_1 m(t) + \beta_2 |m'(t)|)$$
+$$h(t) = h_0(t) \exp(\alpha_1 m(t) + \alpha_2 |\dot{m}(t)|)$$
 
-Here $|m'(t)|$ captures variability—rapid changes in either direction indicate instability and elevated risk.
+This formulation captures two distinct aspects of risk:
 
-Consider blood glucose: stable levels suggest controlled diabetes, while rapid fluctuations (high $|m'(t)|$) indicate poor glycemic control and higher complication risk, effectively measuring the temporal variance of the biomarker.
+- $m(t)$: The biomarker level itself (e.g., elevated glucose indicating immediate risk)
+- $|\dot{m}(t)|$: The biomarker volatility (e.g., rapid fluctuations indicating instability)
 
+By incorporating $|\dot{m}(t)|$, we effectively model both the biomarker's central tendency and its temporal variability—analogous to simultaneously capturing mean and variance effects on survival risk. This dual characterization provides richer prognostic information than static measurements alone.
+
+In diabetes management, stable glucose levels suggest controlled disease, while rapid fluctuations (large $|\dot{m}(t)|$) indicate poor glycemic control and elevated complication risk, independent of the average glucose level.
+
+**Remark:** For oscillatory biomarker dynamics ($\xi < 1$), using absolute values prevents positive and negative velocity contributions from canceling in cumulative hazard calculations, ensuring that all variability contributes to risk assessment.

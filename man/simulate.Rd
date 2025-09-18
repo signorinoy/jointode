@@ -9,7 +9,7 @@ simulate(
   shared_sd = 0.1,
   longitudinal = list(xi = 0.707, period = 5, k = 1, excitation = list(offset = 0,
     covariates = c(x1 = 0.8, x2 = -0.5)), initial = list(offset = -3, covariates = c(x1 =
-    0.1, x2 = -0.1), random_coef = 0), error_sd = 0.1, n_measurements = 10),
+    0.1, x2 = -0.1), random_coef = 0.2), error_sd = 0.1, n_measurements = 10),
   survival = list(baseline = list(type = "weibull", shape = 1.5, scale = 8), value = 0.3,
     slope = 1, covariates = c(w1 = 0.4, w2 = -0.6)),
   covariates = list(x1 = list(type = "normal", mean = 0, sd = 1), x2 = list(type =
@@ -161,12 +161,14 @@ where:
 \item \eqn{k} scales the excitation amplitude
 \item \eqn{f_0} is the constant excitation term
 \item \eqn{\mathbf{X}_i} contains time-invariant covariates
-\item \eqn{\boldsymbol{\beta}_{exc}} represents covariate effects on excitation
+\item \eqn{\boldsymbol{\beta}_{exc}} represents covariate effects on
+excitation
 }
 
 Initial conditions are specified as:
 \itemize{
-\item \eqn{m_i(0) = \mu_0 + \mathbf{X}_i^T\boldsymbol{\beta}_{init} + \psi b_i}
+\item
+\eqn{m_i(0) = \mu_0 + \mathbf{X}_i^T\boldsymbol{\beta}_{init} + \psi b_i}
 \item \eqn{\dot{m}_i(0) = 0} (zero initial velocity)
 }
 

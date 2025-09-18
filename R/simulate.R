@@ -134,12 +134,14 @@
 #'   \item \eqn{k} scales the excitation amplitude
 #'   \item \eqn{f_0} is the constant excitation term
 #'   \item \eqn{\mathbf{X}_i} contains time-invariant covariates
-#'   \item \eqn{\boldsymbol{\beta}_{exc}} represents covariate effects on excitation
+#'   \item \eqn{\boldsymbol{\beta}_{exc}} represents covariate effects on
+#'           excitation
 #' }
 #'
 #' Initial conditions are specified as:
 #' \itemize{
-#'   \item \eqn{m_i(0) = \mu_0 + \mathbf{X}_i^T\boldsymbol{\beta}_{init} + \psi b_i}
+#'   \item
+#'     \eqn{m_i(0) = \mu_0 + \mathbf{X}_i^T\boldsymbol{\beta}_{init} + \psi b_i}
 #'   \item \eqn{\dot{m}_i(0) = 0} (zero initial velocity)
 #' }
 #'
@@ -239,7 +241,7 @@ simulate <- function(
     initial = list(
       offset = -3.0,
       covariates = c(x1 = 0.1, x2 = -0.1),
-      random_coef = 0.0
+      random_coef = 0.2
     ),
     error_sd = 0.1,
     n_measurements = 10

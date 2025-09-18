@@ -151,20 +151,16 @@ The left panel shows the complete ODE dynamics for four randomly selected subjec
 ```{r ode-stats, echo=FALSE}
 # Calculate variance and correlation
 ode_stats <- long_data %>%
-  select(biomarker, velocity, acceleration) %>%
-  summarise(
-    var_biomarker = var(biomarker),
-    var_velocity = var(velocity),
-    var_acceleration = var(acceleration)
-  )
-
+  group_by(id) %>%
+  slice_tail(n = 1)
+ode_cov <- cov(ode_stats[c("biomarker", "velocity", "acceleration")])
 ode_cor <- cor(long_data[c("biomarker", "velocity", "acceleration")])
 
 # Display statistics
 cat("Variance Components:\n")
-cat(sprintf("  Biomarker: %.3f\n", ode_stats$var_biomarker))
-cat(sprintf("  Velocity: %.3f\n", ode_stats$var_velocity))
-cat(sprintf("  Acceleration: %.3f\n", ode_stats$var_acceleration))
+cat(sprintf("  Biomarker: %.3f\n", ode_cov[1, 1]))
+cat(sprintf("  Velocity: %.3f\n", ode_cov[2, 2]))
+cat(sprintf("  Acceleration: %.3f\n", ode_cov[3, 3]))
 
 cat("\nPairwise Correlations:\n")
 cat(sprintf("  ρ(Biomarker, Velocity): %.3f\n", ode_cor[1, 2]))
@@ -230,7 +226,7 @@ The simulation results demonstrate good estimation accuracy for the joint ODE-Co
 
 ## Appendix
 
-```{r model-implementation, eval=FALSE}
+```{r model-implementation}
 # Data preparation for comparison models
 jsm_data <- dataPreprocess(
   long = sim$data$longitudinal_data %>% rename(ID = id),
@@ -254,13 +250,13 @@ jsm_data <- dataPreprocess(
 #--------------------------------------------
 # Model 1: JointODE (Proposed Method)
 #--------------------------------------------
-fit_jointode <- JointODE(
-  longitudinal_formula = observed ~ x1 + x2,
-  survival_formula = Surv(time, status) ~ w1 + w2,
-  longitudinal_data = sim$data$longitudinal_data,
-  survival_data = sim$data$survival_data,
-  state = as.matrix(sim$data$state)
-)
+# fit_jointode <- JointODE(
+#   longitudinal_formula = observed ~ x1 + x2,
+#   survival_formula = Surv(time, status) ~ w1 + w2,
+#   longitudinal_data = sim$data$longitudinal_data,
+#   survival_data = sim$data$survival_data,
+#   state = as.matrix(sim$data$state)
+# )
 
 #--------------------------------------------
 # Model 2: Traditional Joint Model (JSM)
@@ -286,6 +282,8 @@ fit_jsm <- jmodelTM(
   timeVarY = "obstime"
 )
 
+summary(fit_jsm)
+
 #--------------------------------------------
 # Model 3: Time-varying Cox (Oracle - Theoretical Benchmark)
 #--------------------------------------------
@@ -294,6 +292,7 @@ fit_oracle <- coxph(
     offset(b) + cluster(ID),
   data = jsm_data
 )
+summary(fit_oracle)
 ```
 
 
@@ -369,5 +368,4 @@ fit_jointode_pbc <- JointODE(
   parallel = TRUE,
   control = list(verbose = 3)
 )
-
 ```
