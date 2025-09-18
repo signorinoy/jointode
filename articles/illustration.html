@@ -209,17 +209,32 @@ modeling physiological processes.</p>
 <div class="section level2">
 <h2 id="survival-outcomes">Survival Outcomes<a class="anchor" aria-label="anchor" href="#survival-outcomes"></a>
 </h2>
-<p>The hazard function incorporates both biomarker value and its rate of
-change:</p>
-<p><span class="math display">h(t) = h_0(t) \exp(\beta_1 m(t) + \beta_2
-|m'(t)|)</span></p>
-<p>Here <span class="math inline">|m'(t)|</span> captures
-variability—rapid changes in either direction indicate instability and
-elevated risk.</p>
-<p>Consider blood glucose: stable levels suggest controlled diabetes,
-while rapid fluctuations (high <span class="math inline">|m'(t)|</span>) indicate poor glycemic control
-and higher complication risk, effectively measuring the temporal
-variance of the biomarker.</p>
+<p>The hazard function incorporates both the biomarker level and its
+rate of change:</p>
+<p><span class="math display">h(t) = h_0(t) \exp(\alpha_1 m(t) +
+\alpha_2 |\dot{m}(t)|)</span></p>
+<p>This formulation captures two distinct aspects of risk:</p>
+<ul>
+<li>
+<span class="math inline">m(t)</span>: The biomarker level itself
+(e.g., elevated glucose indicating immediate risk)</li>
+<li>
+<span class="math inline">|\dot{m}(t)|</span>: The biomarker
+volatility (e.g., rapid fluctuations indicating instability)</li>
+</ul>
+<p>By incorporating <span class="math inline">|\dot{m}(t)|</span>, we
+effectively model both the biomarker’s central tendency and its temporal
+variability—analogous to simultaneously capturing mean and variance
+effects on survival risk. This dual characterization provides richer
+prognostic information than static measurements alone.</p>
+<p>In diabetes management, stable glucose levels suggest controlled
+disease, while rapid fluctuations (large <span class="math inline">|\dot{m}(t)|</span>) indicate poor glycemic control
+and elevated complication risk, independent of the average glucose
+level.</p>
+<p><strong>Remark:</strong> For oscillatory biomarker dynamics (<span class="math inline">\xi &lt; 1</span>), using absolute values prevents
+positive and negative velocity contributions from canceling in
+cumulative hazard calculations, ensuring that all variability
+contributes to risk assessment.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
