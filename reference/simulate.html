@@ -75,7 +75,7 @@ natural period, and excitation amplitude.</p>
 <span>  longitudinal <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>xi <span class="op">=</span> <span class="fl">0.707</span>, period <span class="op">=</span> <span class="fl">5</span>, k <span class="op">=</span> <span class="fl">1</span>, excitation <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>offset <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>    covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>x1 <span class="op">=</span> <span class="fl">0.8</span>, x2 <span class="op">=</span> <span class="op">-</span><span class="fl">0.5</span><span class="op">)</span><span class="op">)</span>, initial <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>offset <span class="op">=</span> <span class="op">-</span><span class="fl">3</span>, covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>x1 <span class="op">=</span></span>
 <span>    <span class="fl">0.1</span>, x2 <span class="op">=</span> <span class="op">-</span><span class="fl">0.1</span><span class="op">)</span>, random_coef <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span>, error_sd <span class="op">=</span> <span class="fl">0.1</span>, n_measurements <span class="op">=</span> <span class="fl">10</span><span class="op">)</span>,</span>
-<span>  survival <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>baseline <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"weibull"</span>, shape <span class="op">=</span> <span class="fl">1.5</span>, scale <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>, value <span class="op">=</span> <span class="fl">0.3</span>,</span>
+<span>  survival <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>baseline <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"weibull"</span>, shape <span class="op">=</span> <span class="fl">1</span>, scale <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>, value <span class="op">=</span> <span class="fl">0.3</span>,</span>
 <span>    slope <span class="op">=</span> <span class="fl">1</span>, covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>w1 <span class="op">=</span> <span class="fl">0.4</span>, w2 <span class="op">=</span> <span class="op">-</span><span class="fl">0.6</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  covariates <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>x1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"normal"</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, x2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span></span>
 <span>    <span class="st">"normal"</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, w1 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>type <span class="op">=</span> <span class="st">"normal"</span>, mean <span class="op">=</span> <span class="fl">0</span>, sd <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, w2 <span class="op">=</span></span>
@@ -137,7 +137,7 @@ the strength of external forcing (default: 1.0)</p></dd>
 
 <dt>random_coef</dt>
 <dd><p>Scaling coefficient \(\psi\) for random effect
-influence on initial conditions (default: 0.0)</p></dd>
+influence on initial conditions (default: 0.2)</p></dd>
 
 
 </dl></dd>
@@ -162,7 +162,7 @@ measurement error process (default: 0.1)</p></dd>
 
 <dt>shape</dt>
 <dd><p>Weibull shape parameter \(\kappa &gt; 0\)
-(default: 1.5)</p></dd>
+(default: 1.0)</p></dd>
 
 <dt>scale</dt>
 <dd><p>Weibull scale parameter \(\lambda &gt; 0\)
@@ -233,7 +233,7 @@ measurement error, \(y_{ij}\)</p></li>
 \(\dot{m}_i(t_{ij})\)</p></li>
 <li><p><code>acceleration</code>: Second derivative of the biomarker
 trajectory, \(\ddot{m}_i(t_{ij})\)</p></li>
-<li><p><code>x1</code>, <code>x2</code>, <code>x3</code>:
+<li><p><code>x1</code>, <code>x2</code>:
 Time-invariant covariates</p></li>
 </ul></dd>
 
@@ -244,8 +244,8 @@ with columns:</p><ul><li><p><code>id</code>: Subject identifier</p></li>
 <li><p><code>status</code>: Event indicator, \(\delta_i\)
 (1 = event observed, 0 = censored)</p></li>
 <li><p><code>b</code>: Realized subject-specific random effect, \(b_i\)</p></li>
-<li><p><code>x1</code>, <code>x2</code>, <code>x3</code>:
-Baseline covariate values</p></li>
+<li><p><code>w1</code>, <code>w2</code>:
+Baseline survival covariates</p></li>
 </ul></dd>
 
 <dt><code>state</code></dt>
@@ -287,7 +287,7 @@ and velocity:
 $$\lambda_i(t) = \lambda_0(t)\exp(\alpha_1 m_i(t) + \alpha_2\dot{m}_i(t)
  + \mathbf{W}_i^T\boldsymbol{\phi} + b_i)$$
 where:</p><ul><li><p>\(\lambda_0(t)\) denotes the Weibull baseline hazard:
-\(\lambda_0(t) = (k/\lambda)(t/\lambda)^{k-1}\)</p></li>
+\(\lambda_0(t) = (\kappa/\lambda)(t/\lambda)^{\kappa-1}\)</p></li>
 <li><p>\(\alpha_1\) quantifies the association with current biomarker
 value</p></li>
 <li><p>\(\alpha_2\) quantifies the association with biomarker velocity</p></li>
@@ -314,18 +314,18 @@ between the longitudinal and survival processes through:</p><ul><li><p>Initial b
 <span class="r-in"><span><span class="co"># Examine the structure of generated data</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sim_data</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> List of 3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ longitudinal_data:'data.frame':	239 obs. of  8 variables:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id          : int [1:239] 1 1 2 2 2 2 2 2 2 2 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time        : num [1:239] 0 1 0 1 2 3 4 5 6 7 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ observed    : num [1:239] -2.992 -1.635 -3.084 -1.788 -0.479 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ biomarker   : num [1:239] -2.915 -1.451 -3.033 -1.818 -0.528 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ velocity    : num [1:239] 0 1.97 0 1.635 0.848 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ acceleration: num [1:239] 5.484 -0.328 4.551 -0.273 -0.911 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x1          : num [1:239] 0.2533 0.2533 -0.0285 -0.0285 -0.0285 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x2          : num [1:239] -0.71 -0.71 0.257 0.257 0.257 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ longitudinal_data:'data.frame':	196 obs. of  8 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id          : int [1:196] 1 2 2 2 2 2 2 2 3 3 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time        : num [1:196] 0 0 1 2 3 4 5 6 0 1 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ observed    : num [1:196] -2.9919 -3.1844 -1.8695 -0.4979 -0.0155 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ biomarker   : num [1:196] -2.9148 -3.0331 -1.8183 -0.5283 -0.0648 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ velocity    : num [1:196] 0 0 1.635 0.848 0.163 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ acceleration: num [1:196] 5.484 4.551 -0.273 -0.911 -0.426 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x1          : num [1:196] 0.2533 -0.0285 -0.0285 -0.0285 -0.0285 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x2          : num [1:196] -0.71 0.257 0.257 0.257 0.257 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ survival_data    :'data.frame':	50 obs. of  6 variables:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id    : int [1:50] 1 2 3 4 5 6 7 8 9 10 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time  : num [1:50] 1.18 8.12 10 10 9.36 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time  : num [1:50] 0.761 6.956 10 10 8.646 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ status: int [1:50] 1 1 0 0 1 1 0 1 1 0 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ w1    : num [1:50] 0.788 0.769 0.332 -1.008 -0.119 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ w2    : int [1:50] 1 0 1 1 0 0 1 0 0 1 ...</span>

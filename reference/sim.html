@@ -130,10 +130,12 @@ where \(\boldsymbol{\beta}_{init} = (0.1, -0.1)^T\) and \(b_i\) is the random ef
 $$y_{ij} = m_i(t_{ij}) + b_i + \epsilon_{ij},
       \quad \epsilon_{ij} \sim \mathcal{N}(0, 0.01)$$</p>
 <p><strong>Survival Sub-model:</strong>
-$$\lambda_i(t) = \frac{1.5}{8}\left(\frac{t}{8}\right)^{0.5}
+$$\lambda_i(t) = \frac{1}{8}
       \exp(0.3m_i(t) + 1.0\dot{m}_i(t) +
       \mathbf{W}_i^T\boldsymbol{\phi} + b_i)$$</p>
-<p>where \(\boldsymbol{\phi} = (0.4, -0.6)^T\) for covariates w1 and w2.</p>
+<p>where \(\boldsymbol{\phi} = (0.4, -0.6)^T\) for covariates w1 and w2.
+Note: With shape parameter = 1.0, the Weibull baseline reduces to an
+exponential distribution with constant hazard 1/8.</p>
 </div>
 
     </div>
@@ -154,18 +156,18 @@ survival data</p></div>
 <span class="r-in"><span><span class="co"># Explore the data structure</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span>, max.level <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> List of 3</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  $ longitudinal_data:'data.frame':	1225 obs. of  8 variables:</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id          : int [1:1225] 1 1 2 3 3 3 3 3 3 3 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time        : num [1:1225] 0 1 0 0 1 2 3 4 5 6 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ observed    : num [1:1225] -2.799 -0.694 -2.781 -2.786 -1.423 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ biomarker   : num [1:1225] -2.784 -0.853 -2.756 -2.932 -1.652 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ velocity    : num [1:1225] 0 2.6 0 0 1.72 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ acceleration: num [1:1225] 7.232 -0.433 6.934 4.796 -0.287 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x1          : num [1:1225] 2.199 2.199 1.312 -0.265 -0.265 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x2          : num [1:1225] -0.0736 -0.0736 -1.1687 -0.6347 -0.6347 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ longitudinal_data:'data.frame':	1052 obs. of  8 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id          : int [1:1052] 1 2 3 3 3 3 3 3 3 3 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time        : num [1:1052] 0 0 0 1 2 3 4 5 6 7 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ observed    : num [1:1052] -2.7994 -2.5641 -2.7776 -1.5057 -0.0633 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ biomarker   : num [1:1052] -2.784 -2.756 -2.932 -1.652 -0.292 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ velocity    : num [1:1052] 0 0 0 1.723 0.893 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ acceleration: num [1:1052] 7.232 6.934 4.796 -0.287 -0.96 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x1          : num [1:1052] 2.199 1.312 -0.265 -0.265 -0.265 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ x2          : num [1:1052] -0.0736 -1.1687 -0.6347 -0.6347 -0.6347 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ survival_data    :'data.frame':	200 obs. of  6 variables:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ id    : int [1:200] 1 2 3 4 5 6 7 8 9 10 ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time  : num [1:200] 1.201 0.815 10 10 8.231 ...</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ time  : num [1:200] 0.82 0.533 10 10 7.397 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ status: int [1:200] 1 1 0 0 1 1 1 0 0 1 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ w1    : num [1:200] 1.074 -0.0273 -0.0333 -1.5161 0.7904 ...</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ..$ w2    : int [1:200] 1 0 0 1 1 0 1 0 1 0 ...</span>
@@ -176,17 +178,17 @@ survival data</p></div>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Summary statistics for longitudinal data</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">longitudinal_data</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"biomarker"</span>, <span class="st">"velocity"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    biomarker           velocity         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Min.   :-3.34702   Min.   :-0.1034036  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1st Qu.:-1.87591   1st Qu.:-0.0142875  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Median :-0.82751   Median : 0.0009532  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Mean   :-0.92588   Mean   : 0.3649189  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3rd Qu.: 0.01411   3rd Qu.: 0.6354103  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Max.   : 2.57174   Max.   : 2.8726947  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    biomarker          velocity         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Min.   :-3.3470   Min.   :-0.1034036  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1st Qu.:-2.0060   1st Qu.:-0.0008854  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Median :-0.9766   Median : 0.0000000  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Mean   :-1.0515   Mean   : 0.3464686  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3rd Qu.:-0.1048   3rd Qu.: 0.5779896  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  Max.   : 2.5717   Max.   : 2.8726947  </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Check event rate</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">$</span><span class="va">status</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.675</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 0.67</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Visualize biomarker trajectories for first 10 subjects</span></span></span>
 <span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></span>
@@ -211,6 +213,10 @@ survival data</p></div>
 <span class="r-in"><span>       x <span class="op">=</span> <span class="st">"Time"</span>, y <span class="op">=</span> <span class="st">"Biomarker Value"</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> `geom_line()`: Each group consists of only one observation.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Do you need to adjust the <span style="color: #00BB00;">group</span> aesthetic?</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> `geom_line()`: Each group consists of only one observation.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Do you need to adjust the <span style="color: #00BB00;">group</span> aesthetic?</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> `geom_line()`: Each group consists of only one observation.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Do you need to adjust the <span style="color: #00BB00;">group</span> aesthetic?</span>
 <span class="r-plt img"><img src="sim-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Survival analysis</span></span></span>
@@ -223,28 +229,31 @@ survival data</p></div>
 <span class="r-plt img"><img src="sim-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Examine relationship between initial biomarker and survival</span></span></span>
-<span class="r-in"><span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">$</span><span class="va">initial_biomarker</span> <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">state</span><span class="op">[</span>, <span class="st">"biomarker"</span><span class="op">]</span></span></span>
+<span class="r-in"><span><span class="co"># Note: Ensure proper alignment of subject IDs when extracting initial states</span></span></span>
+<span class="r-in"><span><span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">$</span><span class="va">initial_biomarker</span> <span class="op">&lt;-</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">state</span><span class="op">[</span></span></span>
+<span class="r-in"><span>  <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">$</span><span class="va">id</span>, <span class="st">"biomarker"</span></span></span>
+<span class="r-in"><span><span class="op">]</span></span></span>
 <span class="r-in"><span><span class="va">cox_fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/survival/man/coxph.html" class="external-link">coxph</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/pkg/survival/man/Surv.html" class="external-link">Surv</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">status</span><span class="op">)</span> <span class="op">~</span> <span class="va">w1</span> <span class="op">+</span> <span class="va">w2</span>, data <span class="op">=</span> <span class="va">sim</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">survival_data</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">cox_fit</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Call:</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> coxph(formula = Surv(time, status) ~ w1 + w2, data = sim$data$survival_data)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   n= 200, number of events= 135 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   n= 200, number of events= 134 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        coef exp(coef) se(coef)      z Pr(&gt;|z|)    </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> w1  0.34779   1.41593  0.08653  4.019 5.84e-05 ***</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> w2 -0.32262   0.72425  0.17344 -1.860   0.0629 .  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> w1  0.34407   1.41068  0.08693  3.958 7.55e-05 ***</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> w2 -0.30143   0.73976  0.17408 -1.732   0.0834 .  </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> ---</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    exp(coef) exp(-coef) lower .95 upper .95</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> w1    1.4159     0.7062    1.1951     1.678</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> w2    0.7242     1.3807    0.5155     1.017</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> w1    1.4107     0.7089    1.1897     1.673</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> w2    0.7398     1.3518    0.5259     1.041</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Concordance= 0.601  (se = 0.025 )</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Likelihood ratio test= 18.63  on 2 df,   p=9e-05</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Wald test            = 18.2  on 2 df,   p=1e-04</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> Score (logrank) test = 18.42  on 2 df,   p=1e-04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Concordance= 0.599  (se = 0.025 )</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Likelihood ratio test= 17.78  on 2 df,   p=1e-04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Wald test            = 17.39  on 2 df,   p=2e-04</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Score (logrank) test = 17.59  on 2 df,   p=2e-04</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Verify ODE dynamics - compare numerical solution with data</span></span></span>
