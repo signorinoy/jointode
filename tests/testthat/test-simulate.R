@@ -320,8 +320,8 @@ test_that(".create_example_data works correctly", {
     c("longitudinal_data", "survival_data", "state") %in%
       names(example$data)
   ))
-  expect_equal(nrow(example$data$survival_data), 20)
-  expect_equal(nrow(example$data$state), 20)
+  expect_equal(nrow(example$data$survival_data), 50)
+  expect_equal(nrow(example$data$state), 50)
 
   # Test coefficients
   coef <- example$init$coefficients
