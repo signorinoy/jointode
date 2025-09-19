@@ -133,8 +133,8 @@ summary(fit)
 #> 
 #> ODE System Characteristics:
 #>                    Estimate Std. Error z value Pr(>|z|)    
-#> T (period)          5.07235    0.02925  173.42   <2e-16 ***
-#> xi (damping ratio)  0.69292    0.01383   50.09   <2e-16 ***
+#> T (period)         5.072347   0.029248   173.4   <2e-16 ***
+#> xi (damping ratio) 0.692924   0.006794   102.0   <2e-16 ***
 #> ---
 #> Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 #> 
