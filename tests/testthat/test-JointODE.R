@@ -7,7 +7,7 @@ test_that("JointODE basic functionality", {
 
   # Generate minimal test data - very small for speed
   tiny_data <- JointODE:::.create_example_data(
-    n_subjects = 20, # Minimum viable data
+    n_subjects = 50, # Minimum viable data
     seed = 123
   )
 

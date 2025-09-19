@@ -127,7 +127,7 @@ test_that("simulate validates input parameters", {
 })
 
 test_that("simulate generates reasonable biomarker trajectories", {
-  sim <- JointODE::simulate(n_subjects = 20, seed = 222)
+  sim <- JointODE::simulate(n_subjects = 50, seed = 222)
 
   # Check biomarker values are finite
   expect_true(all(is.finite(sim$longitudinal_data$biomarker)))
@@ -143,7 +143,7 @@ test_that("simulate generates reasonable biomarker trajectories", {
 })
 
 test_that("simulate generates valid survival times", {
-  sim <- JointODE::simulate(n_subjects = 20, maxt = 5, seed = 333)
+  sim <- JointODE::simulate(n_subjects = 50, maxt = 5, seed = 333)
 
   # All times should be positive and within maxt
   expect_true(all(sim$survival_data$time > 0))
@@ -157,7 +157,7 @@ test_that("simulate generates valid survival times", {
 
   # Test with parameters that ensure censoring
   sim_cens <- JointODE::simulate(
-    n_subjects = 20,
+    n_subjects = 50,
     maxt = 2,
     survival = list(
       baseline = list(type = "weibull", shape = 1.5, scale = 20),
@@ -306,7 +306,7 @@ test_that("simulate respects covariate distributions", {
 test_that(".create_example_data works correctly", {
   skip_on_cran() # Skip on CRAN - internal function test
   # Single call to create example data
-  example <- JointODE:::.create_example_data(n_subjects = 20, seed = 123)
+  example <- JointODE:::.create_example_data(n_subjects = 50, seed = 123)
 
   # Test structure
   expect_type(example, "list")
@@ -351,7 +351,7 @@ test_that(".create_example_data works correctly", {
   ))
 
   # Test reproducibility
-  example2 <- JointODE:::.create_example_data(n_subjects = 20, seed = 123)
+  example2 <- JointODE:::.create_example_data(n_subjects = 50, seed = 123)
   expect_identical(
     example$data$survival_data$time,
     example2$data$survival_data$time
